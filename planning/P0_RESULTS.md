@@ -10,6 +10,31 @@ Status: IN_PROGRESS — `assured-exact` local mocked path implemented; LocalNet/
 - TestNet: not attempted; no funded payer, selected ASA, app, provider opt-in, or credentials exist.
 - D-016 fixes `assured-exact` to `[provider axfer, premium axfer, appl]` and deliberately forbids fee abstraction/extra transactions for P0.
 
+## Continuation orchestrator review
+
+Reviewed at repository HEAD `1305e95`.
+
+Verification rerun:
+
+```text
+npm run test:p0              PASS, 17/17
+npm run typecheck:p0         PASS
+npm run build:contract:p0    PASS
+```
+
+The passing suite is not yet chain-ready evidence. The following local correctness gaps remain:
+
+- The raw signed application-call fallback checks only for a 64-byte signature; it does not cryptographically verify that signature against the sender and transaction signing bytes.
+- The constructed application arguments are plain strings beginning with `openCoverage`, while the compiled `@abimethod` dispatches on the ABI selector `0xfca9b335` for `openCoverage(uint64,uint64,byte[],bool)void` and expects ABI-encoded arguments.
+- `settle()` passes a base64-encoded signed transaction blob to `waitForConfirmation()` instead of an Algorand transaction ID.
+- `settle()` reconstructs bytes from the mutable payload after asynchronous verification instead of carrying forward one immutable prepared group.
+- Malformed decimal or application arguments can throw during `BigInt(...)` parsing instead of returning a structured invalid response.
+- `algorand-msgpack` is imported directly but is available only as a transitive dependency; either declare it directly or avoid the direct import.
+- The assured-exact suite lacks most required negative cases: premium receiver, ASA substitution, payer mismatch, arithmetic, ABI method/argument mismatch, missing group ID, cryptographically invalid signatures for each payer role, rekey/close, and explicit fee-member rejection or support.
+- D-016 excludes fee abstraction without establishing whether the selected POC facilitator path requires it. D-017 must resolve that compatibility question before P0 completes.
+
+No LocalNet or TestNet evidence exists yet. Continue with `planning/P0_CHAIN_READINESS_FIXES.md`.
+
 ## Orchestrator review
 
 Reviewed on 2026-08-30 at repository HEAD `abec4d2`.

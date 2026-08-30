@@ -17,6 +17,7 @@
     "@algorandfoundation/algokit-utils": "10.0.0-alpha.46",
     "@x402/avm": "2.24.0",
     "@x402/core": "2.24.0",
-    "@x402/express": "2.24.0"
+    "@x402/express": "2.24.0",
+    "algosdk": "^3.5.2"
   }
 }

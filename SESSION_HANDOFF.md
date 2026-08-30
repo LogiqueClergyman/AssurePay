@@ -1,27 +1,55 @@
 # Session Handoff
 
-## Phase and state
+## Current state
 
-P0 — Atomic-group spike: IN_PROGRESS.
+- Phase: P0 — Atomic-group spike
+- State: IN_PROGRESS
+- Branch: `main`
+- Reviewed continuation HEAD: `1305e95`
+- Active packet: `planning/P0_CHAIN_READINESS_FIXES.md`
+- Results: `planning/P0_RESULTS.md`
+- Review record: `planning/P0_REVIEW.md`
 
-## Branch and HEAD commit
+The local `assured-exact` scaffold is registered through `@x402/core`, and all currently declared commands pass. It is not yet safe or chain-ready, and no LocalNet/TestNet evidence exists.
 
-`main` at `b6e8df8`.
+## Verified commands
 
-## Completed work
+```text
+npm run test:p0              PASS, 17/17
+npm run typecheck:p0         PASS
+npm run build:contract:p0    PASS
+```
 
-- Repaired `npm run test:p0` to use Node's test runner.
-- Hardened the disposable contract for 32-byte commitments, app-call payer binding, and app-call rekey rejection.
-- Added local `assured-exact` scheme/client helpers and mocked `@x402/core` registration/settlement tests.
-- Accepted D-016 fixed profile; fee abstraction is deliberately forbidden in this P0 profile.
-
-## Verification and chain evidence
-
-- `npm run test:p0` — PASS, 17/17 (unit tests, mocked facilitator integration, and stock-exact regression distinguished by test names).
-- `npm run typecheck:p0` and `npm run build:contract:p0` — PASS.
-- LocalNet: Docker daemon became available. `npx --yes @algorandfoundation/algokit-cli localnet start` failed with npm 404 because the official CLI is not an npm package. No LocalNet chain evidence exists.
-- TestNet: not attempted; no secrets, funded accounts, or selected ASA provided.
+These results cover unit and mocked-network integration only.
 
 ## Exact next action
 
-Install/use the official AlgoKit CLI through its supported distribution and start LocalNet. Before P0 can be marked blocked, replace the raw signed-application fallback with full cryptographic validation and obtain LocalNet success/rollback evidence.
+Execute `planning/P0_CHAIN_READINESS_FIXES.md` in the same Terra implementation chat. Correct signature verification, ABI transaction construction, transaction-ID handling, prepared-group immutability, structured malformed-input handling, dependency declaration, and the missing negative tests before attempting LocalNet deployment.
+
+After the correctness gate passes, install the official AlgoKit CLI using a supported distribution, start LocalNet, and obtain genuine success/rollback balance evidence. Do not use the nonexistent `@algorandfoundation/algokit-cli` npm package again.
+
+## Fee abstraction
+
+D-016 defines a fee-paying three-transaction base profile and excludes a fee-payer member. D-017 remains open: determine whether the actual POC facilitator path requires fee abstraction. If it does, D-016 must be superseded and the contract/client/facilitator profile updated together. Do not defer an actually required fee path to a later phase.
+
+## Required reading
+
+Read only:
+
+1. `AGENTS.md`
+2. `SESSION_HANDOFF.md`
+3. `planning/P0_CHAIN_READINESS_FIXES.md`
+4. `planning/P0_REVIEW.md`
+5. `planning/P0_RESULTS.md`
+6. `DECISIONS.md`
+7. `IMPLEMENTATION_PLAN.md`
+
+Do not access `/docs`.
+
+## External prerequisites
+
+- Docker CLI is installed and the implementation session reported the daemon available.
+- AlgoKit CLI is not installed.
+- TestNet still requires funded/opted-in accounts, a selected POC ASA, a funded/deployed application opted into that ASA, and credentials supplied only through environment variables.
+
+Do not mark P0 blocked until every safe local correctness and LocalNet task has been exhausted.

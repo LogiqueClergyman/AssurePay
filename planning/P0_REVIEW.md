@@ -51,3 +51,18 @@ P0 is `READY` for a tightly scoped continuation. It is not yet blocked solely on
 
 P1 remains blocked until the continuation proves the selected profile through the intended x402 registration/verification/settlement boundary and obtains the required chain evidence.
 
+## Review of continuation at `1305e95`
+
+The canonical test, typecheck, and contract build commands now pass. The continuation also hardens commitment length and application-call payer/rekey checks and registers a local scheme through `@x402/core` with a mocked network signer.
+
+P0 nevertheless remains in local engineering because:
+
+1. raw application-call signatures are length-checked rather than cryptographically verified;
+2. the client builds non-ABI application arguments that cannot invoke the compiled ABI method;
+3. settlement uses signed bytes encoded as base64 where an Algorand transaction ID is required;
+4. verified bytes are reconstructed from a mutable payload after an asynchronous boundary;
+5. malformed numeric inputs may throw instead of producing a protocol validation failure;
+6. the assured-exact negative test matrix is substantially incomplete; and
+7. fee abstraction was excluded without proving that the selected facilitator path does not require it.
+
+The next active packet is `planning/P0_CHAIN_READINESS_FIXES.md`. LocalNet setup follows these correctness fixes.
