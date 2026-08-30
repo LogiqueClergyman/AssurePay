@@ -1,6 +1,14 @@
 # P0 Atomic-Group Spike Results
 
-Status: PARTIAL — CURRENT `exact` REJECTED; `assured-exact` NOT YET IMPLEMENTED
+Status: IN_PROGRESS — `assured-exact` local mocked path implemented; LocalNet/TestNet pending
+
+## Continuation evidence (2026-08-30)
+
+- Unit tests: `group-validator.mjs` validates the fixed three-role profile and negative cases; this is not chain evidence.
+- Mocked facilitator integration: local `AssuredExactAvmScheme` is registered and invoked through `@x402/core` with a mocked signer/network; it verifies, simulates, and submits identical bytes in the happy-path test. This is not LocalNet evidence.
+- LocalNet: Docker daemon is available, but `algokit` is absent. A genuine attempt, `npx --yes @algorandfoundation/algokit-cli localnet start`, failed with npm `404`; that CLI is not distributed under that npm package. No deployment, balances, or transaction IDs exist.
+- TestNet: not attempted; no funded payer, selected ASA, app, provider opt-in, or credentials exist.
+- D-016 fixes `assured-exact` to `[provider axfer, premium axfer, appl]` and deliberately forbids fee abstraction/extra transactions for P0.
 
 ## Orchestrator review
 

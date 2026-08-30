@@ -20,7 +20,7 @@ function logicalGroup(overrides = {}) {
     appAddress,
     gross: 100n,
     premium: 7n,
-    commitment: new Uint8Array([1]),
+    commitment: new Uint8Array(32).fill(1),
     reject: false,
   }
   return {

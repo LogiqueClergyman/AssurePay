@@ -18,7 +18,7 @@ Later phases may be prepared conceptually, but their code must not begin until t
 
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
-| P0 Atomic group spike | READY | `planning/P0_ASSURED_EXACT_CONTINUATION.md` | D-010 accepted; implement and exercise the minimal `assured-exact` path, then prove it on TestNet |
+| P0 Atomic group spike | IN_PROGRESS | `planning/P0_ASSURED_EXACT_CONTINUATION.md` | D-016 fixed profile implemented; complete LocalNet and TestNet proof |
 | P1 Assurance Core | BLOCKED_BY_P0 | Not created | Pending |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |

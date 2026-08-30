@@ -32,6 +32,16 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Consequences: Bind the whole ordered assurance group before simulation and submit those exact bytes. P1 retains contract-level validation.
 - Supersedes: none
 
+### D-016 — P0 assured-exact fixed profile
+
+- Status: ACCEPTED
+- Date: 2026-08-30
+- Phase: P0
+- Decision: Requirements use `scheme: assured-exact`, canonical decimal-string `asset` and `amount` (gross), and `extra` fields `provider`, `applicationAddress`, `applicationId`, `providerNet`, `premium`, and base64 32-byte `requestCommitment`. Payload uses base64 signed `paymentGroup` and fixed indices `providerIndex: 0`, `premiumIndex: 1`, `applicationIndex: 2`.
+- Evidence: The local scheme is registered through `@x402/core` and requires exact three-member ordering, one group ID, equal payer addresses, providerNet + premium = gross, and bound `openCoverage(gross,premium,commitment)` arguments.
+- Consequences: P0 deliberately excludes fee abstraction: no fee-payer member or unexpected extra transaction is allowed. Payer signs all three members; provider does not sign. A later fee-enabled profile must supersede this decision and change the contract/facilitator indices together.
+- Supersedes: none
+
 ## Open decisions
 
 | ID | Decision | Target phase | Status |
@@ -41,7 +51,6 @@ This file records implementation decisions that affect later phases. Keep entrie
 | D-013 | Explicit coverage close vs lazy/keeper close | P1 | OPEN; explicit close is acceptable for POC |
 | D-014 | Single development claims key vs multisig | P1/P3 | OPEN; single secured development key is acceptable for POC |
 | D-015 | Same-group provider stake bootstrap | P0/P1 | OPEN; initial pre-deposit is acceptable if bootstrap complicates P0 |
-| D-016 | `assured-exact` payload schema, transaction order, role indices, and optional fee-payer position | P0 | OPEN |
 
 ## Entry template
 

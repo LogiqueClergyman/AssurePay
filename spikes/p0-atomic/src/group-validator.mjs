@@ -11,8 +11,8 @@ export function validateAssuranceGroup({ group, assetId, provider, appAddress, g
   if (providerPayment.receiver !== provider) throw new Error('PROVIDER_RECEIVER')
   if (premiumPayment.receiver !== appAddress) throw new Error('PREMIUM_RECEIVER')
   if (providerPayment.amount + premiumPayment.amount !== gross || premiumPayment.amount !== premium) throw new Error('AMOUNT_MISMATCH')
-  if (!(commitment instanceof Uint8Array) || commitment.length === 0) throw new Error('COMMITMENT')
-  for (const txn of [providerPayment, premiumPayment]) {
+  if (!(commitment instanceof Uint8Array) || commitment.length !== 32) throw new Error('COMMITMENT')
+  for (const txn of [providerPayment, premiumPayment, appCall]) {
     if (txn.rekeyTo || txn.closeTo) throw new Error('UNSAFE_TRANSACTION_CONTROL')
   }
   if (reject) throw new Error('FORCED_REJECTION')

@@ -5,6 +5,7 @@ import {
   Global,
   gtxn,
   TransactionType,
+  Txn,
 } from '@algorandfoundation/algorand-typescript'
 import type { bytes, uint64 } from '@algorandfoundation/algorand-typescript'
 import { Account, GlobalState } from '@algorandfoundation/algorand-typescript'
@@ -32,6 +33,7 @@ export default class AssuranceCoreSpike extends Contract {
     // Fixed P0 wire profile: [provider transfer, premium transfer, app call].
     assert(Global.groupSize === 3)
     assert(providerPayment.sender === premiumPayment.sender)
+    assert(Txn.sender === providerPayment.sender)
     assert(providerPayment.type === TransactionType.AssetTransfer)
     assert(premiumPayment.type === TransactionType.AssetTransfer)
     assert(providerPayment.xferAsset.id === this.configuredAsset.value)
@@ -40,11 +42,12 @@ export default class AssuranceCoreSpike extends Contract {
     assert(premiumPayment.assetReceiver === Global.currentApplicationAddress)
     assert(providerPayment.assetAmount + premiumPayment.assetAmount === gross)
     assert(premiumPayment.assetAmount === premium)
-    assert(commitment.length > 0)
+    assert(commitment.length === 32)
     assert(providerPayment.rekeyTo === Global.zeroAddress)
     assert(premiumPayment.rekeyTo === Global.zeroAddress)
     assert(providerPayment.assetCloseTo === Global.zeroAddress)
     assert(premiumPayment.assetCloseTo === Global.zeroAddress)
+    assert(Txn.rekeyTo === Global.zeroAddress)
     assert(!reject)
 
     this.opened.value = this.opened.value + 1
