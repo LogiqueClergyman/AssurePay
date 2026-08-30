@@ -22,11 +22,20 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Decision: Resolve the x402 AVM atomic-group representation before implementing the production contract, SDKs, or backend.
 - Reason: This is the largest cross-component uncertainty and determines later interfaces.
 
+### D-010 — Dedicated assured-exact scheme
+
+- Status: ACCEPTED
+- Date: 2026-08-30
+- Phase: P0
+- Decision: Use a distinct `assured-exact` scheme; do not extend current AVM `exact`.
+- Evidence: `@x402/avm` 2.24.0 uses one payment index and checks only that selected ASA transfer. Its real `ExactAvmScheme.settle()` rejects the signed P0 app-call group before simulation; the automated harness confirms no submission.
+- Consequences: Bind the whole ordered assurance group before simulation and submit those exact bytes. P1 retains contract-level validation.
+- Supersedes: none
+
 ## Open decisions
 
 | ID | Decision | Target phase | Status |
 |---|---|---|---|
-| D-010 | Existing AVM `exact` extension vs dedicated `assured-exact` scheme | P0 | OPEN |
 | D-011 | Exact on-chain coverage storage layout and minimum-balance implications | P1 | OPEN |
 | D-012 | Premium rounding and minimum premium atomic unit | P1 | OPEN |
 | D-013 | Explicit coverage close vs lazy/keeper close | P1 | OPEN; explicit close is acceptable for POC |

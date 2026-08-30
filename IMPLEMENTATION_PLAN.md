@@ -18,7 +18,7 @@ Later phases may be prepared conceptually, but their code must not begin until t
 
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
-| P0 Atomic group spike | READY | `planning/P0_ATOMIC_GROUP_SPIKE.md` | Pending |
+| P0 Atomic group spike | BLOCKED | `planning/P0_ATOMIC_GROUP_SPIKE.md` | Blocked: current `exact` rejects the required application-call group; TestNet needs `assured-exact` facilitator support |
 | P1 Assurance Core | BLOCKED_BY_P0 | Not created | Pending |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |
@@ -87,4 +87,3 @@ The orchestrator marks a phase `COMPLETE` only when:
 - material decisions are recorded in `DECISIONS.md`;
 - `SESSION_HANDOFF.md` contains no unresolved blocker for that phase; and
 - the implementation has been reviewed against the packet rather than merely shown to compile.
-
