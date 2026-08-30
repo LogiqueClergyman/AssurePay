@@ -10,12 +10,12 @@
 - Results: `planning/P0_RESULTS.md`
 - Review record: `planning/P0_REVIEW.md`
 
-The local `assured-exact` scaffold is registered through `@x402/core`, and all currently declared commands pass. It is not yet safe or chain-ready, and no LocalNet/TestNet evidence exists.
+The local `assured-exact` path is registered through `@x402/core`, uses canonical Algorand SDK ABI transactions, and cryptographically verifies all three payer signatures. No LocalNet/TestNet evidence exists.
 
 ## Verified commands
 
 ```text
-npm run test:p0              PASS, 17/17
+npm run test:p0              PASS, 18/18
 npm run typecheck:p0         PASS
 npm run build:contract:p0    PASS
 ```
@@ -24,13 +24,13 @@ These results cover unit and mocked-network integration only.
 
 ## Exact next action
 
-Execute `planning/P0_CHAIN_READINESS_FIXES.md` in the same Terra implementation chat. Correct signature verification, ABI transaction construction, transaction-ID handling, prepared-group immutability, structured malformed-input handling, dependency declaration, and the missing negative tests before attempting LocalNet deployment.
+Complete the remaining Gate E negative-test matrix, then install AlgoKit using its official uv installer (`curl -fsSL https://cli.algokit.io/install.sh | bash`) and attempt LocalNet. Do not claim mocked tests as chain evidence.
 
 After the correctness gate passes, install the official AlgoKit CLI using a supported distribution, start LocalNet, and obtain genuine success/rollback balance evidence. Do not use the nonexistent `@algorandfoundation/algokit-cli` npm package again.
 
 ## Fee abstraction
 
-D-016 defines a fee-paying three-transaction base profile and excludes a fee-payer member. D-017 remains open: determine whether the actual POC facilitator path requires fee abstraction. If it does, D-016 must be superseded and the contract/client/facilitator profile updated together. Do not defer an actually required fee path to a later phase.
+D-016 remains the caller-paid three-transaction base profile. D-017 is accepted: the installed AVM path uses an optional fee payer only when `extra.feePayer` is supplied.
 
 ## Required reading
 

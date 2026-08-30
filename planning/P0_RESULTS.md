@@ -2,6 +2,13 @@
 
 Status: IN_PROGRESS — `assured-exact` local mocked path implemented; LocalNet/TestNet pending
 
+## Chain-readiness correction checkpoint (2026-08-31)
+
+- Mocked facilitator evidence only: `algosdk` now constructs a canonical ABI application call for `openCoverage(uint64,uint64,byte[],bool)void`; all three signed members are cryptographically verified with `ed25519Verifier` over `txn.bytesToSign()`.
+- The scheme validates the ABI selector, ABI-encoded gross/premium/32-byte commitment/reject flag, canonical numeric requirements, group ID, roles, and signatures. Settlement preserves verified byte copies, uses the decoded provider transfer transaction ID, and separates submission and confirmation errors.
+- `npm run test:p0`: PASS, 18/18. This includes mocked `@x402/core` integration and does not constitute LocalNet evidence.
+- D-017 accepted: caller-paid fees are supported by the intended AVM path; no fee-payer member is present in P0.
+
 ## Continuation evidence (2026-08-30)
 
 - Unit tests: `group-validator.mjs` validates the fixed three-role profile and negative cases; this is not chain evidence.

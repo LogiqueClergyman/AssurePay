@@ -42,6 +42,16 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Consequences: P0 deliberately excludes fee abstraction: no fee-payer member or unexpected extra transaction is allowed. Payer signs all three members; provider does not sign. A later fee-enabled profile must supersede this decision and change the contract/facilitator indices together.
 - Supersedes: none
 
+### D-017 — Caller-paid fees for the P0 path
+
+- Status: ACCEPTED
+- Date: 2026-08-31
+- Phase: P0
+- Decision: The P0 assured-exact profile uses payer-funded transaction fees and retains the three-member group. No facilitator fee-payer member is required.
+- Evidence: Installed `@x402/avm` 2.24.0 creates its optional fee-payer transaction only when `requirements.extra.feePayer` is present; without it, the caller pays transaction fees. The local assured-exact client likewise constructs ordinary payer-funded transactions.
+- Consequences: D-016 remains in force. Any later sponsored-fee profile must supersede D-016 and specify a fourth member and contract/facilitator indices.
+- Supersedes: none
+
 ## Open decisions
 
 | ID | Decision | Target phase | Status |
@@ -51,7 +61,6 @@ This file records implementation decisions that affect later phases. Keep entrie
 | D-013 | Explicit coverage close vs lazy/keeper close | P1 | OPEN; explicit close is acceptable for POC |
 | D-014 | Single development claims key vs multisig | P1/P3 | OPEN; single secured development key is acceptable for POC |
 | D-015 | Same-group provider stake bootstrap | P0/P1 | OPEN; initial pre-deposit is acceptable if bootstrap complicates P0 |
-| D-017 | Whether the selected POC facilitator path requires fee abstraction; if required, supersede D-016 with an explicit fee-payer role and indices | P0 | OPEN |
 
 ## Entry template
 
