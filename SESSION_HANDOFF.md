@@ -5,32 +5,36 @@
 - Phase: P0 — Atomic-group spike
 - State: IN_PROGRESS
 - Branch: `main`
-- Reviewed continuation HEAD: `1305e95`
+- Code checkpoint: `9ef5308` (`test: complete P0 signed-byte rejection matrix`).
 - Active packet: `planning/P0_CHAIN_READINESS_FIXES.md`
 - Results: `planning/P0_RESULTS.md`
 - Review record: `planning/P0_REVIEW.md`
 
-The local `assured-exact` path is registered through `@x402/core`, uses canonical Algorand SDK ABI transactions, and cryptographically verifies all three payer signatures. No LocalNet/TestNet evidence exists.
+Gate E is complete. The `assured-exact` suite has direct signed-byte negative coverage for every case listed in the `ca4f664` review section. All pre-settlement failures assert a stable error reason, simulation count, and zero submission count. Mocked facilitator tests remain explicitly non-chain evidence.
 
 ## Verified commands
 
 ```text
-npm run test:p0              PASS, 18/18
+npm run test:p0              PASS, 52/52
 npm run typecheck:p0         PASS
 npm run build:contract:p0    PASS
 ```
 
-These results cover unit and mocked-network integration only.
+## LocalNet evidence
+
+- Official AlgoKit CLI verified: `algokit, version 2.10.2`.
+- The current official recommended installer URL served `404: Not Found`; the official supported pipx fallback installed the CLI.
+- `algokit doctor` reports Docker 29.4.0 and Docker Compose 5.1.2.
+- `algokit localnet start` was attempted and failed: `Container engine isn't running; please start it.` No LocalNet deployment, transaction, balance, success, or rollback evidence exists.
+- No TestNet attempt or evidence exists.
 
 ## Exact next action
 
-Complete the remaining Gate E negative-test matrix, then install AlgoKit using its official uv installer (`curl -fsSL https://cli.algokit.io/install.sh | bash`) and attempt LocalNet. Do not claim mocked tests as chain evidence.
-
-After the correctness gate passes, install the official AlgoKit CLI using a supported distribution, start LocalNet, and obtain genuine success/rollback balance evidence. Do not use the nonexistent `@algorandfoundation/algokit-cli` npm package again.
+Start the Docker container engine, then rerun `algokit localnet start` using `/Users/adi/Library/Application Support/pipx/venvs/algokit/bin/algokit`. Once LocalNet is live, execute the remaining P0 packet’s genuine deployment, accepted-group, rejected-group, transaction-ID, and balance/rollback checks. Do not claim mocked tests as chain evidence and do not begin P1.
 
 ## Fee abstraction
 
-D-016 remains the caller-paid three-transaction base profile. D-017 is accepted: the installed AVM path uses an optional fee payer only when `extra.feePayer` is supplied.
+D-016 and D-017 remain accepted: P0 is a fixed caller-paid `[provider axfer, premium axfer, appl]` group and rejects an explicit fourth member.
 
 ## Required reading
 
@@ -45,11 +49,3 @@ Read only:
 7. `IMPLEMENTATION_PLAN.md`
 
 Do not access `/docs`.
-
-## External prerequisites
-
-- Docker CLI is installed and the implementation session reported the daemon available.
-- AlgoKit CLI is not installed.
-- TestNet still requires funded/opted-in accounts, a selected POC ASA, a funded/deployed application opted into that ASA, and credentials supplied only through environment variables.
-
-Do not mark P0 blocked until every safe local correctness and LocalNet task has been exhausted.

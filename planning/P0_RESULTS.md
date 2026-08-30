@@ -2,12 +2,22 @@
 
 Status: IN_PROGRESS — `assured-exact` local mocked path implemented; LocalNet/TestNet pending
 
+## Gate E signed-byte matrix and LocalNet attempt (2026-08-31)
+
+- Gate E: COMPLETE. `npm run test:p0` passes 52/52. The direct `assured-exact` matrix covers independently re-signed receiver/ASA/amount/application/ABI/commitment mutations, payer mismatch for both non-provider roles, group IDs and reordering, all three signature roles (missing, corrupt, wrong key), all rekey roles, both close fields, malformed numeric/wrapper input, simulation rejection, submission failure, confirmation failure, and D-017 fourth-member rejection. Each pre-settlement negative case asserts its stable error code, zero simulations, and zero submissions; the simulation rejection asserts one simulation and zero submissions.
+- Mocked facilitator evidence only: the successful settlement test registers through `@x402/core`, verifies the immutable prepared bytes are submitted after simulation, and asserts a transaction-ID-shaped confirmation input. It is not LocalNet evidence.
+- Official installation verification: the current official AlgoKit CLI README documents `curl -fsSL https://cli.algokit.io/install.sh | bash` as the recommended macOS/Linux method and `pipx install algokit` as a supported legacy fallback. On 2026-08-31 the documented installer endpoint returned literal `404: Not Found`; the fallback installed AlgoKit `2.10.2` through pipx.
+- LocalNet: attempted with the installed official CLI. `algokit doctor` reports Docker `29.4.0` and Compose `5.1.2`, but `algokit localnet start` returned `Container engine isn't running; please start it.` No LocalNet containers, deployment, transaction IDs, balances, success evidence, or rollback evidence exist.
+- TestNet: not attempted. No TestNet evidence exists.
+
 ## Chain-readiness correction checkpoint (2026-08-31)
 
 - Mocked facilitator evidence only: `algosdk` now constructs a canonical ABI application call for `openCoverage(uint64,uint64,byte[],bool)void`; all three signed members are cryptographically verified with `ed25519Verifier` over `txn.bytesToSign()`.
 - The scheme validates the ABI selector, ABI-encoded gross/premium/32-byte commitment/reject flag, canonical numeric requirements, group ID, roles, and signatures. Settlement preserves verified byte copies, uses the decoded provider transfer transaction ID, and separates submission and confirmation errors.
 - `npm run test:p0`: PASS, 18/18. This includes mocked `@x402/core` integration and does not constitute LocalNet evidence.
 - D-017 accepted: caller-paid fees are supported by the intended AVM path; no fee-payer member is present in P0.
+
+Orchestrator verification at `ca4f664` reproduced all three passing commands. This checkpoint clears the ABI, cryptographic-signature, immutable-prepared-group, transaction-ID, and error-separation implementation defects identified at `1305e95`. Gate E remains incomplete because only eight tests exercise `assured-exact`; see `planning/P0_REVIEW.md` for the required signed-byte negative cases before LocalNet.
 
 ## Continuation evidence (2026-08-30)
 

@@ -66,3 +66,35 @@ P0 nevertheless remains in local engineering because:
 7. fee abstraction was excluded without proving that the selected facilitator path does not require it.
 
 The next active packet is `planning/P0_CHAIN_READINESS_FIXES.md`. LocalNet setup follows these correctness fixes.
+
+## ABI-safe checkpoint review at `ca4f664`
+
+The orchestrator reran all canonical commands:
+
+```text
+npm run test:p0              PASS, 18/18
+npm run typecheck:p0         PASS
+npm run build:contract:p0    PASS
+```
+
+The implementation now uses Algorand SDK ABI construction, verifies all three signatures over `txn.bytesToSign()`, retains immutable prepared bytes, derives a real transaction ID, and separates submission/confirmation errors. D-017 is accepted for the caller-paid P0 path.
+
+Only eight of the eighteen tests currently exercise `assured-exact`; the remaining ten are the logical mirror and stock-`exact` regression. Before LocalNet, Gate E still needs direct coverage for:
+
+- simulation rejection and no submission;
+- premium receiver substitution;
+- provider and premium ASA substitution independently;
+- payer mismatch for each non-provider role;
+- provider-net, premium, gross, and arithmetic mismatches;
+- wrong application ID;
+- selector and ABI-argument corruption;
+- signed commitment mismatch, not only malformed requirement metadata;
+- missing and inconsistent group IDs;
+- reordering and role substitution;
+- missing, corrupt, and wrong-key signatures for each payer-owned role;
+- rekey on all roles and close on both transfers;
+- malformed numeric fields without thrown exceptions;
+- distinct submission and confirmation failures; and
+- explicit rejection of a fourth fee/extra member under D-017.
+
+Each negative test should assert the expected stable error reason and that simulation/submission were not reached when rejection is pre-simulation. Tests that intentionally reach simulation must assert that submission remains empty on simulation failure.
