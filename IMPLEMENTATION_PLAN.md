@@ -18,7 +18,7 @@ Later phases may be prepared conceptually, but their code must not begin until t
 
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
-| P0 Atomic group spike | IN_PROGRESS | `planning/P0_CHAIN_READINESS_FIXES.md` | Gate E complete; start the Docker container engine, obtain LocalNet success/rollback proof, then TestNet proof |
+| P0 Atomic group spike | BLOCKED | `planning/P0_CHAIN_READINESS_FIXES.md` | Gate E complete; start the Docker/OrbStack container engine, obtain LocalNet success/rollback proof, then TestNet proof |
 | P1 Assurance Core | BLOCKED_BY_P0 | Not created | Pending |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |

@@ -10,6 +10,8 @@ Status: IN_PROGRESS — `assured-exact` local mocked path implemented; LocalNet/
 - LocalNet: attempted with the installed official CLI. `algokit doctor` reports Docker `29.4.0` and Compose `5.1.2`, but `algokit localnet start` returned `Container engine isn't running; please start it.` No LocalNet containers, deployment, transaction IDs, balances, success evidence, or rollback evidence exist.
 - TestNet: not attempted. No TestNet evidence exists.
 
+Orchestrator verification at `4570c5a3ee32e6241b76db23d536557ca52269b2` reproduced all 52 tests plus the PuyaTs dry run and contract build. The worktree was clean before this orchestration update. Gate E is accepted as complete. The active Docker context is `orbstack`, and `docker version` cannot connect because `/Users/adi/.orbstack/run/docker.sock` does not exist. P0 is therefore accurately `BLOCKED` on starting a container engine before LocalNet work can continue.
+
 ## Chain-readiness correction checkpoint (2026-08-31)
 
 - Mocked facilitator evidence only: `algosdk` now constructs a canonical ABI application call for `openCoverage(uint64,uint64,byte[],bool)void`; all three signed members are cryptographically verified with `ed25519Verifier` over `txn.bytesToSign()`.

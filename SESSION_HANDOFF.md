@@ -3,9 +3,9 @@
 ## Current state
 
 - Phase: P0 — Atomic-group spike
-- State: IN_PROGRESS
+- State: BLOCKED
 - Branch: `main`
-- Code checkpoint: `9ef5308` (`test: complete P0 signed-byte rejection matrix`).
+- Reviewed checkpoint: `4570c5a3ee32e6241b76db23d536557ca52269b2`.
 - Active packet: `planning/P0_CHAIN_READINESS_FIXES.md`
 - Results: `planning/P0_RESULTS.md`
 - Review record: `planning/P0_REVIEW.md`
@@ -30,7 +30,9 @@ npm run build:contract:p0    PASS
 
 ## Exact next action
 
-Start the Docker container engine, then rerun `algokit localnet start` using `/Users/adi/Library/Application Support/pipx/venvs/algokit/bin/algokit`. Once LocalNet is live, execute the remaining P0 packet’s genuine deployment, accepted-group, rejected-group, transaction-ID, and balance/rollback checks. Do not claim mocked tests as chain evidence and do not begin P1.
+The user must start OrbStack, which is the active Docker context, or switch to another running Docker-compatible container engine. Confirm `docker info` succeeds before resuming Terra.
+
+Then rerun `algokit localnet start` using `/Users/adi/Library/Application Support/pipx/venvs/algokit/bin/algokit`. Once LocalNet is live, execute the remaining P0 packet’s genuine deployment, accepted-group, rejected-group, transaction-ID, and balance/rollback checks. Do not claim mocked tests as chain evidence and do not begin P1.
 
 ## Fee abstraction
 

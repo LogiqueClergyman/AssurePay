@@ -98,3 +98,17 @@ Only eight of the eighteen tests currently exercise `assured-exact`; the remaini
 - explicit rejection of a fourth fee/extra member under D-017.
 
 Each negative test should assert the expected stable error reason and that simulation/submission were not reached when rejection is pre-simulation. Tests that intentionally reach simulation must assert that submission remains empty on simulation failure.
+
+## Gate E review at `4570c5a`
+
+The orchestrator reproduced:
+
+```text
+npm run test:p0              PASS, 52/52
+npm run typecheck:p0         PASS
+npm run build:contract:p0    PASS
+```
+
+The signed-byte suite now covers the required transfer, payer, arithmetic, ABI, commitment, group, signature, rekey/close, malformed-input, lifecycle-error, x402-registration, stock-`exact`, and D-017 fourth-member cases. Negative tests assert stable error reasons and simulation/submission reachability. Gate E is accepted as complete.
+
+The active Docker context is `orbstack`, but its socket is absent and the daemon cannot be reached. With safe offline work complete, P0 is genuinely environment-blocked until the user starts OrbStack or another Docker-compatible engine. After `docker info` succeeds, the same implementation session should proceed directly to LocalNet deployment and atomic success/rollback evidence; no additional offline coding packet is required first.
