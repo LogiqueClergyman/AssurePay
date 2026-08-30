@@ -1,6 +1,19 @@
 # P0 Atomic-Group Spike Results
 
-Status: BLOCKED
+Status: PARTIAL — CURRENT `exact` REJECTED; `assured-exact` NOT YET IMPLEMENTED
+
+## Orchestrator review
+
+Reviewed on 2026-08-30 at repository HEAD `abec4d2`.
+
+- PuyaTs dry run passes.
+- Contract build passes.
+- `node --test spikes/p0-atomic/test/p0.test.mjs` passes 10/10.
+- The declared `npm run test:p0` command fails because `spikes/p0-atomic/vitest.config.ts` does not exist.
+- Nine passing cases exercise an off-chain mirror validator. They do not demonstrate execution or atomic rollback on LocalNet.
+- The remaining test directly exercises the installed `@x402/avm` facilitator and supports D-010 by proving that the submitted signed group is rejected before simulation/submission.
+- The spike contract still needs a fixed 32-byte request commitment check, application-call payer/rekey validation, and an explicit optional fee-payer group layout before chain execution.
+- Local engineering remains, so P0 is ready for the continuation packet rather than externally blocked. TestNet credentials, funding, asset selection, and a running network endpoint remain later external prerequisites.
 
 ## Environment
 

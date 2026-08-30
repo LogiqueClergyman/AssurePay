@@ -41,6 +41,7 @@ This file records implementation decisions that affect later phases. Keep entrie
 | D-013 | Explicit coverage close vs lazy/keeper close | P1 | OPEN; explicit close is acceptable for POC |
 | D-014 | Single development claims key vs multisig | P1/P3 | OPEN; single secured development key is acceptable for POC |
 | D-015 | Same-group provider stake bootstrap | P0/P1 | OPEN; initial pre-deposit is acceptable if bootstrap complicates P0 |
+| D-016 | `assured-exact` payload schema, transaction order, role indices, and optional fee-payer position | P0 | OPEN |
 
 ## Entry template
 

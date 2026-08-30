@@ -1,42 +1,53 @@
 # Session Handoff
 
-## Phase and state
+## Current state
 
-P0 — Atomic-group spike: BLOCKED.
+- Phase: P0 — Atomic-group spike
+- State: READY
+- Branch: `main`
+- Reviewed implementation commit: `abec4d2`
+- Active packet: `planning/P0_ASSURED_EXACT_CONTINUATION.md`
+- Prior spike results: `planning/P0_RESULTS.md`
+- Orchestrator review: `planning/P0_REVIEW.md`
 
-## Branch and HEAD commit
+The current `@x402/avm` 2.24.0 `exact` facilitator rejects the required signed application-call group before simulation or submission. D-010 therefore selects a dedicated `assured-exact` scheme. That finding is useful but does not complete P0.
 
-`main` at `4e596cd` before the focused P0 commit.
+## Next action
 
-## Completed work
+Execute the continuation packet. Implement the smallest local `assured-exact` client/facilitator path that validates, simulates, and submits the complete assurance group without patching `node_modules`. Harden the disposable contract, repair the canonical test command, and produce real LocalNet atomicity evidence if a LocalNet endpoint can be started.
 
-- Created an isolated AlgoTS P0 contract, validation harness, x402 boundary test, and secret-free environment template under `spikes/p0-atomic/`.
-- Compiled with PuyaTs 1.3.0 / Puya 5.10.0.
-- Confirmed `@x402/avm` 2.24.0 exact has one payment index and rejects the signed P0 application-call group before simulation/submission.
-- Accepted D-010: use `assured-exact`.
+Do not start P1 or build the production Assurance Core, provider SDK, claims backend, database, evidence system, or UI.
 
-## Verification commands and results
+## Review findings that must be addressed
 
-- `npm run typecheck:p0` — PASS.
-- `npm run build:contract:p0` — PASS.
-- `node --test spikes/p0-atomic/test/p0.test.mjs` — PASS, 10/10.
+1. `npm run test:p0` references a missing Vitest configuration and currently fails.
+2. Nine of the ten current tests exercise only the JavaScript mirror validator.
+3. No LocalNet deployment, success transaction, or atomic rollback has occurred.
+4. The contract accepts any non-empty commitment instead of a 32-byte SHA-256 commitment.
+5. The contract does not yet bind the application-call sender to the asset-transfer payer or reject an application-call rekey.
+6. The three-transaction fixed layout does not specify how optional facilitator fee abstraction changes indices.
 
-## TestNet transaction/application IDs, if any
+## Environment notes
 
-None. No asset ID was guessed and no credentials were recorded.
+- Docker CLI is installed, but its configured daemon was not running during orchestration review.
+- AlgoKit CLI was not installed or available on `PATH` during review.
+- TestNet execution will eventually require funded and opted-in accounts, a selected POC ASA, a funded/deployed application opted into that ASA, and an accessible facilitator/network endpoint.
+- Never record secret keys or mnemonics in the repository.
 
-## Decisions recorded
+## Required reading for the next session
 
-D-010 accepted in `DECISIONS.md`.
+Read only:
 
-## Blockers and exact external prerequisites
+1. `AGENTS.md`
+2. `SESSION_HANDOFF.md`
+3. `planning/P0_ASSURED_EXACT_CONTINUATION.md`
+4. `planning/P0_REVIEW.md`
+5. `planning/P0_RESULTS.md`
+6. `DECISIONS.md`
+7. `IMPLEMENTATION_PLAN.md`
 
-Current exact cannot carry the P0 group. Resume only with an `assured-exact` TestNet facilitator that validates, simulates, and submits the full group, plus a funded payer holding the selected POC ASA, an opted-in provider, and a funded/deployed spike app opted into that ASA.
+Do not access `/docs`.
 
-## Exact next action
+## End-of-session requirement
 
-Commit the focused P0 work. Then obtain/implement the approved assurance-aware facilitator and TestNet prerequisites; execute success and forced-failure groups through it before unblocking P0.
-
-## Changed paths and git status
-
-`.gitignore`, `package.json`, `package-lock.json`, `spikes/p0-atomic/**`, `planning/P0_RESULTS.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, and this handoff. Run `git status --short` after committing.
+Update the result, decision, plan, and handoff files named by the active packet. Record commands and actual outputs, distinguish mocked integration from chain execution, and state the exact next action or external prerequisite.
