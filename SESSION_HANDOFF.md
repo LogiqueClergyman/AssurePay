@@ -6,7 +6,7 @@ P0 — Atomic-group spike: IN_PROGRESS.
 
 ## Branch and HEAD commit
 
-`main` at `aa15f5d`.
+`main` at `b6e8df8`.
 
 ## Completed work
 
