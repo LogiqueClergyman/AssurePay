@@ -23,7 +23,8 @@ function parse(payload, requirements) {
     if (!extra || !canonical(requirements.asset) || !canonical(requirements.amount) || !canonical(extra.providerNet) || !canonical(extra.premium) || !canonical(extra.applicationId) || typeof extra.provider !== 'string' || typeof extra.applicationAddress !== 'string' || typeof extra.requestCommitment !== 'string') return fail(ASSURED_EXACT_ERRORS.PAYLOAD, 'non-canonical requirements')
     const commitment = Buffer.from(extra.requestCommitment, 'base64')
     if (commitment.length !== 32 || Buffer.from(commitment).toString('base64') !== extra.requestCommitment) return fail(ASSURED_EXACT_ERRORS.PAYLOAD, 'invalid commitment')
-    const members = p.paymentGroup.map(decode)
+    let members
+    try { members = p.paymentGroup.map(decode) } catch { return fail(ASSURED_EXACT_ERRORS.SIGNATURE, 'malformed or missing ed25519 signature') }
     if (members.some((m) => !m.sig || m.msig || m.lsig || m.sig.length !== 64)) return fail(ASSURED_EXACT_ERRORS.SIGNATURE, 'P0 requires one ed25519 signature per role')
     const txns = members.map((m) => m.txn)
     const group = txns[0].group
@@ -58,7 +59,7 @@ export class AssuredExactAvmScheme {
       const simulation = await this.signer.simulateTransactions(copy(prepared), requirements.network)
       if (simulation.txnGroups?.[0]?.failureMessage) return fail(ASSURED_EXACT_ERRORS.SIMULATION, simulation.txnGroups[0].failureMessage, payerAddress)
       return { isValid: true, payer: payerAddress, prepared }
-    } catch (error) { return fail(ASSURED_EXACT_ERRORS.PAYLOAD, `invalid ABI or numeric field: ${error instanceof Error ? error.message : 'unknown'}`, payerAddress) }
+    } catch { return fail(ASSURED_EXACT_ERRORS.PAYLOAD, 'invalid ABI or numeric field', payerAddress) }
   }
   async settle(payload, requirements) {
     const verified = await this.verify(payload, requirements)
