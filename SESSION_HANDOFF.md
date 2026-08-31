@@ -5,16 +5,16 @@
 - Phase: P0 — Atomic-group spike
 - State: BLOCKED (TestNet user-controlled prerequisites only)
 - Branch: `main`
-- TestNet runner checkpoint: `847ce6b` (`feat: add secret-safe P0 TestNet runner`)
+- Corrected TestNet runner checkpoint: `2e43a3b` (`fix: harden P0 TestNet preflight evidence`)
 - Active packet: `planning/P0_TESTNET_ACCEPTANCE.md`
 - Results: `planning/P0_RESULTS.md`
 
-The reusable TestNet runner, configuration template, and non-mutating preflight are complete. LocalNet evidence remains accepted. No TestNet credentials, selected ASA ID, or endpoint were supplied, so no TestNet account or transaction was touched.
+All three TestNet-runner correctness issues are fixed. The runner/preflight is now safe to call externally blocked: it uses spendable (not total) ALGO, loads ignored local `.env` without overriding process environment, and only accepts the intended deployed-app assertion as simulation/pool rejection evidence.
 
 ## Verification
 
 ```text
-npm run test:p0              PASS, 52/52
+npm run test:p0              PASS, 55/55
 npm run typecheck:p0         PASS
 npm run build:contract:p0    PASS
 npm run localnet:p0          PASS
@@ -23,20 +23,20 @@ npm run testnet:p0 -- --preflight
                              TESTNET_ASA_ID, TESTNET_ALGOD_SERVER
 ```
 
-## TestNet runner
+## TestNet preflight and evidence safeguards
 
-- Command: `npm run testnet:p0`; readiness-only command: `npm run testnet:p0 -- --preflight`.
-- Template: `spikes/p0-atomic/.env.example`; populated `spikes/p0-atomic/.env` is ignored.
-- The runner never prints credentials and never guesses or creates the configured TestNet ASA. It creates a disposable app/provider only after all preflight requirements pass.
-- On a ready TestNet configuration it records public setup/success/rejection IDs and rounds, ASA balances, and marker state, with simulation and actual pool rejection explicitly distinct.
+- Public account funds are reported as total, minimum balance, and spendable microALGOs; the 3,000,000 threshold applies to spendable funds.
+- The runner loads `spikes/p0-atomic/.env` when present but preserves supplied process-environment values. Credentials are never printed.
+- A forced rejection is accepted only if both Local/TestNet simulation and the actual pool error identify `logic eval error`, `assert failed`, and the current application ID. Unrelated authentication, rate, endpoint, timeout, or stale-round errors fail the run.
+- No TestNet credentials or selected ASA ID were provided, and no TestNet mutation/evidence exists.
 
 ## Exact next action
 
-Provide the following through environment variables or the ignored `spikes/p0-atomic/.env`, then run `npm run testnet:p0`:
+Supply environment variables or ignored `spikes/p0-atomic/.env`, then run `npm run testnet:p0`:
 
-1. `TESTNET_PAYER_MNEMONIC` for a funded TestNet setup/payer account.
-2. `TESTNET_ASA_ID` for the selected existing TestNet ASA; the payer must be opted in and hold at least 100 atomic units.
-3. `TESTNET_ALGOD_SERVER` for a reachable TestNet endpoint; configure optional `TESTNET_ALGOD_TOKEN` and `TESTNET_ALGOD_TOKEN_HEADER` if required.
-4. At least 3,000,000 spendable microALGOs on the payer for disposable setup and fees.
+1. `TESTNET_PAYER_MNEMONIC` for a funded TestNet payer/setup account.
+2. `TESTNET_ASA_ID` for the selected existing TestNet ASA; payer must be opted in and hold at least 100 atomic units.
+3. `TESTNET_ALGOD_SERVER` for a reachable TestNet endpoint, plus optional `TESTNET_ALGOD_TOKEN` and `TESTNET_ALGOD_TOKEN_HEADER`.
+4. At least 3,000,000 spendable microALGOs after account minimum balance.
 
 Do not begin P1 or access `/docs`.

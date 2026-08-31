@@ -1,6 +1,28 @@
 # P0 Atomic-Group Spike Results
 
-Status: BLOCKED — TestNet runner/preflight complete; user-controlled TestNet credentials, ASA, funds, and endpoint required
+Status: BLOCKED — corrected TestNet runner/preflight complete; only user-controlled TestNet credentials, ASA, spendable funds, and endpoint required
+
+## TestNet runner correction checkpoint (2026-08-31)
+
+- Spendable ALGO is now calculated as `account.amount - account.minBalance`, and the public preflight result reports `totalMicroAlgos`, `minimumBalanceMicroAlgos`, and `spendableMicroAlgos`. The conservative 3,000,000 microALGO requirement applies to spendable funds, not total balance.
+- `npm run testnet:p0` now loads ignored `spikes/p0-atomic/.env` if it exists, without replacing any key already present in the process environment. It emits no mnemonic, secret key, token, or populated environment value.
+- The forced-rejection path now requires both the TestNet simulation and actual transaction-pool submission error to identify `logic eval error`, `assert failed`, and the same deployed application ID. Authentication, endpoint, rate-limit, timeout, stale-round, or other unrelated failures abort acceptance rather than becoming rollback evidence.
+- Focused deterministic coverage verifies process-environment precedence, total/minimum/spendable calculation, and intended-assertion matching versus unrelated failures. `npm run test:p0` passes 55/55.
+- T7 preflight still reports only the absent `TESTNET_PAYER_MNEMONIC`, `TESTNET_ASA_ID`, and `TESTNET_ALGOD_SERVER`. Once supplied, it will additionally verify the payer's public spendable balance and configured ASA holding/opt-in before mutation. No TestNet mutation or evidence occurred.
+
+## TestNet runner orchestrator review
+
+Reviewed checkpoint: `4ae9cae276f709ada168a0c5e19a8f01026748be`.
+
+The orchestrator reproduced the 52 tests, PuyaTs checks, contract build, and secret-free empty-configuration preflight. The preflight exits with code 2 and reports only the three missing variable names; no credential values are exposed.
+
+Three safe local fixes remain before the status can be considered externally blocked:
+
+- The 3,000,000 microALGO threshold is described as spendable but is checked against total account amount. Preflight must subtract the account minimum balance.
+- The ignored `spikes/p0-atomic/.env` is advertised as supported but is not loaded by the npm command or runner.
+- The actual-pool-rejection branch treats every submission exception as proof of the intended contract rejection and discards its cause. It must require the expected simulation failure and verify the pool error is the intended application logic/assertion rejection, not an endpoint/authentication/rate-limit/round error.
+
+Until these are fixed, P0 remains `IN_PROGRESS` rather than externally blocked.
 
 ## TestNet acceptance runner and preflight (2026-08-31)
 

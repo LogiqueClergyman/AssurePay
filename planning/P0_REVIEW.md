@@ -129,3 +129,15 @@ The orchestrator reviewed the deployment script and independently reran all four
 The script correctly distinguishes mocked facilitator tests, real LocalNet simulation, successful on-chain settlement, and actual transaction-pool rejection. Gate G is accepted.
 
 P0 is not yet externally blocked because the existing runner is hard-coded to LocalNet KMD and endpoints. The final safe local task is `planning/P0_TESTNET_ACCEPTANCE.md`: implement a secret-safe TestNet runner and preflight. Once that runner is ready, unavailable funded accounts/ASA holdings become a genuine external blocker.
+
+## TestNet runner review at `4ae9cae`
+
+The runner validates required configuration without printing secrets, requires a TestNet genesis identifier, checks the configured asset and payer holding, and delays mutations until preflight passes. The empty-configuration preflight correctly returns exit code 2 with only actionable variable names.
+
+The runner needs three corrections before external-blocked status is accepted:
+
+1. Calculate spendable ALGO as total amount minus account minimum balance rather than comparing total amount to the stated spendable threshold.
+2. Load the ignored `.env` file advertised by the command/template, or stop advertising it; explicit process environment should retain precedence.
+3. Count TestNet atomic rejection only when both simulation and pool submission identify the deliberate application assertion. The current catch-all converts any submission failure into supposed rejection evidence, contrary to Gate T5.
+
+These are local implementation tasks. After correction and T7 verification, missing mnemonic/funding/ASA/endpoint configuration becomes the genuine P0 blocker.
