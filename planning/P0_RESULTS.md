@@ -1,6 +1,15 @@
 # P0 Atomic-Group Spike Results
 
-Status: IN_PROGRESS — `assured-exact` local mocked path implemented; LocalNet/TestNet pending
+Status: BLOCKED — LocalNet proof complete; TestNet funding/credentials and network setup pending
+
+## Gate G LocalNet evidence (2026-08-31)
+
+- Tooling: AlgoKit `2.10.2`; Docker `29.4.0` / Compose `5.1.2`; LocalNet genesis `dockernet-v1`. Started with `/Users/adi/Library/Application Support/pipx/venvs/algokit/bin/algokit localnet start` after the official `algorand/algod`, `algorand/indexer`, and `algorandfoundation/conduit-localnet` images were available.
+- Reproducibility: `npm run build:contract:p0 && npm run localnet:p0` compiles the disposable contract, creates a new disposable ASA/app/accounts per run, funds accounts, opts payer/provider/application into the ASA, then emits public evidence JSON only. It reads no secrets from the repository and logs none.
+- Successful real settlement through registered `assured-exact`: LocalNet ASA `1045`, app `1046`, application `QVP5TVUA6ISFQQAXICQMMQM3G7XCA2X7LQXXRM7VMPCSXT7WSXJ62YY6E4`; confirmed provider-transfer transaction ID `6AY6OFQ6IFO43CEBCEWELA5PJMWAYVMWMBSLHTWFWENGLKGQ7QZA`. ASA balances changed payer `1000 -> 900`, provider `0 -> 93`, application `0 -> 7`; payer Algo changed `4,999,000 -> 4,996,000` (three caller-paid fees), provider/application Algo remained `999,000`/`300,000`; contract `opened` marker changed `0 -> 1`.
+- Actual network-rejected atomic group: group `swX5Mc8vAZvkZfX6iik3tmY5tCM4sYwiJyeQ9JswOSM=`, provider member ID `W6GQDH4VEDSY4GFEPHLMRK36RGDK6KOYKGEHHRZBZYAQEJ4WW5EA`, rejected app-call ID `DD7QBMKJXWWMJ37OTRSQLU2FVYCHEI35JAJ4KIC4GIPILDCEYPTA`. The ABI-valid `reject=true` call failed the contract assertion (`pc=329`) in LocalNet simulation and, separately, actual submission returned HTTP 400 / `TransactionPool.Remember` for the same app-call ID. ASA balances remained payer `900`, provider `93`, application `7`, and marker remained `1`; therefore neither transfer settled.
+- Evidence distinction: Gate E's facilitator simulation-rejection test uses a mocked signer and is not chain evidence. Gate G's `simulateRawTransactions` only predicted this deliberate AVM failure; the separate raw submission to LocalNet's real transaction pool was rejected and the unchanged state is the atomic-rollback proof.
+- TestNet: not attempted and not complete. P0 is blocked only on TestNet’s external funding, ASA/app setup, and credentials/network configuration.
 
 ## Gate E signed-byte matrix and LocalNet attempt (2026-08-31)
 
