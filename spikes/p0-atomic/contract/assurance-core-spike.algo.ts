@@ -8,7 +8,7 @@ import {
   Txn,
 } from '@algorandfoundation/algorand-typescript'
 import type { bytes, uint64 } from '@algorandfoundation/algorand-typescript'
-import { Account, GlobalState } from '@algorandfoundation/algorand-typescript'
+import { Account, Asset, GlobalState, itxn } from '@algorandfoundation/algorand-typescript'
 
 /**
  * Disposable P0 contract.  It intentionally has no policy, claims, or provider
@@ -23,6 +23,16 @@ export default class AssuranceCoreSpike extends Contract {
   create(asset: uint64, provider: Account): void {
     this.configuredAsset.value = asset
     this.configuredProvider.value = provider
+  }
+
+  /**
+   * P0 setup-only method: lets the disposable application account opt into the
+   * configured local ASA before it receives the premium transfer.
+   */
+  @abimethod()
+  optInAsset(asset: Asset): void {
+    assert(asset.id === this.configuredAsset.value)
+    itxn.assetTransfer({ xferAsset: asset, assetAmount: 0, assetReceiver: Global.currentApplicationAddress }).submit()
   }
 
   @abimethod()
