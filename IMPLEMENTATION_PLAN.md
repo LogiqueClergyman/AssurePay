@@ -18,7 +18,7 @@ Later phases may be prepared conceptually, but their code must not begin until t
 
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
-| P0 Atomic group spike | BLOCKED | `planning/P0_CHAIN_READINESS_FIXES.md` | LocalNet success/rollback proof complete; TestNet proof requires external funding, ASA/app setup, and credentials |
+| P0 Atomic group spike | BLOCKED | `planning/P0_TESTNET_ACCEPTANCE.md` | TestNet runner/preflight complete; execute with user-supplied funded payer, selected ASA holding, and reachable TestNet endpoint |
 | P1 Assurance Core | BLOCKED_BY_P0 | Not created | Pending |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |

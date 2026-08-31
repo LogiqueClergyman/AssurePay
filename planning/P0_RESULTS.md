@@ -1,6 +1,14 @@
 # P0 Atomic-Group Spike Results
 
-Status: BLOCKED — LocalNet proof complete; TestNet funding/credentials and network setup pending
+Status: BLOCKED — TestNet runner/preflight complete; user-controlled TestNet credentials, ASA, funds, and endpoint required
+
+## TestNet acceptance runner and preflight (2026-08-31)
+
+- T1/T6: added secret-safe `npm run testnet:p0` and `spikes/p0-atomic/.env.example`. The local populated `spikes/p0-atomic/.env` path was already ignored. The runner reads environment variables only, never creates/guesses an ASA, and emits only public addresses, identifiers, balances, rounds, and outcome summaries.
+- T2 preflight: `npm run testnet:p0 -- --preflight` performs no deployment, funding, opt-in, or transfer. It validates mnemonic/ASA/endpoint configuration, requires a TestNet genesis, derives only the payer public address, queries ASA metadata, validates the payer ASA holding against the P0 `100/93/7` split, and requires a conservative `3,000,000` spendable microALGO setup balance before mutation.
+- T3–T5 implementation: when preflight passes, the runner compiles the checked-in artifact, creates a disposable application, generates/funds/opts in an ephemeral provider, funds and opts in the application, settles through registered `assured-exact`, and checks public balance/marker deltas. It then simulates and separately submits an ABI-valid `reject=true` group, requiring a real pool rejection and unchanged ASA balances/marker. The structured result labels simulation separately from the actual pool rejection.
+- T7 preflight result: BLOCKED before network access because this session has no `TESTNET_PAYER_MNEMONIC`, `TESTNET_ASA_ID`, or `TESTNET_ALGOD_SERVER`. These are the only reported blockers. Supply a funded TestNet payer holding at least 100 units of the selected existing ASA, at least 3,000,000 spendable microALGOs, and a reachable TestNet Algod endpoint (with optional token/header) through environment variables or ignored `spikes/p0-atomic/.env`; then rerun `npm run testnet:p0`.
+- TestNet evidence: none. No TestNet account, asset, application, transaction, group, balance, or marker data was created or claimed.
 
 ## Gate G LocalNet evidence (2026-08-31)
 
@@ -18,6 +26,25 @@ Status: BLOCKED — LocalNet proof complete; TestNet funding/credentials and net
 - Official installation verification: the current official AlgoKit CLI README documents `curl -fsSL https://cli.algokit.io/install.sh | bash` as the recommended macOS/Linux method and `pipx install algokit` as a supported legacy fallback. On 2026-08-31 the documented installer endpoint returned literal `404: Not Found`; the fallback installed AlgoKit `2.10.2` through pipx.
 - LocalNet: attempted with the installed official CLI. `algokit doctor` reports Docker `29.4.0` and Compose `5.1.2`, but `algokit localnet start` returned `Container engine isn't running; please start it.` No LocalNet containers, deployment, transaction IDs, balances, success evidence, or rollback evidence exist.
 - TestNet: not attempted. No TestNet evidence exists.
+
+## Independent LocalNet reproduction
+
+The orchestrator independently reran `npm run localnet:p0` against `dockernet-v1` after obtaining localhost access. The run created ASA `1058` and application `1059`.
+
+```text
+Successful provider transaction: JREDJGVMXYLXOTXONPQ4IJWFTFBWLNWHSJZYFVRJQDF44N2DJ6NQ
+ASA balances before: payer/provider/app = 1000/0/0
+ASA balances after:  payer/provider/app = 900/93/7
+Marker: 0 -> 1
+
+Rejected group ID: B3Q8Wf7uii2DC+LgBYgCfEYnRBjcOleHjaWomdad0aE=
+Rejected provider transaction: ARG5HKOYZTHFRC5W7K7JAPS6RPM6AEFMFZ2WSUHR577RLS4G27ZQ
+Rejected application transaction: JLEVQVPHQZLU3DWOMPIAQ6RPLD2IMS4M4B43MTGN3BVXW2LV4DFA
+Balances after rejection: payer/provider/app = 900/93/7
+Marker after rejection: 1
+```
+
+The rejected ABI-valid group failed both simulation and actual transaction-pool submission at the contract assertion. Balances and marker state remained unchanged. Gate G LocalNet evidence is accepted. P0 still needs a reusable TestNet runner and real TestNet evidence.
 
 Orchestrator verification at `4570c5a3ee32e6241b76db23d536557ca52269b2` reproduced all 52 tests plus the PuyaTs dry run and contract build. The worktree was clean before this orchestration update. Gate E is accepted as complete. The active Docker context is `orbstack`, and `docker version` cannot connect because `/Users/adi/.orbstack/run/docker.sock` does not exist. P0 is therefore accurately `BLOCKED` on starting a container engine before LocalNet work can continue.
 

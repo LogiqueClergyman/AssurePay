@@ -112,3 +112,20 @@ npm run build:contract:p0    PASS
 The signed-byte suite now covers the required transfer, payer, arithmetic, ABI, commitment, group, signature, rekey/close, malformed-input, lifecycle-error, x402-registration, stock-`exact`, and D-017 fourth-member cases. Negative tests assert stable error reasons and simulation/submission reachability. Gate E is accepted as complete.
 
 The active Docker context is `orbstack`, but its socket is absent and the daemon cannot be reached. With safe offline work complete, P0 is genuinely environment-blocked until the user starts OrbStack or another Docker-compatible engine. After `docker info` succeeds, the same implementation session should proceed directly to LocalNet deployment and atomic success/rollback evidence; no additional offline coding packet is required first.
+
+## LocalNet proof review at `fd52d43`
+
+The orchestrator reviewed the deployment script and independently reran all four verification commands. The fresh LocalNet run reproduced:
+
+- deployment of a disposable ASA and compiled application;
+- application-account funding and ASA opt-in;
+- successful settlement through `@x402/core` with the registered local `assured-exact` scheme;
+- the exact `100 -> 93 + 7` asset split;
+- marker transition from zero to one;
+- an ABI-valid failing group submitted to the actual transaction pool;
+- unchanged payer/provider/application ASA balances after rejection; and
+- unchanged marker state after rejection.
+
+The script correctly distinguishes mocked facilitator tests, real LocalNet simulation, successful on-chain settlement, and actual transaction-pool rejection. Gate G is accepted.
+
+P0 is not yet externally blocked because the existing runner is hard-coded to LocalNet KMD and endpoints. The final safe local task is `planning/P0_TESTNET_ACCEPTANCE.md`: implement a secret-safe TestNet runner and preflight. Once that runner is ready, unavailable funded accounts/ASA holdings become a genuine external blocker.
