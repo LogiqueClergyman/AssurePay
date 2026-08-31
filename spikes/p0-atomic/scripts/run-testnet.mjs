@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
 import algosdk from 'algosdk'
 import { x402Facilitator } from '@x402/core/facilitator'
 import { ALGORAND_TESTNET_CAIP2 } from '@x402/avm'
@@ -11,6 +12,30 @@ const OPT_IN_ASSET = new algosdk.ABIMethod({ name: 'optInAsset', args: [{ type: 
 const CREATE = new algosdk.ABIMethod({ name: 'create', args: [{ type: 'uint64' }, { type: 'address' }], returns: { type: 'void' } })
 const asJson = (value) => JSON.stringify(value, (_key, item) => typeof item === 'bigint' ? item.toString() : item, 2)
 const canonicalPositive = (value) => typeof value === 'string' && /^[1-9][0-9]*$/.test(value)
+
+export function loadDotEnv(text, target = process.env) {
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/)
+    if (!match || Object.prototype.hasOwnProperty.call(target, match[1])) continue
+    const value = match[2].replace(/^(['"])(.*)\1$/, '$2')
+    target[match[1]] = value
+  }
+}
+
+async function loadLocalEnv() {
+  try { loadDotEnv(await readFile(new URL('../.env', import.meta.url), 'utf8')) } catch (error) { if (error?.code !== 'ENOENT') throw error }
+}
+
+export function publicBalance(account, asset = 0n, address = '') {
+  const totalMicroAlgos = BigInt(account.amount)
+  const minimumBalanceMicroAlgos = BigInt(account.minBalance ?? 0)
+  return { address, totalMicroAlgos, minimumBalanceMicroAlgos, spendableMicroAlgos: totalMicroAlgos - minimumBalanceMicroAlgos, asset }
+}
+
+export function isIntendedApplicationAssertionFailure(error, appId) {
+  const text = error instanceof Error ? error.message : String(error ?? '')
+  return text.includes('logic eval error') && text.includes('assert failed') && text.includes(`app=${appId}`)
+}
 
 function config() {
   const missing = []
@@ -43,7 +68,7 @@ async function balance(algod, address, assetId) {
   const account = await algod.accountInformation(address).do()
   let asset = 0n
   try { asset = (await algod.accountAssetInformation(address, assetId).do()).assetHolding.amount } catch { /* absent holding is reported by preflight */ }
-  return { address: String(address), microAlgos: account.amount, asset }
+  return publicBalance(account, asset, String(address))
 }
 
 async function balances(algod, addresses, assetId) {
@@ -78,7 +103,7 @@ async function preflight(settings) {
   try { payerBalance = await balance(algod, settings.payer.addr, settings.assetId) } catch { missing.push('TestNet payer account could not be queried; verify endpoint access and funded account') }
   try { asset = await algod.getAssetByID(settings.assetId).do() } catch { missing.push('TESTNET_ASA_ID was not found through the configured TestNet endpoint') }
   if (payerBalance) {
-    if (payerBalance.microAlgos < MIN_SPENDABLE_ALGOS) missing.push(`payer needs at least ${MIN_SPENDABLE_ALGOS} spendable microALGOs for disposable app/provider setup and fees`)
+    if (payerBalance.spendableMicroAlgos < MIN_SPENDABLE_ALGOS) missing.push(`payer needs at least ${MIN_SPENDABLE_ALGOS} spendable microALGOs for disposable app/provider setup and fees`)
     if (payerBalance.asset < GROSS) missing.push(`payer must be opted into ASA ${settings.assetId} and hold at least ${GROSS} atomic units`)
   }
   return { ok: missing.length === 0, phase: 'preflight', network: version.genesisId, payer: settings.payer.addr.toString(), asset: asset ? { id: settings.assetId, unitName: asset.params.unitName ?? '', name: asset.params.name ?? '', decimals: asset.params.decimals } : undefined, payerBalance, required: { gross: GROSS, providerNet: PROVIDER_NET, premium: PREMIUM, minSpendableMicroAlgos: MIN_SPENDABLE_ALGOS }, missingPrerequisites: missing }
@@ -114,18 +139,26 @@ async function run(settings, readiness) {
   const rejectedSigned = rejected.map((txn) => txn.signTxn(payer.sk))
   const rejectionBefore = await balances(algod, accounts, assetId), rejectionMarkerBefore = await marker(algod, appId)
   const simulation = await algod.simulateRawTransactions(rejectedSigned).do()
+  const simulationFailure = simulation.txnGroups?.[0]?.failureMessage
+  if (!isIntendedApplicationAssertionFailure(simulationFailure, appId)) throw new Error('forced-rejection simulation did not identify the intended application assertion failure')
   let poolRejection = ''
-  try { await algod.sendRawTransaction(rejectedSigned).do() } catch { poolRejection = 'TestNet transaction pool rejected the ABI-valid forced-rejection group' }
+  try { await algod.sendRawTransaction(rejectedSigned).do() } catch (error) {
+    if (!isIntendedApplicationAssertionFailure(error, appId)) throw new Error('TestNet transaction pool failure was not the intended application assertion failure')
+    poolRejection = 'TestNet transaction pool rejected the intended application assertion failure'
+  }
   if (!poolRejection) throw new Error('forced-rejection TestNet group was unexpectedly accepted by the transaction pool')
   const rejectionAfter = await balances(algod, accounts, assetId), rejectionMarkerAfter = await marker(algod, appId)
   if (asJson(rejectionBefore) !== asJson(rejectionAfter) || rejectionMarkerBefore !== rejectionMarkerAfter) throw new Error('TestNet rejected group changed ASA balances or marker')
-  return { network: readiness.network, payer: payer.addr.toString(), provider: provider.addr.toString(), application: application.toString(), asset: readiness.asset, applicationId: appId, setup: { funding, create: created, providerOptIn, appFunding, appOptIn }, successfulSettlement: { groupId: Buffer.from(successTxns[0].group).toString('base64'), memberTransactionIds: successTxns.map((txn) => txn.txID()), confirmedRound: (await algod.pendingTransactionInformation(settlement.transaction).do()).confirmedRound, before, after, markerBefore, markerAfter }, actualPoolRejectedGroup: { groupId: Buffer.from(rejected[0].group).toString('base64'), memberTransactionIds: rejected.map((txn) => txn.txID()), simulationFailure: simulation.txnGroups?.[0]?.failureMessage ?? null, poolRejection, before: rejectionBefore, after: rejectionAfter, markerBefore: rejectionMarkerBefore, markerAfter: rejectionMarkerAfter } }
+  return { network: readiness.network, payer: payer.addr.toString(), provider: provider.addr.toString(), application: application.toString(), asset: readiness.asset, applicationId: appId, setup: { funding, create: created, providerOptIn, appFunding, appOptIn }, successfulSettlement: { groupId: Buffer.from(successTxns[0].group).toString('base64'), memberTransactionIds: successTxns.map((txn) => txn.txID()), confirmedRound: (await algod.pendingTransactionInformation(settlement.transaction).do()).confirmedRound, before, after, markerBefore, markerAfter }, actualPoolRejectedGroup: { groupId: Buffer.from(rejected[0].group).toString('base64'), memberTransactionIds: rejected.map((txn) => txn.txID()), simulationFailure, poolRejection, before: rejectionBefore, after: rejectionAfter, markerBefore: rejectionMarkerBefore, markerAfter: rejectionMarkerAfter } }
 }
 
 async function main() {
+  await loadLocalEnv()
   const settings = config(), readiness = await preflight(settings)
   if (process.argv.includes('--preflight') || !readiness.ok) { console.log(asJson(readiness)); process.exitCode = readiness.ok ? 0 : 2; return }
   console.log(asJson(await run(settings, readiness)))
 }
 
-main().catch(() => { console.error(asJson({ ok: false, phase: 'execution', message: 'TestNet execution failed; inspect public endpoint access, account funds/ASA holding, and network state without exposing credentials.' })); process.exitCode = 1 })
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(() => { console.error(asJson({ ok: false, phase: 'execution', message: 'TestNet execution failed; inspect public endpoint access, account funds/ASA holding, and network state without exposing credentials.' })); process.exitCode = 1 })
+}
