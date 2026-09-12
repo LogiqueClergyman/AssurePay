@@ -37,4 +37,4 @@ No TestNet transaction, deployment, asset setup, successful settlement, forced r
 
 ## Commit checkpoint
 
-Implementation/dependency checkpoint: `6530f00` (`feat: support Pera HD TestNet payer signing`). The accompanying P0 decision/results/plan/handoff checkpoint is the next focused commit; obtain the actual final HEAD with `git rev-parse HEAD` after it is created.
+Implementation/dependency checkpoint: `6530f00` (`feat: support Pera HD TestNet payer signing`). P0 decision/results/plan checkpoint: `a983e2b` (`docs: record Pera HD P0 TestNet checkpoint`). The session's final HEAD is reported by `git rev-parse HEAD` at handoff; the worktree must remain clean.
