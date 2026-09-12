@@ -1,34 +1,44 @@
 # Session Handoff
 
-## P0 final state
+## Current phase
 
-- Phase: P0 — Atomic-group spike
-- State: COMPLETE
+- Phase: P1 — On-chain Assurance Core
+- State: READY
 - Branch: `main`
-- Active packet: `planning/P0_TESTNET_ACCEPTANCE.md` — completed
-- Results: `planning/P0_RESULTS.md`
+- Starting checkpoint: `d133edc4a055163fa8e5dd3904bb4e57f9c45072`
+- Active packet: `planning/P1_ASSURANCE_CORE.md`
+- Results: `planning/P1_RESULTS.md`
 
-P0 has real Algorand TestNet acceptance. ASA `10458941` (`USDC`, 6 decimals) and application `771586806` settled the fixed `assured-exact` three-member group `[provider axfer, premium axfer, appl]` at round `67235792`: payer ASA `20,000,000 -> 19,999,900`, provider `0 -> 93`, application `0 -> 7`, marker `0 -> 1`.
+P0 is complete with real TestNet success and rollback evidence. Its production constraints are recorded in D-010, D-016, D-017, D-018, and D-019. Do not reopen P0 or modify `spikes/p0-atomic/**` during P1 without an orchestrator-approved shared-code extraction.
 
-The configured endpoint was queried read-only after acceptance. It confirmed TestNet, the ASA, the application, current marker `1`, all three successful transaction IDs, and their shared group ID `P/UeimX9rfN7M9bX+GVkRLVn3w8Ch0LmcnxtVVnm5/0=` in the historical confirmed block. The separate ABI-valid rejected group `2kqU7jR+J/+R/u0IhVfrPSJVylJHi1XB24UAKoAmBgc=` was rejected by the real TestNet pool for the intended app assertion; supplied acceptance evidence records unchanged rejected-case ALGO/ASA balances and marker `1 -> 1`.
+## P1 scope and gate
 
-The normal TestNet runner output is compact and secret-safe: it emits only public addresses/IDs, setup transaction IDs and rounds, group/member IDs, balance deltas, marker deltas, and rejection summaries. It does not serialize pending responses, signed bytes, logs, credentials, or private material. `--verify-evidence` performs the read-only public historical lookup.
+The P1 packet is self-contained and fixes the contract model, P0-compatible coverage group, premium arithmetic, separate stake bootstrap, explicit expiry closure, payer-bound refund, safe provider-first loss waterfall, accounting rules, event requirements, negative tests, and LocalNet/TestNet acceptance.
 
-## Verification
+P1 proceeds sequentially:
 
 ```text
-npm run test:p0                              PASS, 63/63 (unit + mocked facilitator; not chain evidence)
-npm run typecheck:p0                         PASS
-npm run build:contract:p0                    PASS
-npm run testnet:p0 -- --preflight            PASS, non-mutating TestNet readiness check
-npm run testnet:p0 -- --verify-evidence      PASS, read-only public TestNet verification
-npm run localnet:p0                          unavailable: endpoint ECONNREFUSED; historical LocalNet proof remains recorded
+Gate A storage/skeleton
+  -> Gate B provider/policy/stake
+  -> Gate C coverage profile
+  -> Gate D withdrawal/close/claims/refunds
+  -> Gate E real LocalNet lifecycle
+  -> Gate F real TestNet acceptance
 ```
 
-## P1 handoff state
+P1 is complete only after all six gates pass. A missing user-controlled TestNet action makes the phase `BLOCKED`, not complete.
 
-P1 is `NOT_READY`, not started, and has no active packet. The exact next action is for the orchestrator to create a self-contained P1 Assurance Core packet that incorporates D-010, D-016, D-017, D-018, and D-019. Do not begin P1 until that packet exists.
+## Exact next action
 
-## Commit checkpoint
+Start a fresh P1 implementation session:
 
-P0-closing implementation and records are committed in this session. Obtain the exact final HEAD with `git rev-parse HEAD`; the worktree must remain clean.
+1. Read `AGENTS.md`, this handoff, `planning/P1_ASSURANCE_CORE.md`, `DECISIONS.md`, and `IMPLEMENTATION_PLAN.md`.
+2. Confirm branch, HEAD, and worktree without modifying unrelated work.
+3. Implement Gate A only: production contract scaffold, typed storage namespaces, creation/ASA opt-in, event encoding, compiled layout, exact box MBR calculations, and Gate A tests.
+4. Update `planning/P1_RESULTS.md` and this handoff before proceeding or stopping.
+
+Do not access `/docs`. Do not start P2.
+
+## Planning worktree
+
+The orchestrator created the P1 packet and handoff after the P0 closing commit. Confirm whether these planning changes are committed before starting implementation. Create commits only when the user's implementation prompt explicitly requests them.

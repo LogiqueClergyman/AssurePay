@@ -32,6 +32,56 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Consequences: Bind the whole ordered assurance group before simulation and submit those exact bytes. P1 retains contract-level validation.
 - Supersedes: none
 
+### D-011 — Typed box records with permanent tombstones
+
+- Status: ACCEPTED
+- Date: 2026-09-13
+- Phase: P1
+- Decision: Store provider, policy, coverage, and finalized-claim records in type-prefixed boxes keyed by fixed 32-byte IDs. Keep protocol configuration and aggregate accounting in global state. Preserve finalized coverage/claim records so IDs cannot be reused.
+- Evidence: P1 needs multiple independently addressed records, immutable coverage facts, uniqueness after finalization, and later event-driven projection. Boxes provide the bounded POC representation without exhausting global-state slots.
+- Consequences: Gate A must record compiled value sizes and exact application minimum-balance requirements. Deployment explicitly funds box MBR; authoritative tombstones are not deleted for reclamation.
+- Supersedes: none
+
+### D-012 — Floor premium with one-unit minimum
+
+- Status: ACCEPTED
+- Date: 2026-09-13
+- Phase: P1
+- Decision: Compute `floor(gross * premiumBps / 10_000)` in atomic units and require a minimum premium of one atomic unit when gross and premium bps are positive.
+- Evidence: This preserves revenue-funded integer arithmetic while preventing a positive-rate policy from silently producing zero premium on small payments.
+- Consequences: Gate C must use an overflow-safe wide-ratio operation or prove/enforce safe input bounds. `providerNet = gross - premium`, and P1 stake top-up is zero.
+- Supersedes: none
+
+### D-013 — Explicit permissionless expiry close
+
+- Status: ACCEPTED
+- Date: 2026-09-13
+- Phase: P1
+- Decision: An open coverage is explicitly closed by a transaction after its stored expiry. Any caller may trigger the close; exposure and locked stake are released exactly once.
+- Evidence: Explicit close is the smallest deterministic POC mechanism and avoids keeper/lazy-close complexity inside coverage admission.
+- Consequences: Early close and every duplicate release fail. Claim finalization also terminally closes/refunds coverage and shares the same single-release invariant.
+- Supersedes: none
+
+### D-014 — Single configured development adjudicator
+
+- Status: ACCEPTED
+- Date: 2026-09-13
+- Phase: P1/P3
+- Decision: Configure one adjudicator address at application creation for POC claim finalization. Keep it distinct from the admin field even when one development account fills both roles.
+- Evidence: Centralized POC adjudication is explicitly allowed; multisig, governance, and production custody are non-goals.
+- Consequences: Only the adjudicator may finalize a claim, while the contract derives the refund destination from stored coverage and constrains all financial effects.
+- Supersedes: none
+
+### D-015 — Pre-deposited stake for the fixed coverage profile
+
+- Status: ACCEPTED
+- Date: 2026-09-13
+- Phase: P1
+- Decision: Providers deposit stake in a separate atomic deposit operation before accepting coverage. P1 fixes `stakeTopupAmount = 0` for the P0 three-member coverage group.
+- Evidence: P0 proved `[provider axfer, premium axfer, appl]` with fixed indices and explicitly excluded a fourth member.
+- Consequences: P1 must not add same-group stake bootstrap or fee sponsorship silently. Either requires a separately versioned wire-profile decision.
+- Supersedes: none
+
 ### D-016 — P0 assured-exact fixed profile
 
 - Status: ACCEPTED
@@ -72,15 +122,11 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Consequences: P1 must retain the P0 wire constraint `[provider axfer, premium axfer, appl]`, bind and verify the whole ordered signed group before simulation/submission, and keep fee sponsorship as an explicit later-profile change rather than adding a fourth member silently.
 - Supersedes: none
 
-## Open decisions
+## Open implementation facts
 
-| ID | Decision | Target phase | Status |
-|---|---|---|---|
-| D-011 | Exact on-chain coverage storage layout and minimum-balance implications | P1 | OPEN |
-| D-012 | Premium rounding and minimum premium atomic unit | P1 | OPEN |
-| D-013 | Explicit coverage close vs lazy/keeper close | P1 | OPEN; explicit close is acceptable for POC |
-| D-014 | Single development claims key vs multisig | P1/P3 | OPEN; single secured development key is acceptable for POC |
-| D-015 | Same-group provider stake bootstrap | P0/P1 | OPEN; initial pre-deposit is acceptable if bootstrap complicates P0 |
+- D-011 Gate A evidence must record compiled box sizes and exact application minimum-balance funding.
+- D-012 Gate C evidence must record the verified overflow-safe arithmetic primitive or enforced safe bounds.
+- These are implementation facts, not open product decisions. Any incompatible discovery requires a superseding decision.
 
 ## Entry template
 
