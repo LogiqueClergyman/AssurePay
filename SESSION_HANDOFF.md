@@ -5,15 +5,15 @@
 - Phase: P1 — On-chain Assurance Core
 - State: READY
 - Branch: `main`
-- Starting checkpoint: `d133edc4a055163fa8e5dd3904bb4e57f9c45072`
-- Active packet: `planning/P1_ASSURANCE_CORE.md`
+- Starting checkpoint: `886a08d2daf808d2e6e6b303afe4cf8a515d6fb2`
+- Active packet: `planning/P1_GATE_A_STORAGE.md`
 - Results: `planning/P1_RESULTS.md`
 
 P0 is complete with real TestNet success and rollback evidence. Its production constraints are recorded in D-010, D-016, D-017, D-018, and D-019. Do not reopen P0 or modify `spikes/p0-atomic/**` during P1 without an orchestrator-approved shared-code extraction.
 
 ## P1 scope and gate
 
-The P1 packet is self-contained and fixes the contract model, P0-compatible coverage group, premium arithmetic, separate stake bootstrap, explicit expiry closure, payer-bound refund, safe provider-first loss waterfall, accounting rules, event requirements, negative tests, and LocalNet/TestNet acceptance.
+The phase-level P1 packet fixes the complete contract model and gates. The active Luna-sized Gate A packet is self-contained; an implementation session must not read the phase-level packet or `/docs`.
 
 P1 proceeds sequentially:
 
@@ -32,7 +32,7 @@ P1 is complete only after all six gates pass. A missing user-controlled TestNet 
 
 Start a fresh P1 implementation session:
 
-1. Read `AGENTS.md`, this handoff, `planning/P1_ASSURANCE_CORE.md`, `DECISIONS.md`, and `IMPLEMENTATION_PLAN.md`.
+1. Read `AGENTS.md`, this handoff, `planning/P1_GATE_A_STORAGE.md`, `DECISIONS.md`, and `IMPLEMENTATION_PLAN.md`. Do not read the phase-level P1 packet.
 2. Confirm branch, HEAD, and worktree without modifying unrelated work.
 3. Implement Gate A only: production contract scaffold, typed storage namespaces, creation/ASA opt-in, event encoding, compiled layout, exact box MBR calculations, and Gate A tests.
 4. Update `planning/P1_RESULTS.md` and this handoff before proceeding or stopping.

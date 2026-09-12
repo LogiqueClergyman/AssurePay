@@ -19,7 +19,7 @@ Later phases may be prepared conceptually, but their code must not begin until t
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
 | P0 Atomic group spike | COMPLETE | `planning/P0_TESTNET_ACCEPTANCE.md` | TestNet accepted: assured-exact three-member settlement and actual atomic pool rejection proved |
-| P1 Assurance Core | READY | `planning/P1_ASSURANCE_CORE.md` | Gates A–F: invariant suite plus real LocalNet and TestNet financial lifecycle |
+| P1 Assurance Core | READY | `planning/P1_GATE_A_STORAGE.md` | Gate A: production skeleton, typed storage, creation/ASA opt-in, events, and exact MBR evidence |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |
 | P4 Demo hardening | BLOCKED_BY_P3 | Not created | Pending |
