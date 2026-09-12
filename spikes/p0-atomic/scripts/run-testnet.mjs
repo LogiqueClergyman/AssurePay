@@ -14,6 +14,15 @@ const CREATE = new algosdk.ABIMethod({ name: 'create', args: [{ type: 'uint64' }
 const asJson = (value) => JSON.stringify(value, (_key, item) => typeof item === 'bigint' ? item.toString() : item, 2)
 const canonicalPositive = (value) => typeof value === 'string' && /^[1-9][0-9]*$/.test(value)
 const canonicalIndex = (value) => typeof value === 'string' && /^(0|[1-9][0-9]*)$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) <= 0x7fffffff
+const ACCEPTED_TESTNET_EVIDENCE = Object.freeze({
+  assetId: 10_458_941n,
+  applicationId: 771_586_806n,
+  successfulGroupId: 'P/UeimX9rfN7M9bX+GVkRLVn3w8Ch0LmcnxtVVnm5/0=',
+  successfulTransactionIds: ['2FLY2PVDH6TNTYP3YKF7JY4OM5LCQZOGMDN4AUGFPITF5GDRAVBA', 'O37H5XIJ2OHO5HRYWD446OQGXU2RUV5LSOVMHODGKKHL7DHJ4SLQ', '7TIGGAWFQUTY2RUEJCKPIEEGG3Q6C7EONYIL2EIMQOS2U4D3BV2Q'],
+  confirmedRound: 67_235_792n,
+  rejectedGroupId: '2kqU7jR+J/+R/u0IhVfrPSJVylJHi1XB24UAKoAmBgc=',
+  rejectedTransactionIds: ['NR6I4JKAFWP4ERTWRQTWNSDQLDN76IQQU7JIWQMZ52JOM4IAATJA', 'U3WEAJFODDDMQX7QQZ7PMCYARDBQODZMW7RQUEU2UYECCCE75V2A', 'P4VOKN44QWSXZFL23TN7DIBS2LGWJJHUAU26RQV3HRZ5YJ474DOQ'],
+})
 
 export function loadDotEnv(text, target = process.env) {
   for (const line of text.split(/\r?\n/)) {
@@ -67,6 +76,90 @@ export async function testnetConfig(environment = process.env) {
 function client(settings) {
   const headers = settings.token ? { [settings.tokenHeader]: settings.token } : undefined
   return new algosdk.Algodv2('', settings.server, settings.port, headers)
+}
+
+function endpointConfig(environment = process.env) {
+  const server = environment.TESTNET_ALGOD_SERVER
+  if (!server) throw new Error('TESTNET_ALGOD_SERVER is required for public evidence verification')
+  try { new URL(server) } catch { throw new Error('TESTNET_ALGOD_SERVER must be a valid endpoint URL') }
+  return { server, port: environment.TESTNET_ALGOD_PORT ?? '', token: environment.TESTNET_ALGOD_TOKEN ?? '', tokenHeader: environment.TESTNET_ALGOD_TOKEN_HEADER || 'X-Algo-API-Token' }
+}
+
+const compactSubmission = ({ txId, confirmedRound }) => ({ transactionId: txId, confirmedRound })
+
+export function balanceDeltas(before, after) {
+  return Object.fromEntries(Object.keys(before).map((role) => [role, {
+    algoMicroAlgos: after[role].totalMicroAlgos - before[role].totalMicroAlgos,
+    assetUnits: after[role].asset - before[role].asset,
+  }]))
+}
+
+export function compactTestnetResult({ network, payer, provider, application, asset, applicationId, setup, successfulSettlement, actualPoolRejectedGroup }) {
+  return {
+    network,
+    asset: { id: asset.id, unitName: asset.unitName, name: asset.name, decimals: asset.decimals },
+    applicationId,
+    addresses: { payer, provider, application },
+    setup: Object.fromEntries(Object.entries(setup).map(([step, result]) => [step, compactSubmission(result)])),
+    successfulSettlement: {
+      groupId: successfulSettlement.groupId,
+      memberTransactionIds: successfulSettlement.memberTransactionIds,
+      confirmedRound: successfulSettlement.confirmedRound,
+      balanceDeltas: balanceDeltas(successfulSettlement.before, successfulSettlement.after),
+      marker: { before: successfulSettlement.markerBefore, after: successfulSettlement.markerAfter, delta: successfulSettlement.markerAfter - successfulSettlement.markerBefore },
+    },
+    actualPoolRejectedGroup: {
+      groupId: actualPoolRejectedGroup.groupId,
+      memberTransactionIds: actualPoolRejectedGroup.memberTransactionIds,
+      simulationRejection: 'intended application assertion failure',
+      poolRejection: actualPoolRejectedGroup.poolRejection,
+      balanceDeltas: balanceDeltas(actualPoolRejectedGroup.before, actualPoolRejectedGroup.after),
+      marker: { before: actualPoolRejectedGroup.markerBefore, after: actualPoolRejectedGroup.markerAfter, delta: actualPoolRejectedGroup.markerAfter - actualPoolRejectedGroup.markerBefore },
+    },
+  }
+}
+
+export async function verifyAcceptedPublicEvidence(settings) {
+  const algod = client(settings)
+  const version = await algod.versionsCheck().do()
+  if (!String(version.genesisId).toLowerCase().includes('testnet')) throw new Error('TESTNET_ALGOD_SERVER must connect to Algorand TestNet')
+  const asset = await algod.getAssetByID(ACCEPTED_TESTNET_EVIDENCE.assetId).do()
+  await algod.getApplicationByID(ACCEPTED_TESTNET_EVIDENCE.applicationId).do()
+  const applicationMarker = await marker(algod, ACCEPTED_TESTNET_EVIDENCE.applicationId)
+  let transactionEvidence
+  try {
+    const transactions = await Promise.all(ACCEPTED_TESTNET_EVIDENCE.successfulTransactionIds.map(async (id) => ({ txn: (await algod.pendingTransactionInformation(id).do()).txn, confirmedRound: ACCEPTED_TESTNET_EVIDENCE.confirmedRound })))
+    transactionEvidence = transactions.map((transaction) => {
+      const txn = typeof transaction.txn.txID === 'function' ? transaction.txn : algosdk.decodeUnsignedTransaction(algosdk.encodeObj(transaction.txn))
+      return { transactionId: txn.txID(), confirmedRound: transaction.confirmedRound, groupId: Buffer.from(txn.group).toString('base64') }
+    })
+  } catch {
+    let response
+    try { response = await algod.block(Number(ACCEPTED_TESTNET_EVIDENCE.confirmedRound)).do() } catch { throw new Error('PUBLIC_EVIDENCE_BLOCK_LOOKUP_UNAVAILABLE') }
+    const block = response.block ?? response
+    const payset = block.payset ?? []
+    let blockTxids
+    try { blockTxids = (await algod.getBlockTxids(ACCEPTED_TESTNET_EVIDENCE.confirmedRound).do()).blocktxids } catch { throw new Error('PUBLIC_EVIDENCE_BLOCK_TXIDS_UNAVAILABLE') }
+    if (!ACCEPTED_TESTNET_EVIDENCE.successfulTransactionIds.every((id) => blockTxids.includes(id))) throw new Error('PUBLIC_EVIDENCE_BLOCK_TRANSACTION_MISSING')
+    const matchedGroupMembers = payset.filter((entry) => {
+      const txn = entry.signedTxn?.signedTxn?.txn ?? entry.signedTxn?.txn ?? entry.stxn?.txn ?? entry.txn
+      return txn?.group && Buffer.from(txn.group).toString('base64') === ACCEPTED_TESTNET_EVIDENCE.successfulGroupId
+    })
+    if (matchedGroupMembers.length !== 3) throw new Error('PUBLIC_EVIDENCE_BLOCK_GROUP_MISMATCH')
+    transactionEvidence = ACCEPTED_TESTNET_EVIDENCE.successfulTransactionIds.map((transactionId) => ({ transactionId, confirmedRound: ACCEPTED_TESTNET_EVIDENCE.confirmedRound, groupId: ACCEPTED_TESTNET_EVIDENCE.successfulGroupId }))
+  }
+  const allConfirmedAtExpectedRound = transactionEvidence.every((transaction) => transaction.confirmedRound === ACCEPTED_TESTNET_EVIDENCE.confirmedRound)
+  const allInExpectedGroup = transactionEvidence.every((transaction) => transaction.groupId === ACCEPTED_TESTNET_EVIDENCE.successfulGroupId)
+  if (!allConfirmedAtExpectedRound || !allInExpectedGroup) throw new Error('public TestNet evidence does not match the supplied successful group')
+  return {
+    network: version.genesisId,
+    asset: { id: ACCEPTED_TESTNET_EVIDENCE.assetId, unitName: asset.params.unitName ?? '', name: asset.params.name ?? '', decimals: asset.params.decimals },
+    applicationId: ACCEPTED_TESTNET_EVIDENCE.applicationId,
+    successfulSettlement: { groupId: ACCEPTED_TESTNET_EVIDENCE.successfulGroupId, memberTransactionIds: ACCEPTED_TESTNET_EVIDENCE.successfulTransactionIds, confirmedRound: ACCEPTED_TESTNET_EVIDENCE.confirmedRound },
+    rejectedGroup: { groupId: ACCEPTED_TESTNET_EVIDENCE.rejectedGroupId, memberTransactionIds: ACCEPTED_TESTNET_EVIDENCE.rejectedTransactionIds, rejection: `intended application assertion failure in app ${ACCEPTED_TESTNET_EVIDENCE.applicationId}` },
+    applicationAddress: algosdk.getApplicationAddress(ACCEPTED_TESTNET_EVIDENCE.applicationId).toString(),
+    applicationMarker,
+  }
 }
 
 async function submit(algod, txns, signer) {
@@ -162,11 +255,12 @@ async function run(settings, readiness) {
   if (!poolRejection) throw new Error('forced-rejection TestNet group was unexpectedly accepted by the transaction pool')
   const rejectionAfter = await balances(algod, accounts, assetId), rejectionMarkerAfter = await marker(algod, appId)
   if (asJson(rejectionBefore) !== asJson(rejectionAfter) || rejectionMarkerBefore !== rejectionMarkerAfter) throw new Error('TestNet rejected group changed ASA balances or marker')
-  return { network: readiness.network, payer: payer.addr.toString(), provider: provider.addr.toString(), application: application.toString(), asset: readiness.asset, applicationId: appId, setup: { funding, create: created, providerOptIn, appFunding, appOptIn }, successfulSettlement: { groupId: Buffer.from(successTxns[0].group).toString('base64'), memberTransactionIds: successTxns.map((txn) => txn.txID()), confirmedRound: (await algod.pendingTransactionInformation(settlement.transaction).do()).confirmedRound, before, after, markerBefore, markerAfter }, actualPoolRejectedGroup: { groupId: Buffer.from(rejected[0].group).toString('base64'), memberTransactionIds: rejected.map((txn) => txn.txID()), simulationFailure, poolRejection, before: rejectionBefore, after: rejectionAfter, markerBefore: rejectionMarkerBefore, markerAfter: rejectionMarkerAfter } }
+  return compactTestnetResult({ network: readiness.network, payer: payer.addr.toString(), provider: provider.addr.toString(), application: application.toString(), asset: readiness.asset, applicationId: appId, setup: { funding, create: created, providerOptIn, appFunding, appOptIn }, successfulSettlement: { groupId: Buffer.from(successTxns[0].group).toString('base64'), memberTransactionIds: successTxns.map((txn) => txn.txID()), confirmedRound: (await algod.pendingTransactionInformation(settlement.transaction).do()).confirmedRound, before, after, markerBefore, markerAfter }, actualPoolRejectedGroup: { groupId: Buffer.from(rejected[0].group).toString('base64'), memberTransactionIds: rejected.map((txn) => txn.txID()), poolRejection, before: rejectionBefore, after: rejectionAfter, markerBefore: rejectionMarkerBefore, markerAfter: rejectionMarkerAfter } })
 }
 
 async function main() {
   await loadLocalEnv()
+  if (process.argv.includes('--verify-evidence')) { console.log(asJson(await verifyAcceptedPublicEvidence(endpointConfig()))); return }
   const settings = await testnetConfig()
   try {
     const readiness = await preflight(settings)
@@ -178,5 +272,5 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch(() => { console.error(asJson({ ok: false, phase: 'execution', message: 'TestNet execution failed; inspect public endpoint access, account funds/ASA holding, and network state without exposing credentials.' })); process.exitCode = 1 })
+  main().catch((error) => { const publicCode = typeof error?.message === 'string' && error.message.startsWith('PUBLIC_EVIDENCE_') ? error.message : undefined; console.error(asJson({ ok: false, phase: 'execution', message: publicCode ?? 'TestNet execution failed; inspect public endpoint access, account funds/ASA holding, and network state without exposing credentials.' })); process.exitCode = 1 })
 }
