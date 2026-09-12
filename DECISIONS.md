@@ -52,6 +52,16 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Consequences: D-016 remains in force. Any later sponsored-fee profile must supersede D-016 and specify a fourth member and contract/facilitator indices.
 - Supersedes: none
 
+### D-018 — Pera HD signer boundary for P0 TestNet
+
+- Status: ACCEPTED
+- Date: 2026-09-12
+- Phase: P0
+- Decision: The headless TestNet runner accepts only a 24-word Pera BIP-39 phrase through environment/ignored `.env`, derives `m/44'/283'/account'/0/addressIndex` with ARC-52 Peikert derivation, and requires the configured public address to match before any network action. The signer is opaque: it exposes its public address and a transaction-signing method, never `{ addr, sk }` or derived private material.
+- Evidence: Pera's public iOS HD wallet source defaults to `.peikert`, account/change/key defaults `0/0/0`, and passes the transaction's prefixed bytes to ARC-52 signing. The Foundation `xHD-Wallet-API-ts` source identifies Peikert as its default and supplies the ARC-52 vector used by the deterministic suite. The suite independently verifies all three signed P0 group members with their `bytesToSign()` values.
+- Consequences: TestNet configuration replaces `TESTNET_PAYER_MNEMONIC` with `TESTNET_PAYER_HD_MNEMONIC`, `TESTNET_PAYER_ADDRESS`, `TESTNET_PAYER_ACCOUNT_INDEX`, and `TESTNET_PAYER_ADDRESS_INDEX`. Legacy Algo25 is deliberately unsupported by this P0 runner; Pera mnemonic/seed/root/private key material is not logged or serialized.
+- Supersedes: none
+
 ## Open decisions
 
 | ID | Decision | Target phase | Status |
