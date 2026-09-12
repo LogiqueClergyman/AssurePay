@@ -3,7 +3,7 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: READY
+- State: REVIEW — Gate A PASS; awaiting orchestrator review
 - Branch: `main`
 - Starting checkpoint: `886a08d2daf808d2e6e6b303afe4cf8a515d6fb2`
 - Active packet: `planning/P1_GATE_A_STORAGE.md`
@@ -30,12 +30,7 @@ P1 is complete only after all six gates pass. A missing user-controlled TestNet 
 
 ## Exact next action
 
-Start a fresh P1 implementation session:
-
-1. Read `AGENTS.md`, this handoff, `planning/P1_GATE_A_STORAGE.md`, `DECISIONS.md`, and `IMPLEMENTATION_PLAN.md`. Do not read the phase-level P1 packet.
-2. Confirm branch, HEAD, and worktree without modifying unrelated work.
-3. Implement Gate A only: production contract scaffold, typed storage namespaces, creation/ASA opt-in, event encoding, compiled layout, exact box MBR calculations, and Gate A tests.
-4. Update `planning/P1_RESULTS.md` and this handoff before proceeding or stopping.
+Have the orchestrator review and accept Gate A evidence. After acceptance, start a fresh session for Gate B only using its new active packet; do not begin Gate B in this worktree before that review. Gate B must start by rereading `AGENTS.md`, this handoff, its active packet, and only the root/planning files that packet names.
 
 Do not access `/docs`. Do not start P2.
 

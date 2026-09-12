@@ -39,7 +39,7 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Phase: P1
 - Decision: Store provider, policy, coverage, and finalized-claim records in type-prefixed boxes keyed by fixed 32-byte IDs. Keep protocol configuration and aggregate accounting in global state. Preserve finalized coverage/claim records so IDs cannot be reused.
 - Evidence: P1 needs multiple independently addressed records, immutable coverage facts, uniqueness after finalization, and later event-driven projection. Boxes provide the bounded POC representation without exhausting global-state slots.
-- Consequences: Gate A must record compiled value sizes and exact application minimum-balance requirements. Deployment explicitly funds box MBR; authoritative tombstones are not deleted for reclamation.
+- Consequences: Gate A must record compiled value sizes and exact application minimum-balance requirements. Deployment explicitly funds box MBR; authoritative tombstones are not deleted for reclamation. Gate A compiles the records as fixed ARC-4 tuples with one-byte boolean fields and uses literal one-byte `BoxMap` prefixes plus `StaticBytes<32>` IDs. AVM v13 rejects explicitly reading the zero address for optional inner account fields as an unavailable resource, so safe zero defaults are left implicit on the pooled opt-in transfer.
 - Supersedes: none
 
 ### D-012 — Floor premium with one-unit minimum
