@@ -3,7 +3,8 @@ import { pathToFileURL } from 'node:url'
 import algosdk from 'algosdk'
 import { x402Facilitator } from '@x402/core/facilitator'
 import { ALGORAND_TESTNET_CAIP2 } from '@x402/avm'
-import { AssuredExactAvmScheme, buildAssuredExactPayload } from '../src/assured-exact.mjs'
+import { AssuredExactAvmScheme, buildAssuredExactPayloadWithSigner } from '../src/assured-exact.mjs'
+import { createPeraHdSigner } from '../src/pera-hd-signer.mjs'
 
 const GROSS = 100n, PROVIDER_NET = 93n, PREMIUM = 7n
 const PROVIDER_FUNDING = 500_000n, APPLICATION_FUNDING = 300_000n, MIN_SPENDABLE_ALGOS = 3_000_000n
@@ -12,6 +13,7 @@ const OPT_IN_ASSET = new algosdk.ABIMethod({ name: 'optInAsset', args: [{ type: 
 const CREATE = new algosdk.ABIMethod({ name: 'create', args: [{ type: 'uint64' }, { type: 'address' }], returns: { type: 'void' } })
 const asJson = (value) => JSON.stringify(value, (_key, item) => typeof item === 'bigint' ? item.toString() : item, 2)
 const canonicalPositive = (value) => typeof value === 'string' && /^[1-9][0-9]*$/.test(value)
+const canonicalIndex = (value) => typeof value === 'string' && /^(0|[1-9][0-9]*)$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) <= 0x7fffffff
 
 export function loadDotEnv(text, target = process.env) {
   for (const line of text.split(/\r?\n/)) {
@@ -37,18 +39,29 @@ export function isIntendedApplicationAssertionFailure(error, appId) {
   return text.includes('logic eval error') && text.includes('assert failed') && text.includes(`app=${appId}`)
 }
 
-function config() {
+export async function testnetConfig(environment = process.env) {
   const missing = []
-  const mnemonic = process.env.TESTNET_PAYER_MNEMONIC
-  const assetId = process.env.TESTNET_ASA_ID
-  const server = process.env.TESTNET_ALGOD_SERVER
-  if (!mnemonic) missing.push('TESTNET_PAYER_MNEMONIC: provide a funded TestNet payer mnemonic through the environment or ignored local .env')
+  const mnemonic = environment.TESTNET_PAYER_HD_MNEMONIC
+  const expectedAddress = environment.TESTNET_PAYER_ADDRESS
+  const accountIndex = environment.TESTNET_PAYER_ACCOUNT_INDEX ?? '0'
+  const addressIndex = environment.TESTNET_PAYER_ADDRESS_INDEX ?? '0'
+  const assetId = environment.TESTNET_ASA_ID
+  const server = environment.TESTNET_ALGOD_SERVER
+  if (!mnemonic) missing.push('TESTNET_PAYER_HD_MNEMONIC: provide a valid 24-word Pera BIP-39 recovery phrase through the environment or ignored local .env')
+  if (!expectedAddress || !algosdk.isValidAddress(expectedAddress)) missing.push('TESTNET_PAYER_ADDRESS: provide the expected public Pera address as an Algorand address safety assertion')
+  if (!canonicalIndex(accountIndex)) missing.push('TESTNET_PAYER_ACCOUNT_INDEX: provide a non-negative safe decimal Pera account index')
+  if (!canonicalIndex(addressIndex)) missing.push('TESTNET_PAYER_ADDRESS_INDEX: provide a non-negative safe decimal Pera address index')
   if (!canonicalPositive(assetId)) missing.push('TESTNET_ASA_ID: provide the existing selected TestNet ASA ID as a positive decimal integer; it will not be guessed or created')
   if (!server) missing.push('TESTNET_ALGOD_SERVER: provide a reachable TestNet Algod endpoint URL')
   else { try { new URL(server) } catch { missing.push('TESTNET_ALGOD_SERVER: provide a valid endpoint URL') } }
   let payer
-  if (mnemonic) { try { payer = algosdk.mnemonicToSecretKey(mnemonic) } catch { missing.push('TESTNET_PAYER_MNEMONIC: provide a valid Algorand mnemonic') } }
-  return { missing, payer, assetId: canonicalPositive(assetId) ? BigInt(assetId) : undefined, server, port: process.env.TESTNET_ALGOD_PORT ?? '', token: process.env.TESTNET_ALGOD_TOKEN ?? '', tokenHeader: process.env.TESTNET_ALGOD_TOKEN_HEADER || 'X-Algo-API-Token' }
+  if (mnemonic && canonicalIndex(accountIndex) && canonicalIndex(addressIndex)) {
+    try {
+      payer = await createPeraHdSigner({ mnemonic, accountIndex: Number(accountIndex), addressIndex: Number(addressIndex) })
+      if (expectedAddress && algosdk.isValidAddress(expectedAddress) && payer.address !== expectedAddress) missing.push('TESTNET_PAYER_ADDRESS: derived Pera address does not match the required public safety assertion')
+    } catch { missing.push('TESTNET_PAYER_HD_MNEMONIC: provide a valid 24-word BIP-39 mnemonic with a valid checksum') }
+  }
+  return { missing, payer, expectedAddress, assetId: canonicalPositive(assetId) ? BigInt(assetId) : undefined, server, port: environment.TESTNET_ALGOD_PORT ?? '', token: environment.TESTNET_ALGOD_TOKEN ?? '', tokenHeader: environment.TESTNET_ALGOD_TOKEN_HEADER || 'X-Algo-API-Token' }
 }
 
 function client(settings) {
@@ -57,7 +70,7 @@ function client(settings) {
 }
 
 async function submit(algod, txns, signer) {
-  const signed = txns.map((txn) => txn.signTxn(signer.sk))
+  const signed = await Promise.all(txns.map((txn) => signer.signTransaction ? signer.signTransaction(txn) : txn.signTxn(signer.sk)))
   const txId = txns[0].txID()
   await algod.sendRawTransaction(signed).do()
   const pending = await algosdk.waitForConfirmation(algod, txId, 10)
@@ -93,7 +106,7 @@ function rejectedTransactions({ payer, provider, application, assetId, appId, pa
 }
 
 async function preflight(settings) {
-  if (settings.missing.length) return { ok: false, phase: 'configuration', missingPrerequisites: settings.missing }
+  if (settings.missing.length) return { ok: false, phase: 'configuration', payer: settings.payer?.address, expectedPayer: settings.expectedAddress, missingPrerequisites: settings.missing }
   const algod = client(settings)
   let version
   try { version = await algod.versionsCheck().do() } catch { return { ok: false, phase: 'endpoint', payer: settings.payer.addr.toString(), missingPrerequisites: ['TestNet Algod endpoint access failed: verify TESTNET_ALGOD_SERVER and optional token/header without exposing credentials'] } }
@@ -127,7 +140,7 @@ async function run(settings, readiness) {
   const accounts = { payer: payer.addr, provider: provider.addr, application }
   const before = await balances(algod, accounts, assetId), markerBefore = await marker(algod, appId)
   const signer = { getAddresses: () => [payer.addr.toString()], simulateTransactions: async (group) => algod.simulateRawTransactions(group).do(), sendTransactions: async (group) => algod.sendRawTransaction(group).do(), waitForConfirmation: async (id) => algosdk.waitForConfirmation(algod, id, 10) }
-  const built = buildAssuredExactPayload({ payer, provider: provider.addr, application, assetId, providerNet: PROVIDER_NET, premium: PREMIUM, applicationId: appId, commitment: new Uint8Array(32).fill(7), params: await algod.getTransactionParams().do() })
+  const built = await buildAssuredExactPayloadWithSigner({ payer: payer.addr, signTransaction: (txn) => payer.signTransaction(txn), provider: provider.addr, application, assetId, providerNet: PROVIDER_NET, premium: PREMIUM, applicationId: appId, commitment: new Uint8Array(32).fill(7), params: await algod.getTransactionParams().do() })
   const requirements = { ...built.requirements, network: ALGORAND_TESTNET_CAIP2, maxTimeoutSeconds: 60 }
   const payload = { x402Version: 2, accepted: requirements, payload: { paymentGroup: built.paymentGroup, providerIndex: 0, premiumIndex: 1, applicationIndex: 2 } }
   const settlement = await new x402Facilitator().register(ALGORAND_TESTNET_CAIP2, new AssuredExactAvmScheme(signer)).settle(payload, requirements)
@@ -136,7 +149,7 @@ async function run(settings, readiness) {
   if (before.payer.asset - after.payer.asset !== GROSS || after.provider.asset - before.provider.asset !== PROVIDER_NET || after.application.asset - before.application.asset !== PREMIUM || markerAfter !== markerBefore + 1n) throw new Error('confirmed TestNet settlement did not produce the required balances/marker')
   const successTxns = built.paymentGroup.map((encoded) => algosdk.decodeSignedTransaction(Buffer.from(encoded, 'base64')).txn)
   const rejected = rejectedTransactions({ payer, provider: provider.addr, application, assetId, appId, params: await algod.getTransactionParams().do() })
-  const rejectedSigned = rejected.map((txn) => txn.signTxn(payer.sk))
+  const rejectedSigned = await Promise.all(rejected.map((txn) => payer.signTransaction(txn)))
   const rejectionBefore = await balances(algod, accounts, assetId), rejectionMarkerBefore = await marker(algod, appId)
   const simulation = await algod.simulateRawTransactions(rejectedSigned).do()
   const simulationFailure = simulation.txnGroups?.[0]?.failureMessage
@@ -154,9 +167,14 @@ async function run(settings, readiness) {
 
 async function main() {
   await loadLocalEnv()
-  const settings = config(), readiness = await preflight(settings)
-  if (process.argv.includes('--preflight') || !readiness.ok) { console.log(asJson(readiness)); process.exitCode = readiness.ok ? 0 : 2; return }
-  console.log(asJson(await run(settings, readiness)))
+  const settings = await testnetConfig()
+  try {
+    const readiness = await preflight(settings)
+    if (process.argv.includes('--preflight') || !readiness.ok) { console.log(asJson(readiness)); process.exitCode = readiness.ok ? 0 : 2; return }
+    console.log(asJson(await run(settings, readiness)))
+  } finally {
+    settings.payer?.dispose()
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -78,3 +78,11 @@ export function buildAssuredExactPayload({ payer, provider, application, assetId
   const paymentGroup = txns.map((txn) => Buffer.from(txn.signTxn(payer.sk)).toString('base64'))
   return { paymentGroup, providerIndex: 0, premiumIndex: 1, applicationIndex: 2, requirements: { scheme: ASSURED_EXACT, asset: String(assetId), amount: String(providerNet + premium), extra: { provider: provider.toString(), applicationAddress: application.toString(), applicationId: String(applicationId), providerNet: String(providerNet), premium: String(premium), requestCommitment: Buffer.from(commitment).toString('base64') } } }
 }
+
+export async function buildAssuredExactPayloadWithSigner({ payer, signTransaction, provider, application, assetId, providerNet, premium, applicationId, commitment, params }) {
+  const appArgs = [OPEN_COVERAGE.getSelector(), algosdk.ABIType.from('uint64').encode(providerNet + premium), algosdk.ABIType.from('uint64').encode(premium), algosdk.ABIType.from('byte[]').encode(commitment), algosdk.ABIType.from('bool').encode(false)]
+  const txns = [algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({ sender: payer, receiver: provider, assetIndex: assetId, amount: providerNet, suggestedParams: params }), algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({ sender: payer, receiver: application, assetIndex: assetId, amount: premium, suggestedParams: params }), algosdk.makeApplicationNoOpTxnFromObject({ sender: payer, appIndex: applicationId, appArgs, suggestedParams: params })]
+  algosdk.assignGroupID(txns)
+  const paymentGroup = (await Promise.all(txns.map(signTransaction))).map((signed) => Buffer.from(signed).toString('base64'))
+  return { paymentGroup, providerIndex: 0, premiumIndex: 1, applicationIndex: 2, requirements: { scheme: ASSURED_EXACT, asset: String(assetId), amount: String(providerNet + premium), extra: { provider: provider.toString(), applicationAddress: application.toString(), applicationId: String(applicationId), providerNet: String(providerNet), premium: String(premium), requestCommitment: Buffer.from(commitment).toString('base64') } } }
+}
