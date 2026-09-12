@@ -1,6 +1,16 @@
 # P0 Atomic-Group Spike Results
 
-Status: BLOCKED — Pera-compatible TestNet runner/preflight complete; real TestNet still requires user-controlled public configuration, funds, ASA holding/opt-in, and endpoint access
+Status: COMPLETE — real Algorand TestNet assured-exact success and actual-pool-rejection acceptance recorded
+
+## Final TestNet acceptance (2026-09-13)
+
+- Network: Algorand TestNet (`testnet-v1.0`). The configured Algod endpoint was queried read-only with `npm run testnet:p0 -- --verify-evidence`: it confirmed ASA `10458941` as `USDC` with 6 decimals, application `771586806`, the application address `C5R73ZOB4R2MXRITSETIQLBPQU5GQIV3LATS2YSMFHWR4GF52Q2BRZERHY`, and current `opened` marker `1`.
+- Final non-mutating preflight also passed against that endpoint: payer `G5V2CFA6OELV6YN6RRABZUAJJAFRLUNG6VC3UHPKP2S3UVPHT64OV3BYYU` has `19,999,900` ASA atomic units, `8,284,000` spendable microALGOs, and no outstanding prerequisite. No TestNet mutation was performed during this closing session.
+- Successful real `assured-exact` group: `P/UeimX9rfN7M9bX+GVkRLVn3w8Ch0LmcnxtVVnm5/0=`. The configured endpoint’s historical block at round `67235792` contains exactly the three group members and its transaction-ID index contains `2FLY2PVDH6TNTYP3YKF7JY4OM5LCQZOGMDN4AUGFPITF5GDRAVBA`, `O37H5XIJ2OHO5HRYWD446OQGXU2RUV5LSOVMHODGKKHL7DHJ4SLQ`, and `7TIGGAWFQUTY2RUEJCKPIEEGG3Q6C7EONYIL2EIMQOS2U4D3BV2Q`.
+- Successful settlement evidence from the supplied runner result: payer ASA `20,000,000 -> 19,999,900` (−100 atomic units), provider `0 -> 93`, application `0 -> 7`; contract marker `0 -> 1`. This is real TestNet chain evidence, not mocked-facilitator or LocalNet evidence.
+- Actual rejection/atomicity evidence: ABI-valid group `2kqU7jR+J/+R/u0IhVfrPSJVylJHi1XB24UAKoAmBgc=` with member IDs `NR6I4JKAFWP4ERTWRQTWNSDQLDN76IQQU7JIWQMZ52JOM4IAATJA`, `U3WEAJFODDDMQX7QQZ7PMCYARDBQODZMW7RQUEU2UYECCCE75V2A`, and `P4VOKN44QWSXZFL23TN7DIBS2LGWJJHUAU26RQV3HRZ5YJ474DOQ` was rejected by the real TestNet transaction pool for the intended assertion in app `771586806`. The facilitator simulation is predictive only; the distinct pool rejection plus unchanged rejected-case ALGO/ASA balances and marker `1 -> 1` is the network atomic-rollback proof.
+- The supplied acceptance evidence does not include setup transaction IDs/rounds. They are not reconstructed or invented here; the successful settlement and rejection evidence above is the P0 gate evidence supplied for this closing session.
+- Final conclusion: D-010 remains correct—`assured-exact`, not the stock AVM `exact`, is required to bind and settle the full three-member group. D-017 remains correct—this accepted path used caller-paid fees and no fourth fee-payer member. P0 is complete; P1 has not started and still requires its own packet.
 
 ## Pera Universal Wallet HD signer checkpoint (2026-09-12)
 

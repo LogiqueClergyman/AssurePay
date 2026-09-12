@@ -1,40 +1,34 @@
 # Session Handoff
 
-## Current state
+## P0 final state
 
 - Phase: P0 — Atomic-group spike
-- State: BLOCKED (real TestNet acceptance has user-controlled prerequisites)
+- State: COMPLETE
 - Branch: `main`
-- Starting HEAD for this checkpoint: `488dbab4ceded1ac01fb96bf0bd520f8dcb78b74`
-- Active packet: `planning/P0_TESTNET_ACCEPTANCE.md`
+- Active packet: `planning/P0_TESTNET_ACCEPTANCE.md` — completed
 - Results: `planning/P0_RESULTS.md`
 
-The TestNet runner now supports Pera Universal Wallet's 24-word BIP-39 HD format in a headless Node workflow. It uses the Pera-verified ARC-52 Peikert path `m/44'/283'/account'/0/addressIndex` (defaults `0/0`) and signs transaction `bytesToSign()` through an opaque signer. It never converts the phrase to Algo25 and never exposes a derived private key as `{ addr, sk }`.
+P0 has real Algorand TestNet acceptance. ASA `10458941` (`USDC`, 6 decimals) and application `771586806` settled the fixed `assured-exact` three-member group `[provider axfer, premium axfer, appl]` at round `67235792`: payer ASA `20,000,000 -> 19,999,900`, provider `0 -> 93`, application `0 -> 7`, marker `0 -> 1`.
 
-`TESTNET_PAYER_ADDRESS` is mandatory. Preflight validates the BIP-39 checksum, derives the configured account/address index, checks the exact public-address match before creating a network client, then performs the existing TestNet/ASA/balance checks. An ignored `spikes/p0-atomic/.env` remains supported and does not override supplied process values.
+The configured endpoint was queried read-only after acceptance. It confirmed TestNet, the ASA, the application, current marker `1`, all three successful transaction IDs, and their shared group ID `P/UeimX9rfN7M9bX+GVkRLVn3w8Ch0LmcnxtVVnm5/0=` in the historical confirmed block. The separate ABI-valid rejected group `2kqU7jR+J/+R/u0IhVfrPSJVylJHi1XB24UAKoAmBgc=` was rejected by the real TestNet pool for the intended app assertion; supplied acceptance evidence records unchanged rejected-case ALGO/ASA balances and marker `1 -> 1`.
+
+The normal TestNet runner output is compact and secret-safe: it emits only public addresses/IDs, setup transaction IDs and rounds, group/member IDs, balance deltas, marker deltas, and rejection summaries. It does not serialize pending responses, signed bytes, logs, credentials, or private material. `--verify-evidence` performs the read-only public historical lookup.
 
 ## Verification
 
 ```text
-npm run test:p0                 PASS, 61/61 (unit + mocked facilitator; not chain evidence)
-npm run typecheck:p0            PASS
-npm run build:contract:p0       PASS
-npm run testnet:p0 -- --preflight
-                                BLOCKED with public missing prerequisites:
-                                TESTNET_PAYER_HD_MNEMONIC and TESTNET_PAYER_ADDRESS
-npm run localnet:p0             NOT AVAILABLE: endpoint ECONNREFUSED
+npm run test:p0                              PASS, 63/63 (unit + mocked facilitator; not chain evidence)
+npm run typecheck:p0                         PASS
+npm run build:contract:p0                    PASS
+npm run testnet:p0 -- --preflight            PASS, non-mutating TestNet readiness check
+npm run testnet:p0 -- --verify-evidence      PASS, read-only public TestNet verification
+npm run localnet:p0                          unavailable: endpoint ECONNREFUSED; historical LocalNet proof remains recorded
 ```
 
-The LocalNet command did not create any evidence in this session. Docker inspection showed the existing `algokit_sandbox_algod` and `algokit_sandbox_postgres` containers stopped; Indexer/Conduit restart because those dependencies are absent. This is distinct from the accepted historical LocalNet settlement/rollback proof recorded in `planning/P0_RESULTS.md`, and it is not TestNet evidence.
+## P1 handoff state
 
-No TestNet transaction, deployment, asset setup, successful settlement, forced rejection, balances, marker values, or transaction IDs were produced in this session.
-
-## Exact next action
-
-1. In an ignored `spikes/p0-atomic/.env` or the process environment, set `TESTNET_PAYER_HD_MNEMONIC` to the Pera 24-word phrase and `TESTNET_PAYER_ADDRESS` to its exact derived public address. Set or retain `TESTNET_PAYER_ACCOUNT_INDEX` / `TESTNET_PAYER_ADDRESS_INDEX` (both default to `0`), `TESTNET_ASA_ID`, `TESTNET_ALGOD_SERVER`, and optional port/token/header variables. The payer must hold at least 100 selected-ASA atomic units and 3,000,000 spendable microALGOs.
-2. Run `npm run testnet:p0 -- --preflight`. If it passes, run `npm run testnet:p0` to obtain genuine TestNet success and actual-pool-rejection evidence.
-3. Separately restore the existing AlgoKit LocalNet environment before treating `npm run localnet:p0` as a current rerun; do not reset or discard the repository to do so.
+P1 is `NOT_READY`, not started, and has no active packet. The exact next action is for the orchestrator to create a self-contained P1 Assurance Core packet that incorporates D-010, D-016, D-017, D-018, and D-019. Do not begin P1 until that packet exists.
 
 ## Commit checkpoint
 
-Implementation/dependency checkpoint: `6530f00` (`feat: support Pera HD TestNet payer signing`). P0 decision/results/plan checkpoint: `a983e2b` (`docs: record Pera HD P0 TestNet checkpoint`). The session's final HEAD is reported by `git rev-parse HEAD` at handoff; the worktree must remain clean.
+P0-closing implementation and records are committed in this session. Obtain the exact final HEAD with `git rev-parse HEAD`; the worktree must remain clean.

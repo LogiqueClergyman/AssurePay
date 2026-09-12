@@ -62,6 +62,16 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Consequences: TestNet configuration replaces `TESTNET_PAYER_MNEMONIC` with `TESTNET_PAYER_HD_MNEMONIC`, `TESTNET_PAYER_ADDRESS`, `TESTNET_PAYER_ACCOUNT_INDEX`, and `TESTNET_PAYER_ADDRESS_INDEX`. Legacy Algo25 is deliberately unsupported by this P0 runner; Pera mnemonic/seed/root/private key material is not logged or serialized.
 - Supersedes: none
 
+### D-019 — P0 TestNet acceptance conclusion
+
+- Status: ACCEPTED
+- Date: 2026-09-13
+- Phase: P0
+- Decision: Close P0 with the dedicated `assured-exact` profile and caller-paid fees fixed by D-010, D-016, and D-017.
+- Evidence: On Algorand TestNet, ASA `10458941` / app `771586806`, the three-member successful group `P/UeimX9rfN7M9bX+GVkRLVn3w8Ch0LmcnxtVVnm5/0=` confirmed at round `67235792` with the required −100/+93/+7 ASA deltas and marker `0 -> 1`. The distinct ABI-valid group `2kqU7jR+J/+R/u0IhVfrPSJVylJHi1XB24UAKoAmBgc=` was rejected by the real transaction pool for the intended app assertion, with rejected-case ALGO/ASA balances unchanged and marker `1 -> 1`. The configured endpoint independently confirmed the network, asset, application, successful group members, and current marker.
+- Consequences: P1 must retain the P0 wire constraint `[provider axfer, premium axfer, appl]`, bind and verify the whole ordered signed group before simulation/submission, and keep fee sponsorship as an explicit later-profile change rather than adding a fourth member silently.
+- Supersedes: none
+
 ## Open decisions
 
 | ID | Decision | Target phase | Status |

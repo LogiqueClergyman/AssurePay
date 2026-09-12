@@ -18,8 +18,8 @@ Later phases may be prepared conceptually, but their code must not begin until t
 
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
-| P0 Atomic group spike | BLOCKED | `planning/P0_TESTNET_ACCEPTANCE.md` | Pera 24-word HD TestNet runner/preflight complete; execute with matching public address, selected ASA holding, spendable funds, and reachable TestNet endpoint |
-| P1 Assurance Core | BLOCKED_BY_P0 | Not created | Pending |
+| P0 Atomic group spike | COMPLETE | `planning/P0_TESTNET_ACCEPTANCE.md` | TestNet accepted: assured-exact three-member settlement and actual atomic pool rejection proved |
+| P1 Assurance Core | NOT_READY | Not created | Await a self-contained P1 packet that incorporates D-010/D-016/D-017/D-019 |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |
 | P4 Demo hardening | BLOCKED_BY_P3 | Not created | Pending |
