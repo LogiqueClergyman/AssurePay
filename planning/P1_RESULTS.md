@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gates A–B ACCEPTED; Gate C REVIEW; Gates D–F remain NOT_STARTED
+Status: IN_PROGRESS — Gates A–C ACCEPTED; Gate D READY; Gates E–F remain NOT_STARTED
 
 ## Baseline
 
@@ -78,7 +78,7 @@ Status: ACCEPTED
 
 ## Gate C — Coverage profile
 
-Status: REVIEW
+Status: ACCEPTED
 
 - P0 profile compatibility: Implemented production `assurance-core-v1` over the accepted `assured-exact` x402 v2 group: index 0 payer -> stored provider payout / accepted ASA / providerNet; index 1 same payer -> application / accepted ASA / premium; index 2 same payer `NoOp` application call. The application ABI is exactly `openCoverage(byte[32],byte[32],byte[32],byte[32],uint64)void`; `getCoverage(byte[32])` is read-only and returns the complete 193-byte `CoverageRecord`. The adapter registers the scheme with real `x402Facilitator().register(...)`, verifies all three single signatures and the recomputed group ID, binds every metadata and ABI argument, simulates, and submits immutable copies of the verified signed bytes.
 - Contract/accounting behavior: Coverage IDs are permanent tombstones in `0x63 || coverageId` boxes. Gate C validates pause/opt-in, exact group/order/index, non-zero IDs/request hash, provider/policy existence/status/association, common sender, payout/application receivers, accepted ASA, unsafe transfer/rekey fields, derived premium/net, maximum coverage, stake validity/capacity, checked lock/exposure/reserve/expiry additions, and the complete precomputed `totalProviderStake + newPremiumReserve` against the actual application ASA balance. Success stores status `OPEN = 1`, `stakeTopupAmount = 0`, `exposureReleased = false`, then increases provider locked stake, provider/global exposure, and premium reserve without changing total stake and emits the frozen `CoverageOpened(..., version=1)` event.
@@ -89,10 +89,11 @@ Status: REVIEW
 - Rollback/rejection evidence: The validly signed gross-51 group under the 7,500-bps policy failed x402 simulation with category `simulation`, assertion **pc=1976**, and facilitator submissions **0**. The exact same signed bytes were rejected by the real transaction pool at **pc=1976**. Before/after comparison covered payer, provider, and application ALGO/ASA balances, application minimum balance, provider/policy/coverage boxes, provider record, and all global accounting fields; every value was unchanged and the rejected coverage box remained absent. The runner executed **17** counted Gate C representative rejection cases, including wrong ASA, exact group size, reordered group with recomputed group ID, unsafe transfer assetSender/close-to/rekey, application rekey, and the paused/inactive/duplicate/reference negatives; total runner rejected cases were **65**.
 - Required commands: `npm run typecheck:p1` passed; `npm run build:contract:p1` passed; `npm run test:p1` passed (**21/21**); `npm run localnet:p1` passed against real `dockernet-v1` with **65** total rejected cases.
 - Deviations/blockers: none. Gate C is left in `REVIEW` as required; Gate D, TestNet, P2, UI, backend, and infrastructure work were not started.
+- Orchestrator review: accepted at commit `911b0af` after inspecting both remediation commits and their documentation diffs. Reproduced typecheck/build, all 21 deterministic tests, and a fresh LocalNet run at round `979` with ASA `2070`, app `2071`, two real x402-core settlements, exact locks `10 + 75 = 85`, 17 counted Gate C rejections/65 total, and matching insufficient-capacity simulation/pool assertion `pc=1976` with full rollback. The standard x402 v2 envelope, facilitator interface, stale-snapshot invalidation, failure-shaped settlement, complete reserve balance bound, and previous evidence defects were verified in code. A cumulative audit also reproduced P0's 63 tests/build/typecheck, fresh real LocalNet success/rollback, and read-only TestNet public evidence; current Gate A/B behavior is exercised by the combined 65-case P1 LocalNet run.
 
 ## Gate D — Withdrawal, close, claims, and refunds
 
-Status: NOT_STARTED
+Status: READY
 
 - Withdrawal safety:
 - Exposure release:
@@ -128,7 +129,7 @@ Status: NOT_STARTED
 ## Decisions and deviations
 
 - D-011: refined with compiled ARC-4 sizes, one-byte prefixes, 33-byte full keys, and the AVM optional-inner-field constraint above; accepted storage decision unchanged.
-- D-012: accepted floor premium with a one-atomic-unit minimum; Gate C must record its AVM biguint boundary evidence.
+- D-012: accepted floor premium with a one-atomic-unit minimum; Gate C recorded its AVM biguint boundary evidence.
 - D-013: accepted explicit permissionless expiry close; applies in Gate D.
 - D-014: accepted one configured development adjudicator; applies in Gate D.
 - D-015: accepted pre-deposited stake and zero same-group top-up.
@@ -137,4 +138,4 @@ Status: NOT_STARTED
 
 ## Remaining work or blockers
 
-- None. Gates A and B are accepted. Gate C is ready from `planning/P1_GATE_C_COVERAGE.md`.
+- None. Gates A through C are accepted. Gate D is ready from `planning/P1_GATE_D_LIFECYCLE.md`.

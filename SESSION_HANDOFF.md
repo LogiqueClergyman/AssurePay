@@ -3,35 +3,26 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: IN_PROGRESS — Gates A and B ACCEPTED; Gate C REVIEW; Gates D–F NOT_STARTED
+- State: IN_PROGRESS — Gates A through C ACCEPTED; Gate D READY; Gates E–F NOT_STARTED
 - Branch: `main`
-- Starting checkpoint: `3b7b18f`
-- Active packet: `planning/P1_GATE_C_COVERAGE.md`
+- Starting checkpoint: `911b0af`
+- Active packet: `planning/P1_GATE_D_LIFECYCLE.md`
 - Results: `planning/P1_RESULTS.md`
 
-Gate C implementation is complete for review. The worktree was clean at the committed Gate C orchestration checkpoint before implementation. No files under `/docs` or `spikes/p0-atomic/**` were accessed or modified.
+P0 remains complete. A cumulative orchestrator audit reproduced its 63 deterministic tests, compiler/build checks, fresh real LocalNet success and rollback, and read-only public TestNet evidence. P0 is a disposable mechanism spike; do not modify or import from `spikes/p0-atomic/**`.
 
-## Gate C evidence summary
+## Accepted baseline
 
-- Production `assurance-core-v1` keeps the accepted `assured-exact` three-member order and is registered through real `@x402/core`.
-- `openCoverage` stores the immutable 193-byte coverage record, uses the `0x63 || coverageId` box, derives floor/minimum premium and ceiling collateral with AVM biguint arithmetic, and updates locked stake, premium reserve, and exposure atomically.
-- Deterministic verification: 21/21 tests passed, including schema-valid x402 v2 payloads, complete signed-byte mutation coverage, stale-snapshot invalidation, and failure-shaped settlement responses.
-- Real LocalNet verification: `dockernet-v1`, ASA `2017`, app `2018`, app address `3ULKEUPPSRLHECVHX4HZDQONNTDMHJKI7OGUTW6XJGUKPOSG7VQ6JIWZSU`, coverage MBR delta 92,900 microAlgos per box, two successful real x402-core settlements, mixed locks 10 + 75 = 85, global exposure/premium reserve 140/3, final app minimum balance 767,300 and ALGO balance 992,900.
-- A gross-51 insufficient-capacity group failed x402 simulation at application pc=1976 with zero facilitator submissions; the exact same signed bytes failed in the real pool at pc=1976. Full payer/provider/application ALGO and ASA balances, app minimum balance, provider/policy/coverage boxes and records, and all global accounting fields were unchanged. LocalNet executed 17 counted Gate C representative rejection cases and reported 65 rejected cases total.
-- Gate C compiled approval is 2,329 bytes and requires one additional program page (D-021); ABI/profile/storage remain unchanged.
+Gates A–C are accepted. The Gate C remediation corrected the complete `totalProviderStake + newPremiumReserve` balance bound, standard x402 v2 envelope and facilitator behavior, signed-byte matrices, stale-snapshot handling, and full LocalNet rollback evidence. The orchestrator inspected implementation and record diffs and independently reproduced all four P1 commands.
 
-## Verification completed
+Fresh review evidence: `dockernet-v1` round `979`, ASA `2070`, app `2071`; 21/21 deterministic tests; two successful real x402-core coverage settlements; mixed locks `10 + 75 = 85`; 17 Gate C rejections and 65 total; simulation and actual pool rejection both `pc=1976`; complete rollback passed. The compiled approval is 2,329 bytes and D-021 retains `extraPages=1`.
 
-- `npm run typecheck:p1` — passed
-- `npm run build:contract:p1` — passed
-- `npm run test:p1` — passed, 21/21
-- `npm run localnet:p1` — passed, real `dockernet-v1`
+## Gate D assignment
+
+Implement only `planning/P1_GATE_D_LIFECYCLE.md`. Add safe owner withdrawals, permissionless expiry close, adjudicator-only finalization, stored-payer refunds, provider-fault stake/pool waterfall, permanent claim tombstones, and the deterministic plus real LocalNet invariant proofs specified there.
+
+Do not start Gate E consolidation, TestNet, P2, backend, UI, governance, or infrastructure. Do not change frozen records, statuses, events, or the `assurance-core-v1` group profile.
 
 ## Exact next action
 
-Review the committed Gate C implementation and evidence against `planning/P1_GATE_C_COVERAGE.md`. Keep Gate C in `REVIEW`; do not mark it accepted or complete, do not mark Gate D ready, and do not begin Gate D, TestNet, P2, UI, backend, or infrastructure work.
-
-## Decisions and blockers
-
-- D-021 records the required one extra approval-program page for the 2,329-byte Gate C approval.
-- No ABI/profile conflict, accepted-decision conflict, or unresolved Gate C blocker was found. D-021 remains retained because the compiled approval is 2,329 bytes and uses one extra page.
+Start a fresh Luna/high implementation session. Read only the active packet's permitted context, confirm clean `main` at the committed orchestration successor to `911b0af`, implement every Gate D requirement, run all four required P1 commands, update the authorized records, create focused commits as explicitly requested, and stop with Gate D in `REVIEW`.

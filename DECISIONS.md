@@ -145,7 +145,7 @@ This file records implementation decisions that affect later phases. Keep entrie
 ## Open implementation facts
 
 - D-011 Gate A evidence recorded compiled box sizes and exact application minimum-balance funding.
-- D-012 Gate C evidence must record the verified overflow-safe arithmetic primitive and boundary behavior.
+- D-012 Gate C evidence recorded AVM biguint floor/ceiling arithmetic and uint64 boundary behavior.
 - These are implementation facts, not open product decisions. Any incompatible discovery requires a superseding decision.
 
 ## Entry template
