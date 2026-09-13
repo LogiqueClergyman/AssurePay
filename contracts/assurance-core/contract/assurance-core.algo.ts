@@ -27,6 +27,10 @@ import {
   RecordId,
 } from './storage'
 
+export const COVERAGE_STATUS_OPEN: uint64 = 1
+export const COVERAGE_STATUS_REFUNDED: uint64 = 2
+export const COVERAGE_STATUS_CLOSED: uint64 = 3
+
 export class AssuranceConfig extends arc4.Struct<{
   admin: arc4.Address
   adjudicator: arc4.Address
@@ -300,6 +304,119 @@ export class AssuranceCore extends Contract {
     const capacity: biguint = (unencumberedStake * 10_000n) / policy.value.collateralRatioBps.asBigUint()
     if (capacity > maxBigUint) return maxUint64
     return new arc4.Uint64(capacity).asUint64()
+  }
+
+  @abimethod({ allowActions: 'NoOp' })
+  openCoverage(
+    coverageId: arc4.StaticBytes<32>,
+    providerId: arc4.StaticBytes<32>,
+    policyId: arc4.StaticBytes<32>,
+    requestHash: arc4.StaticBytes<32>,
+    grossAmount: uint64,
+  ): void {
+    this.requireUnpaused()
+    assert(this.assetOptedIn.value === 1, 'asset not opted in')
+    assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    assert(Txn.onCompletion === OnCompleteAction.NoOp, 'application call must be NoOp')
+    assert(Global.groupSize === 3, 'exactly three group members required')
+    assert(Txn.groupIndex === 2, 'application call must be third')
+    assert(!this.isZeroId(coverageId), 'coverage id must be non-zero')
+    assert(!this.isZeroId(providerId), 'provider id must be non-zero')
+    assert(!this.isZeroId(policyId), 'policy id must be non-zero')
+    assert(!this.isZeroId(requestHash), 'request hash must be non-zero')
+
+    const coverage = this.coverages(coverageId)
+    assert(!coverage.exists, 'coverage already exists')
+    const provider = this.providers(providerId)
+    assert(provider.exists, 'provider missing')
+    assert(provider.value.active.native === true, 'provider inactive')
+    const policy = this.policies(policyId)
+    assert(policy.exists, 'policy missing')
+    assert(policy.value.active.native === true, 'policy inactive')
+    assert(policy.value.providerId.bytes === providerId.bytes, 'policy provider mismatch')
+    assert(grossAmount > 0, 'gross amount must be positive')
+    assert(grossAmount <= policy.value.maxCoverageAmount.asUint64(), 'maximum coverage exceeded')
+
+    const providerTransfer = gtxn.AssetTransferTxn(0)
+    const premiumTransfer = gtxn.AssetTransferTxn(1)
+    assert(providerTransfer.sender.bytes === Txn.sender.bytes, 'provider transfer sender mismatch')
+    assert(premiumTransfer.sender.bytes === Txn.sender.bytes, 'premium transfer sender mismatch')
+    assert(providerTransfer.assetReceiver.bytes === provider.value.payoutAddress.bytes, 'provider receiver mismatch')
+    assert(premiumTransfer.assetReceiver.bytes === Global.currentApplicationAddress.bytes, 'premium receiver mismatch')
+    assert(providerTransfer.xferAsset.id === this.acceptedAssetId.value, 'provider transfer wrong asset')
+    assert(premiumTransfer.xferAsset.id === this.acceptedAssetId.value, 'premium transfer wrong asset')
+    assert(providerTransfer.assetSender.bytes === Global.zeroAddress.bytes, 'provider asset sender is not allowed')
+    assert(providerTransfer.assetCloseTo.bytes === Global.zeroAddress.bytes, 'provider asset close-to is not allowed')
+    assert(providerTransfer.rekeyTo.bytes === Global.zeroAddress.bytes, 'provider transfer rekey is not allowed')
+    assert(premiumTransfer.assetSender.bytes === Global.zeroAddress.bytes, 'premium asset sender is not allowed')
+    assert(premiumTransfer.assetCloseTo.bytes === Global.zeroAddress.bytes, 'premium asset close-to is not allowed')
+    assert(premiumTransfer.rekeyTo.bytes === Global.zeroAddress.bytes, 'premium transfer rekey is not allowed')
+
+    const rawPremium: biguint = (new arc4.Uint64(grossAmount).asBigUint() * policy.value.premiumBps.asBigUint()) / 10_000n
+    const premiumBig: biguint = rawPremium < 1n ? 1n : rawPremium
+    const premium = new arc4.Uint64(premiumBig).asUint64()
+    const providerNet: uint64 = grossAmount - premium
+    const lockedBig: biguint = (
+      new arc4.Uint64(grossAmount).asBigUint() * policy.value.collateralRatioBps.asBigUint() + 9_999n
+    ) / 10_000n
+    const lockedStake = new arc4.Uint64(lockedBig).asUint64()
+    assert(providerTransfer.assetAmount === providerNet, 'provider amount mismatch')
+    assert(premiumTransfer.assetAmount === premium, 'premium amount mismatch')
+
+    assert(provider.value.stakeTotal.asUint64() >= provider.value.stakeLocked.asUint64(), 'invalid stake state')
+    assert(lockedStake <= provider.value.stakeTotal.asUint64() - provider.value.stakeLocked.asUint64(), 'insufficient capacity')
+    const maxUint64 = new arc4.Uint64(18446744073709551615n).asUint64()
+    assert(provider.value.stakeLocked.asUint64() <= maxUint64 - lockedStake, 'provider lock overflow')
+    assert(provider.value.openFaultExposure.asUint64() <= maxUint64 - grossAmount, 'provider exposure overflow')
+    assert(this.totalOpenFaultExposure.value <= maxUint64 - grossAmount, 'global exposure overflow')
+    assert(this.premiumReserve.value <= maxUint64 - premium, 'premium reserve overflow')
+    assert(this.totalProviderStake.value <= maxUint64 - premium, 'tracked stake overflow')
+    const openedAt = Global.latestTimestamp
+    assert(openedAt <= maxUint64 - policy.value.claimWindowSeconds.asUint64(), 'expiry overflow')
+    const expiresAt: uint64 = openedAt + policy.value.claimWindowSeconds.asUint64()
+    const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
+    assert(this.totalProviderStake.value + premium <= applicationHolding, 'tracked stake exceeds balance')
+
+    coverage.value = new CoverageRecord({
+      providerId,
+      policyId,
+      payerAddress: new arc4.Address(Txn.sender),
+      grossAmount: new arc4.Uint64(grossAmount),
+      providerNetAmount: new arc4.Uint64(providerNet),
+      premiumAmount: new arc4.Uint64(premium),
+      stakeTopupAmount: new arc4.Uint64(0),
+      lockedStakeAmount: new arc4.Uint64(lockedStake),
+      requestHash,
+      openedAt: new arc4.Uint64(openedAt),
+      expiresAt: new arc4.Uint64(expiresAt),
+      status: new arc4.Uint64(COVERAGE_STATUS_OPEN),
+      exposureReleased: new arc4.Bool(false),
+    })
+    provider.value.stakeLocked = new arc4.Uint64(provider.value.stakeLocked.asUint64() + lockedStake)
+    provider.value.openFaultExposure = new arc4.Uint64(provider.value.openFaultExposure.asUint64() + grossAmount)
+    this.totalOpenFaultExposure.value += grossAmount
+    this.premiumReserve.value += premium
+    emit(
+      'CoverageOpened',
+      new arc4.Uint64(1),
+      coverageId,
+      providerId,
+      policyId,
+      new arc4.Address(Txn.sender),
+      new arc4.Uint64(grossAmount),
+      new arc4.Uint64(providerNet),
+      new arc4.Uint64(premium),
+      requestHash,
+      new arc4.Uint64(openedAt),
+      new arc4.Uint64(expiresAt),
+    )
+  }
+
+  @abimethod({ readonly: true })
+  getCoverage(coverageId: arc4.StaticBytes<32>): CoverageRecord {
+    const coverage = this.coverages(coverageId)
+    assert(coverage.exists, 'coverage missing')
+    return coverage.value
   }
 
   private requireUnpaused(): void {

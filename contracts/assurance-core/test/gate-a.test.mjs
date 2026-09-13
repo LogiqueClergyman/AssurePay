@@ -112,7 +112,7 @@ test('global schema and event ABI projections are fixed', () => {
 
 test('unsafe controls are explicitly guarded in both state-changing methods', () => {
   const contract = fs.readFileSync(path.join(source, 'assurance-core.algo.ts'), 'utf8')
-  assert.equal((contract.match(/Txn\.rekeyTo\.bytes === Global\.zeroAddress\.bytes/g) ?? []).length, 8)
+  assert.equal((contract.match(/Txn\.rekeyTo\.bytes === Global\.zeroAddress\.bytes/g) ?? []).length, 9)
   assert.match(contract, /fee: 0/)
   assert.match(contract, /Txn\.fee >= Global\.minTxnFee \* 2/)
 })

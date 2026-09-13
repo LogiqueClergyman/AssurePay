@@ -27,6 +27,8 @@ test('Gate B ABI surface preserves Gate A and freezes typed methods', () => {
     'getPolicy',
     'depositStake',
     'getAvailableCapacity',
+    'openCoverage',
+    'getCoverage',
     'getConfig',
     'getAccounting',
   ])
@@ -58,7 +60,7 @@ test('Gate B events have exact public signatures and ARC-28 prefixes', () => {
 
 test('Gate B source guards pause, ownership, fixed references, and asset invariants', () => {
   assert.match(contract, /private requireUnpaused\(\)/)
-  assert.equal((contract.match(/this\.requireUnpaused\(\)/g) ?? []).length, 5)
+  assert.equal((contract.match(/this\.requireUnpaused\(\)/g) ?? []).length, 6)
   assert.match(contract, /const provider = this\.providers\(providerId\)/)
   assert.match(contract, /const policy = this\.policies\(policyId\)/)
   assert.match(contract, /assert\(Global\.groupSize === 2, 'exactly two group members required'\)/)

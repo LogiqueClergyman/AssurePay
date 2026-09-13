@@ -24,6 +24,22 @@ export class PolicyRecord extends arc4.Struct<{
   createdAt: arc4.Uint<64>
 }> {}
 
+export class CoverageRecord extends arc4.Struct<{
+  providerId: arc4.StaticArray<arc4.Byte, 32>
+  policyId: arc4.StaticArray<arc4.Byte, 32>
+  payerAddress: arc4.Address
+  grossAmount: arc4.Uint<64>
+  providerNetAmount: arc4.Uint<64>
+  premiumAmount: arc4.Uint<64>
+  stakeTopupAmount: arc4.Uint<64>
+  lockedStakeAmount: arc4.Uint<64>
+  requestHash: arc4.StaticArray<arc4.Byte, 32>
+  openedAt: arc4.Uint<64>
+  expiresAt: arc4.Uint<64>
+  status: arc4.Uint<64>
+  exposureReleased: arc4.Bool
+}> {}
+
 export class AssuranceConfig extends arc4.Struct<{
   admin: arc4.Address
   adjudicator: arc4.Address
@@ -128,6 +144,22 @@ export abstract class AssuranceCore extends Contract {
     providerId: arc4.StaticArray<arc4.Byte, 32>,
     policyId: arc4.StaticArray<arc4.Byte, 32>,
   ): arc4.Uint<64> {
+    err('stub only')
+  }
+
+  @abimethod()
+  openCoverage(
+    coverageId: arc4.StaticArray<arc4.Byte, 32>,
+    providerId: arc4.StaticArray<arc4.Byte, 32>,
+    policyId: arc4.StaticArray<arc4.Byte, 32>,
+    requestHash: arc4.StaticArray<arc4.Byte, 32>,
+    grossAmount: arc4.Uint<64>,
+  ): void {
+    err('stub only')
+  }
+
+  @abimethod({ readonly: true })
+  getCoverage(coverageId: arc4.StaticArray<arc4.Byte, 32>): CoverageRecord {
     err('stub only')
   }
 

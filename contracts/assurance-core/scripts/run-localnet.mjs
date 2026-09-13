@@ -3,6 +3,11 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import algosdk from 'algosdk'
+import { x402Facilitator } from '@x402/core/facilitator'
+import {
+  LOCALNET_NETWORK,
+  createAssuredExactFacilitator,
+} from '../adapter/assured-exact.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 const artifact = JSON.parse(fs.readFileSync(path.join(root, 'artifacts', 'AssuranceCore.arc32.json'), 'utf8'))
@@ -115,6 +120,7 @@ const createTxn = async (asset, adjudicatorAddress, rekeyTo = undefined) => algo
   numGlobalByteSlices: 2,
   numLocalInts: 0,
   numLocalByteSlices: 0,
+  extraPages: 1,
   rekeyTo,
   suggestedParams: await params(),
 })
@@ -134,6 +140,7 @@ const create = algosdk.makeApplicationCreateTxnFromObject({
   numGlobalByteSlices: 2,
   numLocalInts: 0,
   numLocalByteSlices: 0,
+  extraPages: 1,
   suggestedParams: await params(),
 })
 const created = await send(create, payer)
@@ -177,6 +184,7 @@ const app2Create = algosdk.makeApplicationCreateTxnFromObject({
   numGlobalByteSlices: 2,
   numLocalInts: 0,
   numLocalByteSlices: 0,
+  extraPages: 1,
   suggestedParams: await params(),
 })
 const app2 = await send(app2Create, payer)
@@ -334,7 +342,7 @@ const makeDepositGroup = async ({
     appIndex: targetAppId,
     appArgs: typedDepositArgs(provider),
     boxes: [
-      { appIndex: 0, name: providerBox },
+      { appIndex: 0, name: boxKey('p', provider) },
     ],
     foreignAssets: [transferAsset],
     rekeyTo: appRekeyTo,
@@ -607,9 +615,236 @@ const duplicate = async () => {
 }
 await duplicate()
 
+// Gate C: use a provider whose payout address is distinct from the payer so
+// the three ASA legs can be observed independently.
+const providerId3 = new Uint8Array(32).fill(12)
+const policyIdGate3 = new Uint8Array(32).fill(11)
+const policyIdGate4 = new Uint8Array(32).fill(13)
+const providerBox3 = boxKey('p', providerId3)
+const policyBoxGate3 = boxKey('l', policyIdGate3)
+const policyBoxGate4 = boxKey('l', policyIdGate4)
+const coverageId1 = new Uint8Array(32).fill(21)
+const coverageId2 = new Uint8Array(32).fill(22)
+const coverageIdBad = new Uint8Array(32).fill(23)
+const coverageBox1 = boxKey('c', coverageId1)
+const coverageBox2 = boxKey('c', coverageId2)
+const coverageBoxBad = boxKey('c', coverageIdBad)
+
+await send(algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+  sender: payerAddress,
+  receiver: appAddress,
+  amount: 300_000,
+  suggestedParams: await params(),
+}), payer)
+
+const registered3 = await call(
+  payer,
+  appArgs('registerProvider(byte[32],address,byte[32])', [providerId3, otherAddress, new Uint8Array(32).fill(6)]),
+  boxes(providerBox3),
+)
+const createPolicyFor = async (id, provider, ratio, ref) => call(
+  payer,
+  appArgs('createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)', [id, provider, 250, ratio, 1_000_000, 3_600]),
+  boxes(boxKey('p', provider), ref),
+)
+await createPolicyFor(policyIdGate3, providerId3, 2_500, policyBoxGate3)
+await createPolicyFor(policyIdGate4, providerId3, 7_500, policyBoxGate4)
+const deposit3 = await makeDepositGroup({ provider: providerId3, amount: 123 })
+const signedDeposit3 = algosdk.assignGroupID(deposit3).map((txn) => sign(txn, payer))
+await algod.sendRawTransaction(signedDeposit3).do()
+await wait(deposit3[1].txID())
+
+const coverageArgs = (coverageId, provider, policy, requestHash, gross) => args(
+  'openCoverage(byte[32],byte[32],byte[32],byte[32],uint64)void',
+  [coverageId, provider, policy, requestHash, gross],
+)
+const coverageRequirements = ({ coverageId, provider, policy, requestHash, gross, providerNet, premium }) => ({
+  scheme: 'assured-exact',
+  network: LOCALNET_NETWORK,
+  asset: String(assetId),
+  amount: String(gross),
+  payTo: otherAddress,
+  maxTimeoutSeconds: 120,
+  extra: {
+    profile: 'assurance-core-v1',
+    provider: otherAddress,
+    applicationAddress: appAddress,
+    applicationId: String(appId),
+    providerNet: String(providerNet),
+    premium: String(premium),
+    coverageId: Buffer.from(coverageId).toString('base64'),
+    providerId: Buffer.from(provider).toString('base64'),
+    policyId: Buffer.from(policy).toString('base64'),
+    requestCommitment: Buffer.from(requestHash).toString('base64'),
+  },
+})
+const makeCoverageGroup = async ({ coverageId, policy, gross, requestHash = new Uint8Array(32).fill(31), transferReceiver = otherAddress, transferAsset = assetId, transferAmount = undefined, transferSender = payerAddress, callSender = payerAddress, appRekeyTo = undefined, transferRekeyTo = undefined, transferCloseTo = undefined, includeCoverageBox = true }) => {
+  const premium = Math.max(1, Math.floor(gross * 250 / 10_000))
+  const providerNet = gross - premium
+  const providerTransfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+    sender: transferSender,
+    receiver: transferReceiver,
+    amount: transferAmount ?? providerNet,
+    assetIndex: transferAsset,
+    closeRemainderTo: transferCloseTo,
+    rekeyTo: transferRekeyTo,
+    suggestedParams: await params(),
+  })
+  const premiumTransfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+    sender: payerAddress,
+    receiver: appAddress,
+    amount: premium,
+    assetIndex: assetId,
+    suggestedParams: await params(),
+  })
+  const application = algosdk.makeApplicationNoOpTxnFromObject({
+    sender: callSender,
+    appIndex: appId,
+    appArgs: coverageArgs(coverageId, providerId3, policy, requestHash, gross),
+    boxes: [
+      { appIndex: 0, name: providerBox3 },
+      { appIndex: 0, name: boxKey('l', policy) },
+      ...(includeCoverageBox ? [{ appIndex: 0, name: boxKey('c', coverageId) }] : []),
+    ],
+    foreignAssets: [assetId],
+    rekeyTo: appRekeyTo,
+    suggestedParams: await params(),
+  })
+  const group = algosdk.assignGroupID([providerTransfer, premiumTransfer, application])
+  const signed = group.map((txn, index) => sign(txn, index === 0 && transferSender === otherAddress ? other : payer))
+  return { group, signed, providerNet, premium, requirements: coverageRequirements({ coverageId, provider: providerId3, policy, requestHash, gross, providerNet, premium }) }
+}
+const submitViaCore = async (fixture) => {
+  const x402 = new x402Facilitator()
+  let submissions = 0
+  const scheme = createAssuredExactFacilitator({
+    algod,
+    network: LOCALNET_NETWORK,
+    genesisId: 'dockernet-v1',
+    applicationId: appId,
+    applicationAddress: appAddress,
+    acceptedAssetId: assetId,
+    submit: async (bytes) => { submissions += 1; return algod.sendRawTransaction(bytes).do() },
+  })
+  x402.register(LOCALNET_NETWORK, scheme)
+  const paymentPayload = { x402Version: 2, payload: { paymentGroup: fixture.signed.map((item) => Buffer.from(item).toString('base64')), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 } }
+  const verification = await x402.verify(paymentPayload, fixture.requirements)
+  assert.equal(verification.isValid, true, 'x402 simulation accepted coverage')
+  const settlement = await x402.settle(paymentPayload, fixture.requirements)
+  assert.equal(settlement.success, true, 'x402 settlement succeeded')
+  return { settlement, submissions }
+}
+const coverageState = async (id, ref) => {
+  const read = await call(payer, [algosdk.ABIMethod.fromSignature('getCoverage(byte[32])(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)').getSelector(), id], boxes(ref))
+  return algosdk.ABIType.from('(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)').decode(logBytes(read.pending).subarray(4))
+}
+const asaBalance = async (address) => Number((await algod.accountInformation(address).do()).assets?.find((holding) => Number(holding.assetId) === assetId)?.amount ?? 0)
+const coverageMbrFunding = await send(algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+  sender: payerAddress,
+  receiver: appAddress,
+  amount: 92_900,
+  suggestedParams: await params(),
+}), payer)
+const coverageBeforeMin = await appMinBalance()
+const beforeFirst = { payer: await asaBalance(payerAddress), provider: await asaBalance(otherAddress), application: await appAssetBalance() }
+const firstCoverage = await makeCoverageGroup({ coverageId: coverageId1, policy: policyIdGate3, gross: 40 })
+const firstResult = await submitViaCore(firstCoverage)
+await wait(firstCoverage.group[0].txID())
+const firstPendings = await Promise.all(firstCoverage.group.map((txn) => wait(txn.txID())))
+const firstOpenedAt = decodeEvent(firstPendings[2], 'CoverageOpened(uint64,byte[32],byte[32],byte[32],address,uint64,uint64,uint64,byte[32],uint64,uint64)', '(uint64,byte[32],byte[32],byte[32],address,uint64,uint64,uint64,byte[32],uint64,uint64)',)
+assert.deepEqual(firstOpenedAt.slice(0, 9), [1n, decodedBytes(coverageId1), decodedBytes(providerId3), decodedBytes(policyIdGate3), payerAddress, 40n, 39n, 1n, decodedBytes(new Uint8Array(32).fill(31))])
+const firstRecord = await coverageState(coverageId1, coverageBox1)
+assert.deepEqual(firstRecord.slice(0, 9), [decodedBytes(providerId3), decodedBytes(policyIdGate3), payerAddress, 40n, 39n, 1n, 0n, 10n, decodedBytes(new Uint8Array(32).fill(31))])
+assert.equal(firstRecord[11], 1n)
+assert.equal(firstRecord[12], false)
+assert.equal(await appMinBalance(), coverageBeforeMin + 92_900, 'coverage box MBR delta')
+assert.deepEqual({ payer: await asaBalance(payerAddress), provider: await asaBalance(otherAddress), application: await appAssetBalance() }, { payer: beforeFirst.payer - 40, provider: beforeFirst.provider + 39, application: beforeFirst.application + 1 })
+
+const secondCoverage = await makeCoverageGroup({ coverageId: coverageId2, policy: policyIdGate4, gross: 100, requestHash: new Uint8Array(32).fill(32) })
+const secondResult = await submitViaCore(secondCoverage)
+await wait(secondCoverage.group[0].txID())
+const secondPendings = await Promise.all(secondCoverage.group.map((txn) => wait(txn.txID())))
+const secondRecord = await coverageState(coverageId2, coverageBox2)
+assert.deepEqual(secondRecord.slice(0, 9), [decodedBytes(providerId3), decodedBytes(policyIdGate4), payerAddress, 100n, 98n, 2n, 0n, 75n, decodedBytes(new Uint8Array(32).fill(32))])
+assert.equal(await appMinBalance(), coverageBeforeMin + 2 * 92_900, 'two coverage box MBR deltas')
+assert.deepEqual({ payer: await asaBalance(payerAddress), provider: await asaBalance(otherAddress), application: await appAssetBalance() }, { payer: beforeFirst.payer - 140, provider: beforeFirst.provider + 137, application: beforeFirst.application + 3 })
+const providerAfterCoverage = await call(payer, [algosdk.ABIMethod.fromSignature('getProvider(byte[32])(address,address,byte[32],bool,uint64,uint64,uint64,uint64)').getSelector(), providerId3], boxes(providerBox3))
+checkReturn(providerAfterCoverage.pending, '(address,address,byte[32],bool,uint64,uint64,uint64,uint64)', [payerAddress, otherAddress, decodedBytes(new Uint8Array(32).fill(6)), true, 123n, 85n, 140n, (await decodeEvent(registered3.pending, 'ProviderRegistered(uint64,byte[32],address,address,byte[32],uint64)', '(uint64,byte[32],address,address,byte[32],uint64)'))[5]])
+const finalGateCAccounting = await applicationState(appId)
+assert.equal(decodeStateUInt(finalGateCAccounting, 'totalProviderStake'), 246)
+assert.equal(decodeStateUInt(finalGateCAccounting, 'premiumReserve'), 3)
+assert.equal(decodeStateUInt(finalGateCAccounting, 'totalOpenFaultExposure'), 140)
+const capacityAfterFirst = await readCapacity(providerId3, policyIdGate3, boxes(providerBox3, policyBoxGate3))
+const capacityAfterSecond = await readCapacity(providerId3, policyIdGate4, boxes(providerBox3, policyBoxGate4))
+assert.equal(capacityAfterFirst, 152n)
+assert.equal(capacityAfterSecond, 50n)
+
+const insufficientCoverage = await makeCoverageGroup({ coverageId: coverageIdBad, policy: policyIdGate4, gross: 51, requestHash: new Uint8Array(32).fill(33) })
+let simulationSubmissions = 0
+const rejectionScheme = createAssuredExactFacilitator({ algod, network: LOCALNET_NETWORK, applicationId: appId, applicationAddress: appAddress, acceptedAssetId: assetId, submit: async (bytes) => { simulationSubmissions += 1; return algod.sendRawTransaction(bytes).do() } })
+const rejectionCore = new x402Facilitator().register(LOCALNET_NETWORK, rejectionScheme)
+const insufficientPayload = { x402Version: 2, payload: { paymentGroup: insufficientCoverage.signed.map((item) => Buffer.from(item).toString('base64')), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 } }
+const insufficientVerification = await rejectionCore.verify(insufficientPayload, insufficientCoverage.requirements)
+assert.equal(insufficientVerification.isValid, false)
+assert.equal(insufficientVerification.invalidReason, 'simulation')
+assert.equal(simulationSubmissions, 0, 'x402 did not submit simulated rejection')
+const rollbackBefore = { payerAlgo: await appBalance(), payerAsset: await asaBalance(payerAddress), providerAsset: await asaBalance(otherAddress), appAsset: await appAssetBalance(), appMin: await appMinBalance(), state: await applicationState(appId) }
+let poolError
+try {
+  const response = await algod.sendRawTransaction(insufficientCoverage.signed).do()
+  await wait(response.txId ?? response.txid)
+} catch (error) { poolError = error }
+assert.ok(poolError, 'insufficient capacity entered and was rejected by the transaction pool')
+rejectedCount += 1
+assert.match(String(poolError), /reject|pool|assert|application/i)
+assert.deepEqual({ payerAlgo: await appBalance(), payerAsset: await asaBalance(payerAddress), providerAsset: await asaBalance(otherAddress), appAsset: await appAssetBalance(), appMin: await appMinBalance() }, { payerAlgo: rollbackBefore.payerAlgo, payerAsset: rollbackBefore.payerAsset, providerAsset: rollbackBefore.providerAsset, appAsset: rollbackBefore.appAsset, appMin: rollbackBefore.appMin })
+const rollbackState = await applicationState(appId)
+for (const key of ['totalProviderStake', 'premiumReserve', 'totalOpenFaultExposure']) assert.deepEqual(rollbackState.get(key), rollbackBefore.state.get(key), `${key} atomic rollback`)
+let badCoverageBox
+try { badCoverageBox = await algod.getApplicationBoxByName(appId, coverageBoxBad).do() } catch {}
+assert.equal(badCoverageBox, undefined, 'rejected coverage box absent')
+
+// Representative on-chain binding negatives. Each group is ABI-validly
+// signed, but the application assertion must reject the whole group.
+const rejectedSignedCoverage = async (signed, label) => {
+  let error
+  try {
+    const response = await algod.sendRawTransaction(signed).do()
+    await wait(response.txId ?? response.txid)
+  } catch (caught) { error = caught }
+  assert.ok(error, `${label} unexpectedly succeeded`)
+  rejectedCount += 1
+  assert.match(String(error), /reject|pool|assert|overspend|balance|rekey|asset|application|incomplete|group/i, label)
+}
+const duplicateCoverage = await makeCoverageGroup({ coverageId: coverageId1, policy: policyIdGate3, gross: 40 })
+await rejectedSignedCoverage(duplicateCoverage.signed, 'duplicate coverage id')
+const wrongPayout = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(24), policy: policyIdGate3, gross: 40, transferReceiver: payerAddress })
+await rejectedSignedCoverage(wrongPayout.signed, 'wrong payout')
+const wrongAmount = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(25), policy: policyIdGate3, gross: 40, transferAmount: 40 })
+await rejectedSignedCoverage(wrongAmount.signed, 'wrong provider amount')
+const wrongSender = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(26), policy: policyIdGate3, gross: 40, transferSender: otherAddress, transferAmount: 39 })
+await rejectedSignedCoverage(wrongSender.signed, 'wrong payer sender')
+const wrongOrder = [wrongAmount.group[1], wrongAmount.group[0], wrongAmount.group[2]]
+await rejectedSignedCoverage(wrongOrder.map((txn) => sign(txn, payer)), 'wrong group order')
+const missingCoverageBox = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(27), policy: policyIdGate3, gross: 40, includeCoverageBox: false })
+await rejectedSignedCoverage(missingCoverageBox.signed, 'missing coverage box reference')
+const zeroHash = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(28), policy: policyIdGate3, gross: 40, requestHash: new Uint8Array(32) })
+await rejectedSignedCoverage(zeroHash.signed, 'zero request hash')
+const unsafeRekey = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(29), policy: policyIdGate3, gross: 40, appRekeyTo: otherAddress })
+await rejectedSignedCoverage(unsafeRekey.signed, 'unsafe application rekey')
+await call(payer, appArgs('setPaused(bool)', [true]))
+await rejectedSignedCoverage((await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(30), policy: policyIdGate3, gross: 40 })).signed, 'paused coverage')
+await call(payer, appArgs('setPaused(bool)', [false]))
+await call(payer, appArgs('setPolicyStatus(byte[32],bool)', [policyIdGate3, false]), boxes(providerBox3, policyBoxGate3))
+await rejectedSignedCoverage((await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(34), policy: policyIdGate3, gross: 40 })).signed, 'inactive policy coverage')
+await call(payer, appArgs('setPolicyStatus(byte[32],bool)', [policyIdGate3, true]), boxes(providerBox3, policyBoxGate3))
+await call(payer, appArgs('setProviderStatus(byte[32],bool)', [providerId3, false]), boxes(providerBox3))
+await rejectedSignedCoverage((await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(35), policy: policyIdGate3, gross: 40 })).signed, 'inactive provider coverage')
+await call(payer, appArgs('setProviderStatus(byte[32],bool)', [providerId3, true]), boxes(providerBox3))
+
 const finalAccounting = await applicationState(appId)
-assert.equal(decodeStateUInt(finalAccounting, 'totalProviderStake'), await appAssetBalance(), 'tracked stake <= actual ASA balance')
-assert.equal(await appMinBalance(), minAfterOptIn + 2 * 67_300 + 2 * 44_900, 'two providers and two policy MBR')
+assert.equal(decodeStateUInt(finalAccounting, 'totalProviderStake') + decodeStateUInt(finalAccounting, 'premiumReserve'), await appAssetBalance(), 'tracked stake and premium reserve equal actual ASA balance')
+assert.equal(await appMinBalance(), minAfterOptIn + 3 * 67_300 + 4 * 44_900 + 2 * 92_900, 'three providers, four policies, and two coverage MBR')
 const genesis = JSON.parse(await algod.genesis().do())
 
 console.log(JSON.stringify({
@@ -642,5 +877,37 @@ console.log(JSON.stringify({
   providerStatusTxIds: [deactivated.txid, reactivated.txid],
   depositApplicationTxId: depositCall.txID(),
   app2Id,
-  evidence: 'provider/policy/pause/status/deposit events and reads decoded; all negative groups rolled back ALGO, ASA, boxes, and accounting',
+  gateC: {
+    providerId: Buffer.from(providerId3).toString('hex'),
+    policyIds: [Buffer.from(policyIdGate3).toString('hex'), Buffer.from(policyIdGate4).toString('hex')],
+    coverageIds: [Buffer.from(coverageId1).toString('hex'), Buffer.from(coverageId2).toString('hex')],
+    coverageBoxMbrDelta: 92_900,
+    coverageBoxMbrTotalDelta: 185_800,
+    coverageMbrFundingTxId: coverageMbrFunding.txid,
+    firstGross: 40,
+    firstProviderNet: 39,
+    firstPremium: 1,
+    firstLockedStake: 10,
+    secondGross: 100,
+    secondProviderNet: 98,
+    secondPremium: 2,
+    secondLockedStake: 75,
+    mixedPolicyLockedStake: 85,
+    providerStake: 123,
+    providerLockedStake: 85,
+    providerExposure: 140,
+    globalExposure: 140,
+    premiumReserve: 3,
+    capacityPolicy3: Number(capacityAfterFirst),
+    capacityPolicy4: Number(capacityAfterSecond),
+    firstSettlementTxId: firstResult.settlement.transaction,
+    secondSettlementTxId: secondResult.settlement.transaction,
+    firstTransactionIds: firstCoverage.group.map((txn) => txn.txID()),
+    secondTransactionIds: secondCoverage.group.map((txn) => txn.txID()),
+    firstGroupId: firstResult.settlement.groupId,
+    secondGroupId: secondResult.settlement.groupId,
+    insufficientCapacity: { simulationReason: insufficientVerification.invalidReason, facilitatorSubmissions: simulationSubmissions, actualPoolRollback: true },
+    rejectionCases: 13,
+  },
+  evidence: 'provider/policy/pause/status/deposit and CoverageOpened events/reads decoded; Gate C x402 simulation and actual-pool rollback passed',
 }, null, 2))
