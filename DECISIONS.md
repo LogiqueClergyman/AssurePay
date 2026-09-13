@@ -138,7 +138,7 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Date: 2026-09-13
 - Phase: P1/Gate C
 - Decision: Gate C deployment transactions allocate one additional approval-program page (`extraPages = 1`); the ABI, storage schema, group profile, and accounting interfaces remain unchanged.
-- Evidence: The compiled Gate C approval program is 2,330 bytes, above the one-page 2,048-byte limit and below the two-page 4,096-byte limit. Real LocalNet deployment and coverage settlement pass with the additional page.
+- Evidence: The compiled Gate C approval program is 2,329 bytes, above the one-page 2,048-byte limit and below the two-page 4,096-byte limit. Real LocalNet deployment and coverage settlement pass with the additional page.
 - Consequences: Gate C application minimum-balance evidence is reported separately from the unchanged record MBR values. Later gates must preserve this deployment parameter unless a smaller program is compiled.
 - Supersedes: none
 
