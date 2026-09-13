@@ -122,10 +122,20 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Consequences: P1 must retain the P0 wire constraint `[provider axfer, premium axfer, appl]`, bind and verify the whole ordered signed group before simulation/submission, and keep fee sponsorship as an explicit later-profile change rather than adding a fourth member silently.
 - Supersedes: none
 
+### D-020 — P1 production assured-exact binding
+
+- Status: ACCEPTED
+- Date: 2026-09-13
+- Phase: P1/P2
+- Decision: Retain scheme `assured-exact` and the P0-fixed three-member order, and identify the production contract binding with `extra.profile: assurance-core-v1`. In addition to P0's canonical asset, gross, receiver, app, split, and request-commitment fields, bind canonical base64 `coverageId`, `providerId`, and `policyId`. The application member calls `openCoverage(byte[32],byte[32],byte[32],byte[32],uint64)` with those IDs, the request commitment as `requestHash`, and gross amount.
+- Evidence: The production contract must persist caller-chosen unique IDs and immutable provider/policy associations, while P0's spike ABI intentionally proved only the uncertain transaction-group mechanism. Keeping the accepted group roles and indices preserves P0's chain evidence; an explicit profile prevents the richer ABI from being confused with the spike payload.
+- Consequences: Gate C implements and tests a production-local adapter registered through real `@x402/core`, binding all signed members and all five ABI arguments before simulation/submission. P2 must consume this exact profile. There is still no fourth member, fee sponsorship, same-group stake top-up, or provider signature.
+- Supersedes: D-016 only for the production application ABI and added metadata; D-016's scheme, canonical numeric fields, three-member group, role indices, payer signatures, and fee exclusions remain accepted.
+
 ## Open implementation facts
 
-- D-011 Gate A evidence must record compiled box sizes and exact application minimum-balance funding.
-- D-012 Gate C evidence must record the verified overflow-safe arithmetic primitive or enforced safe bounds.
+- D-011 Gate A evidence recorded compiled box sizes and exact application minimum-balance funding.
+- D-012 Gate C evidence must record the verified overflow-safe arithmetic primitive and boundary behavior.
 - These are implementation facts, not open product decisions. Any incompatible discovery requires a superseding decision.
 
 ## Entry template

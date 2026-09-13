@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gate A ACCEPTED; Gate B REVIEW; Gates C–F remain NOT_STARTED
+Status: IN_PROGRESS — Gates A–B ACCEPTED; Gate C READY; Gates D–F remain NOT_STARTED
 
 ## Baseline
 
@@ -48,7 +48,7 @@ Status: ACCEPTED
 
 ## Gate B — Provider, policy, and stake
 
-Status: REVIEW
+Status: ACCEPTED
 
 - Implemented behavior:
   - Added admin-only `setPaused(bool)` with no-op rejection, explicit zero-rekey guard, and `ProtocolPauseChanged(uint64,bool)`, version `1`. Registration, provider status, policy creation/status, and typed stake deposits reject while paused; pausing changes no entity or accounting state.
@@ -74,10 +74,11 @@ Status: REVIEW
   - `npm run test:p1` — **13 passed, 0 failed**; deterministic tests require no LocalNet.
   - `npm run localnet:p1` — passed against real LocalNet `dockernet-v1`; all positive, decoded-event/read, negative, rollback, MBR, stake, capacity, and duplicate-replay checks passed.
 - Deviations and scope: no compiler/protocol conflict was found. The AVM v13 biguint primitive is used for the required wide arithmetic; no invented global maximum, withdrawal, coverage, Gate C mutation, TestNet runner, backend, SDK, or P0 change was added.
+- Orchestrator review: accepted at commit `d0582fa`. Reproduced `typecheck:p1`, `build:contract:p1`, all 13 deterministic tests, and a fresh real LocalNet run. The review run passed at round `370` with ASA `1387`, app `1388`, application address `7V26SPQYZI2IJBT2K6ZZ62S4LLHVRZ4TDRDFBCQHQNPT6SRDMTUKNF4PMY`, observed one-provider/two-policy MBR `357,100`, stake `123`, capacities `492`/`164`, and all `48` intended rejected cases. No contract blocker or scope leak was found.
 
 ## Gate C — Coverage profile
 
-Status: NOT_STARTED
+Status: READY
 
 - P0 profile compatibility:
 - Premium arithmetic:
@@ -122,12 +123,13 @@ Status: NOT_STARTED
 ## Decisions and deviations
 
 - D-011: refined with compiled ARC-4 sizes, one-byte prefixes, 33-byte full keys, and the AVM optional-inner-field constraint above; accepted storage decision unchanged.
-- D-012:
-- D-013:
-- D-014:
-- D-015:
+- D-012: accepted floor premium with a one-atomic-unit minimum; Gate C must record its AVM biguint boundary evidence.
+- D-013: accepted explicit permissionless expiry close; applies in Gate D.
+- D-014: accepted one configured development adjudicator; applies in Gate D.
+- D-015: accepted pre-deposited stake and zero same-group top-up.
+- D-020: accepted `assurance-core-v1` production binding for the fixed `assured-exact` three-member profile.
 - Superseding decisions, if any:
 
 ## Remaining work or blockers
 
-- None. Gate A passed; Gate B is not started and is awaiting orchestrator review.
+- None. Gates A and B are accepted. Gate C is ready from `planning/P1_GATE_C_COVERAGE.md`.
