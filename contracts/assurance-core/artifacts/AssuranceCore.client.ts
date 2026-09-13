@@ -1,6 +1,28 @@
 // This file is auto-generated, do not modify
 /* eslint-disable */
+import type { gtxn } from '@algorandfoundation/algorand-typescript'
 import { Contract, abimethod, arc4, err } from '@algorandfoundation/algorand-typescript'
+
+export class ProviderRecord extends arc4.Struct<{
+  ownerAddress: arc4.Address
+  payoutAddress: arc4.Address
+  receiptSigningPublicKey: arc4.StaticArray<arc4.Byte, 32>
+  active: arc4.Bool
+  stakeTotal: arc4.Uint<64>
+  stakeLocked: arc4.Uint<64>
+  openFaultExposure: arc4.Uint<64>
+  createdAt: arc4.Uint<64>
+}> {}
+
+export class PolicyRecord extends arc4.Struct<{
+  providerId: arc4.StaticArray<arc4.Byte, 32>
+  active: arc4.Bool
+  premiumBps: arc4.Uint<64>
+  collateralRatioBps: arc4.Uint<64>
+  maxCoverageAmount: arc4.Uint<64>
+  claimWindowSeconds: arc4.Uint<64>
+  createdAt: arc4.Uint<64>
+}> {}
 
 export class AssuranceConfig extends arc4.Struct<{
   admin: arc4.Address
@@ -38,6 +60,74 @@ export abstract class AssuranceCore extends Contract {
    */
   @abimethod()
   optInAcceptedAsset(assetId: arc4.Uint<64>): void {
+    err('stub only')
+  }
+
+  @abimethod()
+  setPaused(paused: arc4.Bool): void {
+    err('stub only')
+  }
+
+  @abimethod()
+  registerProvider(
+    providerId: arc4.StaticArray<arc4.Byte, 32>,
+    payoutAddress: arc4.Address,
+    receiptSigningPublicKey: arc4.StaticArray<arc4.Byte, 32>,
+  ): void {
+    err('stub only')
+  }
+
+  @abimethod()
+  setProviderStatus(
+    providerId: arc4.StaticArray<arc4.Byte, 32>,
+    active: arc4.Bool,
+  ): void {
+    err('stub only')
+  }
+
+  @abimethod({ readonly: true })
+  getProvider(providerId: arc4.StaticArray<arc4.Byte, 32>): ProviderRecord {
+    err('stub only')
+  }
+
+  @abimethod()
+  createPolicy(
+    policyId: arc4.StaticArray<arc4.Byte, 32>,
+    providerId: arc4.StaticArray<arc4.Byte, 32>,
+    premiumBps: arc4.Uint<64>,
+    collateralRatioBps: arc4.Uint<64>,
+    maxCoverageAmount: arc4.Uint<64>,
+    claimWindowSeconds: arc4.Uint<64>,
+  ): void {
+    err('stub only')
+  }
+
+  @abimethod()
+  setPolicyStatus(
+    policyId: arc4.StaticArray<arc4.Byte, 32>,
+    active: arc4.Bool,
+  ): void {
+    err('stub only')
+  }
+
+  @abimethod({ readonly: true })
+  getPolicy(policyId: arc4.StaticArray<arc4.Byte, 32>): PolicyRecord {
+    err('stub only')
+  }
+
+  @abimethod()
+  depositStake(
+    providerId: arc4.StaticArray<arc4.Byte, 32>,
+    transfer: gtxn.AssetTransferTxn,
+  ): void {
+    err('stub only')
+  }
+
+  @abimethod({ readonly: true })
+  getAvailableCapacity(
+    providerId: arc4.StaticArray<arc4.Byte, 32>,
+    policyId: arc4.StaticArray<arc4.Byte, 32>,
+  ): arc4.Uint<64> {
     err('stub only')
   }
 

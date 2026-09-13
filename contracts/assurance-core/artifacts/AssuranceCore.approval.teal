@@ -4,9 +4,9 @@
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.approvalProgram() -> uint64:
 main:
-    intcblock 0 1 8
-    bytecblock "assetOptedIn" "admin" "acceptedAssetId" "adjudicator" "paused" "totalProviderStake" "premiumReserve" "totalOpenFaultExposure" 0x151f7c75
-    // contracts/assurance-core/contract/assurance-core.algo.ts:42-47
+    intcblock 0 1 32 8 768 18446744073709551615
+    bytecblock "p" "admin" "paused" "assetOptedIn" 0x151f7c75 "acceptedAssetId" "totalProviderStake" 0x0000000000000000000000000000000000000000000000000000000000000000 0x00 "l" "adjudicator" "premiumReserve" "totalOpenFaultExposure"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:45-50
     // @contract({
     //   name: 'AssuranceCore',
     //   avmVersion: 13,
@@ -17,45 +17,126 @@ main:
     !
     assert
     txn ApplicationID
-    bz main_create_NoOp@6
-    pushbytess 0x848ff2d0 0x2373dd40 0x9845b821 // method "optInAcceptedAsset(uint64)void", method "getConfig()(address,address,uint64,uint64,uint64)", method "getAccounting()(uint64,uint64,uint64)"
+    bz main_create_NoOp@15
+    pushbytess 0x848ff2d0 0x4e37efbd 0x491c445a 0xa26168c8 0x33f6ae34 0xabb565d4 0x90d82489 0x5ab11e42 0x5811ea68 0x5d58575f 0x2373dd40 0x9845b821 // method "optInAcceptedAsset(uint64)void", method "setPaused(bool)void", method "registerProvider(byte[32],address,byte[32])void", method "setProviderStatus(byte[32],bool)void", method "getProvider(byte[32])(address,address,byte[32],bool,uint64,uint64,uint64,uint64)", method "createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)void", method "setPolicyStatus(byte[32],bool)void", method "getPolicy(byte[32])(byte[32],bool,uint64,uint64,uint64,uint64,uint64)", method "depositStake(byte[32],axfer)void", method "getAvailableCapacity(byte[32],byte[32])uint64", method "getConfig()(address,address,uint64,uint64,uint64)", method "getAccounting()(uint64,uint64,uint64)"
     txna ApplicationArgs 0
-    match main_optInAcceptedAsset_route@3 main_getConfig_route@4 main_getAccounting_route@5
+    match main_optInAcceptedAsset_route@3 main_setPaused_route@4 main_registerProvider_route@5 main_setProviderStatus_route@6 main_getProvider_route@7 main_createPolicy_route@8 main_setPolicyStatus_route@9 main_getPolicy_route@10 main_depositStake_route@11 main_getAvailableCapacity_route@12 main_getConfig_route@13 main_getAccounting_route@14
 
-main_after_if_else@8:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:135
+main_after_if_else@17:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
     // return super.approvalProgram()
     err
 
-main_getAccounting_route@5:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:125
+main_getAccounting_route@14:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:328
     // @abimethod({ readonly: true })
     callsub getAccounting
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:135
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
     // return super.approvalProgram()
     return
 
-main_getConfig_route@4:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:114
+main_getConfig_route@13:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:317
     // @abimethod({ readonly: true })
     callsub getConfig
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:135
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_getAvailableCapacity_route@12:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:286
+    // @abimethod({ readonly: true })
+    callsub getAvailableCapacity
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_depositStake_route@11:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:250
+    // @abimethod({ allowActions: 'NoOp' })
+    callsub depositStake
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_getPolicy_route@10:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:243
+    // @abimethod({ readonly: true })
+    callsub getPolicy
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_setPolicyStatus_route@9:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:229
+    // @abimethod({ allowActions: 'NoOp' })
+    callsub setPolicyStatus
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_createPolicy_route@8:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:182
+    // @abimethod({ allowActions: 'NoOp' })
+    callsub createPolicy
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_getProvider_route@7:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:175
+    // @abimethod({ readonly: true })
+    callsub getProvider
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_setProviderStatus_route@6:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:163
+    // @abimethod({ allowActions: 'NoOp' })
+    callsub setProviderStatus
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_registerProvider_route@5:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:127
+    // @abimethod({ allowActions: 'NoOp' })
+    callsub registerProvider
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
+    // return super.approvalProgram()
+    return
+
+main_setPaused_route@4:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:117
+    // @abimethod({ allowActions: 'NoOp' })
+    callsub setPaused
+    intc_1 // 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
     // return super.approvalProgram()
     return
 
 main_optInAcceptedAsset_route@3:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:93
+    // contracts/assurance-core/contract/assurance-core.algo.ts:96
     // @abimethod({ allowActions: 'NoOp' })
     callsub optInAcceptedAsset
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:135
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
     // return super.approvalProgram()
     return
 
-main_create_NoOp@6:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:42-47
+main_create_NoOp@15:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:45-50
     // @contract({
     //   name: 'AssuranceCore',
     //   avmVersion: 13,
@@ -64,27 +145,27 @@ main_create_NoOp@6:
     // export class AssuranceCore extends Contract {
     pushbytes 0x600a2a67 // method "createApplication(uint64,address)void"
     txna ApplicationArgs 0
-    match main_createApplication_route@7
-    b main_after_if_else@8
+    match main_createApplication_route@16
+    b main_after_if_else@17
 
-main_createApplication_route@7:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:64
+main_createApplication_route@16:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:67
     // @abimethod({ onCreate: 'require', allowActions: 'NoOp' })
     callsub createApplication
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:135
+    // contracts/assurance-core/contract/assurance-core.algo.ts:338
     // return super.approvalProgram()
     return
 
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.createApplication[routing]() -> void:
 createApplication:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:64
+    // contracts/assurance-core/contract/assurance-core.algo.ts:67
     // @abimethod({ onCreate: 'require', allowActions: 'NoOp' })
     txna ApplicationArgs 1
     dup
     len
-    intc_2 // 8
+    intc_3 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
     dup
@@ -92,89 +173,89 @@ createApplication:
     txna ApplicationArgs 2
     dup
     len
-    pushint 32
+    intc_2 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // contracts/assurance-core/contract/assurance-core.algo.ts:66
+    // contracts/assurance-core/contract/assurance-core.algo.ts:69
     // assert(assetId > 0, 'asset id must be non-zero')
     dig 1
     assert // asset id must be non-zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:67
+    // contracts/assurance-core/contract/assurance-core.algo.ts:70
     // assert(adjudicator.bytes !== Global.zeroAddress.bytes, 'adjudicator must be non-zero')
     dup
     global ZeroAddress
     !=
     assert // adjudicator must be non-zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:68
+    // contracts/assurance-core/contract/assurance-core.algo.ts:71
     // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
     txn RekeyTo
     global ZeroAddress
     ==
     assert // unsafe rekey
-    // contracts/assurance-core/contract/assurance-core.algo.ts:48
+    // contracts/assurance-core/contract/assurance-core.algo.ts:51
     // admin = GlobalState<Account>()
     bytec_1 // "admin"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:70
+    // contracts/assurance-core/contract/assurance-core.algo.ts:73
     // this.admin.value = Txn.sender
     txn Sender
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:49
+    // contracts/assurance-core/contract/assurance-core.algo.ts:52
     // adjudicator = GlobalState<Account>()
-    bytec_3 // "adjudicator"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:71
+    bytec 10 // "adjudicator"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:74
     // this.adjudicator.value = adjudicator
     dig 1
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:50
+    // contracts/assurance-core/contract/assurance-core.algo.ts:53
     // acceptedAssetId = GlobalState<uint64>()
-    bytec_2 // "acceptedAssetId"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:72
+    bytec 5 // "acceptedAssetId"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:75
     // this.acceptedAssetId.value = assetId
     uncover 2
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:51
+    // contracts/assurance-core/contract/assurance-core.algo.ts:54
     // paused = GlobalState<uint64>()
-    bytec 4 // "paused"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:73
+    bytec_2 // "paused"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:76
     // this.paused.value = 0
     intc_0 // 0
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:52
+    // contracts/assurance-core/contract/assurance-core.algo.ts:55
     // assetOptedIn = GlobalState<uint64>()
-    bytec_0 // "assetOptedIn"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:74
+    bytec_3 // "assetOptedIn"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:77
     // this.assetOptedIn.value = 0
     intc_0 // 0
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:53
+    // contracts/assurance-core/contract/assurance-core.algo.ts:56
     // totalProviderStake = GlobalState<uint64>()
-    bytec 5 // "totalProviderStake"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:75
+    bytec 6 // "totalProviderStake"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:78
     // this.totalProviderStake.value = 0
     intc_0 // 0
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:54
+    // contracts/assurance-core/contract/assurance-core.algo.ts:57
     // premiumReserve = GlobalState<uint64>()
-    bytec 6 // "premiumReserve"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:76
+    bytec 11 // "premiumReserve"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:79
     // this.premiumReserve.value = 0
     intc_0 // 0
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:55
+    // contracts/assurance-core/contract/assurance-core.algo.ts:58
     // totalOpenFaultExposure = GlobalState<uint64>()
-    bytec 7 // "totalOpenFaultExposure"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:77
+    bytec 12 // "totalOpenFaultExposure"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:80
     // this.totalOpenFaultExposure.value = 0
     intc_0 // 0
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:81
+    // contracts/assurance-core/contract/assurance-core.algo.ts:84
     // new arc4.Uint64(1),
     intc_1 // 1
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:82
+    // contracts/assurance-core/contract/assurance-core.algo.ts:85
     // new arc4.Address(Txn.sender),
     txn Sender
-    // contracts/assurance-core/contract/assurance-core.algo.ts:79-85
+    // contracts/assurance-core/contract/assurance-core.algo.ts:82-88
     // emit(
     //   'ProtocolCreated',
     //   new arc4.Uint64(1),
@@ -196,61 +277,61 @@ createApplication:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.optInAcceptedAsset[routing]() -> void:
 optInAcceptedAsset:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:93
+    // contracts/assurance-core/contract/assurance-core.algo.ts:96
     // @abimethod({ allowActions: 'NoOp' })
     txna ApplicationArgs 1
     dup
     len
-    intc_2 // 8
+    intc_3 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
     dup
     btoi
-    // contracts/assurance-core/contract/assurance-core.algo.ts:95
+    // contracts/assurance-core/contract/assurance-core.algo.ts:98
     // assert(Txn.sender.bytes === this.admin.value.bytes, 'admin only')
     txn Sender
     intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:48
+    // contracts/assurance-core/contract/assurance-core.algo.ts:51
     // admin = GlobalState<Account>()
     bytec_1 // "admin"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:95
+    // contracts/assurance-core/contract/assurance-core.algo.ts:98
     // assert(Txn.sender.bytes === this.admin.value.bytes, 'admin only')
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // admin only
-    // contracts/assurance-core/contract/assurance-core.algo.ts:96
+    // contracts/assurance-core/contract/assurance-core.algo.ts:99
     // assert(this.assetOptedIn.value === 0, 'already opted in')
     intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:52
+    // contracts/assurance-core/contract/assurance-core.algo.ts:55
     // assetOptedIn = GlobalState<uint64>()
-    bytec_0 // "assetOptedIn"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:96
+    bytec_3 // "assetOptedIn"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:99
     // assert(this.assetOptedIn.value === 0, 'already opted in')
     app_global_get_ex
     assert // check GlobalState exists
     !
     assert // already opted in
-    // contracts/assurance-core/contract/assurance-core.algo.ts:97
+    // contracts/assurance-core/contract/assurance-core.algo.ts:100
     // assert(assetId === this.acceptedAssetId.value, 'wrong asset')
     intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:50
+    // contracts/assurance-core/contract/assurance-core.algo.ts:53
     // acceptedAssetId = GlobalState<uint64>()
-    bytec_2 // "acceptedAssetId"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:97
+    bytec 5 // "acceptedAssetId"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:100
     // assert(assetId === this.acceptedAssetId.value, 'wrong asset')
     app_global_get_ex
     assert // check GlobalState exists
     dig 1
     ==
     assert // wrong asset
-    // contracts/assurance-core/contract/assurance-core.algo.ts:98
+    // contracts/assurance-core/contract/assurance-core.algo.ts:101
     // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
     txn RekeyTo
     global ZeroAddress
     ==
     assert // unsafe rekey
-    // contracts/assurance-core/contract/assurance-core.algo.ts:99
+    // contracts/assurance-core/contract/assurance-core.algo.ts:102
     // assert(Txn.fee >= Global.minTxnFee * 2, 'outer fee must pool inner fee')
     txn Fee
     global MinTxnFee
@@ -258,7 +339,7 @@ optInAcceptedAsset:
     *
     >=
     assert // outer fee must pool inner fee
-    // contracts/assurance-core/contract/assurance-core.algo.ts:101-107
+    // contracts/assurance-core/contract/assurance-core.algo.ts:104-110
     // const optIn = itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: assetId,
@@ -267,20 +348,20 @@ optInAcceptedAsset:
     //   fee: 0,
     // }).submit()
     itxn_begin
-    // contracts/assurance-core/contract/assurance-core.algo.ts:102
+    // contracts/assurance-core/contract/assurance-core.algo.ts:105
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // contracts/assurance-core/contract/assurance-core.algo.ts:105
+    // contracts/assurance-core/contract/assurance-core.algo.ts:108
     // assetReceiver: Global.currentApplicationAddress,
     dup
     itxn_field AssetReceiver
-    // contracts/assurance-core/contract/assurance-core.algo.ts:104
+    // contracts/assurance-core/contract/assurance-core.algo.ts:107
     // assetAmount: 0,
     intc_0 // 0
     itxn_field AssetAmount
     itxn_field Sender
     itxn_field XferAsset
-    // contracts/assurance-core/contract/assurance-core.algo.ts:101-107
+    // contracts/assurance-core/contract/assurance-core.algo.ts:104-110
     // const optIn = itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: assetId,
@@ -290,11 +371,11 @@ optInAcceptedAsset:
     // }).submit()
     pushint 4
     itxn_field TypeEnum
-    // contracts/assurance-core/contract/assurance-core.algo.ts:106
+    // contracts/assurance-core/contract/assurance-core.algo.ts:109
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // contracts/assurance-core/contract/assurance-core.algo.ts:101-107
+    // contracts/assurance-core/contract/assurance-core.algo.ts:104-110
     // const optIn = itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: assetId,
@@ -304,18 +385,18 @@ optInAcceptedAsset:
     // }).submit()
     itxn_submit
     itxn AssetAmount
-    // contracts/assurance-core/contract/assurance-core.algo.ts:109
+    // contracts/assurance-core/contract/assurance-core.algo.ts:112
     // assert(optIn.assetAmount === 0, 'unexpected opt-in amount')
     !
     assert // unexpected opt-in amount
-    // contracts/assurance-core/contract/assurance-core.algo.ts:52
+    // contracts/assurance-core/contract/assurance-core.algo.ts:55
     // assetOptedIn = GlobalState<uint64>()
-    bytec_0 // "assetOptedIn"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:110
+    bytec_3 // "assetOptedIn"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:113
     // this.assetOptedIn.value = 1
     intc_1 // 1
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:111
+    // contracts/assurance-core/contract/assurance-core.algo.ts:114
     // emit('ProtocolAssetOptedIn', new arc4.Uint64(1), new arc4.Uint64(assetId))
     intc_1 // 1
     itob
@@ -328,62 +409,1175 @@ optInAcceptedAsset:
     retsub
 
 
-// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getConfig[routing]() -> void:
-getConfig:
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.setPaused[routing]() -> void:
+setPaused:
     // contracts/assurance-core/contract/assurance-core.algo.ts:117
-    // admin: new arc4.Address(this.admin.value),
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 1
+    ==
+    assert // invalid number of bytes for arc4.bool
+    dup
     intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:48
-    // admin = GlobalState<Account>()
-    bytec_1 // "admin"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:117
-    // admin: new arc4.Address(this.admin.value),
-    app_global_get_ex
-    assert // check GlobalState exists
-    // contracts/assurance-core/contract/assurance-core.algo.ts:118
-    // adjudicator: new arc4.Address(this.adjudicator.value),
-    intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:49
-    // adjudicator = GlobalState<Account>()
-    bytec_3 // "adjudicator"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:118
-    // adjudicator: new arc4.Address(this.adjudicator.value),
-    app_global_get_ex
-    assert // check GlobalState exists
+    getbit
     // contracts/assurance-core/contract/assurance-core.algo.ts:119
-    // acceptedAssetId: new arc4.Uint64(this.acceptedAssetId.value),
-    intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:50
-    // acceptedAssetId = GlobalState<uint64>()
-    bytec_2 // "acceptedAssetId"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:119
-    // acceptedAssetId: new arc4.Uint64(this.acceptedAssetId.value),
-    app_global_get_ex
-    assert // check GlobalState exists
-    itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:120
-    // paused: new arc4.Uint64(this.paused.value),
+    // assert(Txn.sender.bytes === this.admin.value.bytes, 'admin only')
+    txn Sender
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:51
-    // paused = GlobalState<uint64>()
-    bytec 4 // "paused"
+    // admin = GlobalState<Account>()
+    bytec_1 // "admin"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:119
+    // assert(Txn.sender.bytes === this.admin.value.bytes, 'admin only')
+    app_global_get_ex
+    assert // check GlobalState exists
+    ==
+    assert // admin only
     // contracts/assurance-core/contract/assurance-core.algo.ts:120
+    // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    txn RekeyTo
+    global ZeroAddress
+    ==
+    assert // unsafe rekey
+    // contracts/assurance-core/contract/assurance-core.algo.ts:122
+    // assert(this.paused.value !== requested, 'pause state unchanged')
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:54
+    // paused = GlobalState<uint64>()
+    bytec_2 // "paused"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:122
+    // assert(this.paused.value !== requested, 'pause state unchanged')
+    app_global_get_ex
+    assert // check GlobalState exists
+    dig 1
+    !=
+    assert // pause state unchanged
+    // contracts/assurance-core/contract/assurance-core.algo.ts:54
+    // paused = GlobalState<uint64>()
+    bytec_2 // "paused"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:123
+    // this.paused.value = requested
+    swap
+    app_global_put
+    // contracts/assurance-core/contract/assurance-core.algo.ts:124
+    // emit('ProtocolPauseChanged', new arc4.Uint64(1), new arc4.Bool(paused))
+    intc_1 // 1
+    itob
+    swap
+    concat
+    pushbytes 0xf7de6e61 // method "ProtocolPauseChanged(uint64,bool)"
+    swap
+    concat
+    log
+    retsub
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.registerProvider[routing]() -> void:
+registerProvider:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:127
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 3
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // contracts/assurance-core/contract/assurance-core.algo.ts:133
+    // this.requireUnpaused()
+    callsub requireUnpaused
+    // contracts/assurance-core/contract/assurance-core.algo.ts:134
+    // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    txn RekeyTo
+    global ZeroAddress
+    ==
+    assert // unsafe rekey
+    // contracts/assurance-core/contract/assurance-core.algo.ts:314
+    // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
+    dig 2
+    bytec 7 // 0x0000000000000000000000000000000000000000000000000000000000000000
+    ==
+    // contracts/assurance-core/contract/assurance-core.algo.ts:135
+    // assert(!this.isZeroId(providerId), 'provider id must be non-zero')
+    !
+    assert // provider id must be non-zero
+    // contracts/assurance-core/contract/assurance-core.algo.ts:61
+    // providers = BoxMap<RecordId, ProviderRecord>({ keyPrefix: 'p' })
+    bytec_0 // "p"
+    dig 3
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:137
+    // assert(!provider.exists, 'provider already exists')
+    dup
+    box_len
+    bury 1
+    !
+    assert // provider already exists
+    // contracts/assurance-core/contract/assurance-core.algo.ts:138
+    // assert(payoutAddress.bytes !== Global.zeroAddress.bytes, 'payout must be non-zero')
+    dig 2
+    global ZeroAddress
+    !=
+    assert // payout must be non-zero
+    // contracts/assurance-core/contract/assurance-core.algo.ts:314
+    // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
+    dig 1
+    bytec 7 // 0x0000000000000000000000000000000000000000000000000000000000000000
+    ==
+    // contracts/assurance-core/contract/assurance-core.algo.ts:139
+    // assert(!this.isZeroBytes(receiptSigningPublicKey.bytes), 'receipt key must be non-zero')
+    !
+    assert // receipt key must be non-zero
+    // contracts/assurance-core/contract/assurance-core.algo.ts:141
+    // const createdAt = Global.latestTimestamp
+    global LatestTimestamp
+    // contracts/assurance-core/contract/assurance-core.algo.ts:143
+    // ownerAddress: new arc4.Address(Txn.sender),
+    txn Sender
+    // contracts/assurance-core/contract/assurance-core.algo.ts:147
+    // stakeTotal: new arc4.Uint64(0),
+    intc_0 // 0
+    itob
+    // contracts/assurance-core/contract/assurance-core.algo.ts:150
+    // createdAt: new arc4.Uint64(createdAt),
+    uncover 2
+    itob
+    // contracts/assurance-core/contract/assurance-core.algo.ts:142-151
+    // provider.value = new ProviderRecord({
+    //   ownerAddress: new arc4.Address(Txn.sender),
+    //   payoutAddress: new arc4.Address(payoutAddress),
+    //   receiptSigningPublicKey,
+    //   active: new arc4.Bool(true),
+    //   stakeTotal: new arc4.Uint64(0),
+    //   stakeLocked: new arc4.Uint64(0),
+    //   openFaultExposure: new arc4.Uint64(0),
+    //   createdAt: new arc4.Uint64(createdAt),
+    // })
+    uncover 2
+    dig 5
+    concat
+    dig 4
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:146
+    // active: new arc4.Bool(true),
+    pushbytes 0x80
+    // contracts/assurance-core/contract/assurance-core.algo.ts:142-151
+    // provider.value = new ProviderRecord({
+    //   ownerAddress: new arc4.Address(Txn.sender),
+    //   payoutAddress: new arc4.Address(payoutAddress),
+    //   receiptSigningPublicKey,
+    //   active: new arc4.Bool(true),
+    //   stakeTotal: new arc4.Uint64(0),
+    //   stakeLocked: new arc4.Uint64(0),
+    //   openFaultExposure: new arc4.Uint64(0),
+    //   createdAt: new arc4.Uint64(createdAt),
+    // })
+    concat
+    dig 2
+    concat
+    dig 2
+    concat
+    uncover 2
+    concat
+    dig 1
+    concat
+    uncover 2
+    swap
+    box_put
+    // contracts/assurance-core/contract/assurance-core.algo.ts:154
+    // new arc4.Uint64(1),
+    intc_1 // 1
+    itob
+    // contracts/assurance-core/contract/assurance-core.algo.ts:156
+    // new arc4.Address(Txn.sender),
+    txn Sender
+    // contracts/assurance-core/contract/assurance-core.algo.ts:152-160
+    // emit(
+    //   'ProviderRegistered',
+    //   new arc4.Uint64(1),
+    //   providerId,
+    //   new arc4.Address(Txn.sender),
+    //   new arc4.Address(payoutAddress),
+    //   receiptSigningPublicKey,
+    //   new arc4.Uint64(createdAt),
+    // )
+    swap
+    uncover 5
+    concat
+    swap
+    concat
+    uncover 3
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    pushbytes 0xfb8c5a4c // method "ProviderRegistered(uint64,byte[32],address,address,byte[32],uint64)"
+    swap
+    concat
+    log
+    retsub
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.setProviderStatus[routing]() -> void:
+setProviderStatus:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:163
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_1 // 1
+    ==
+    assert // invalid number of bytes for arc4.bool
+    dup
+    intc_0 // 0
+    getbit
+    // contracts/assurance-core/contract/assurance-core.algo.ts:165
+    // this.requireUnpaused()
+    callsub requireUnpaused
+    // contracts/assurance-core/contract/assurance-core.algo.ts:166
+    // assert(Txn.sender.bytes === this.admin.value.bytes, 'admin only')
+    txn Sender
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:51
+    // admin = GlobalState<Account>()
+    bytec_1 // "admin"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:166
+    // assert(Txn.sender.bytes === this.admin.value.bytes, 'admin only')
+    app_global_get_ex
+    assert // check GlobalState exists
+    ==
+    assert // admin only
+    // contracts/assurance-core/contract/assurance-core.algo.ts:167
+    // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    txn RekeyTo
+    global ZeroAddress
+    ==
+    assert // unsafe rekey
+    // contracts/assurance-core/contract/assurance-core.algo.ts:61
+    // providers = BoxMap<RecordId, ProviderRecord>({ keyPrefix: 'p' })
+    bytec_0 // "p"
+    dig 3
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:169
+    // assert(provider.exists, 'provider missing')
+    dup
+    box_len
+    bury 1
+    assert // provider missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:170
+    // assert(provider.value.active.native !== active, 'provider status unchanged')
+    dup
+    box_get
+    pop
+    intc 4 // 768
+    getbit
+    bytec 8 // 0x00
+    intc_0 // 0
+    uncover 2
+    setbit
+    intc_0 // 0
+    getbit
+    dig 2
+    !=
+    assert // provider status unchanged
+    // contracts/assurance-core/contract/assurance-core.algo.ts:171
+    // provider.value.active = new arc4.Bool(active)
+    dup
+    pushint 96
+    intc_1 // 1
+    box_extract
+    intc_0 // 0
+    uncover 3
+    setbit
+    pushint 96
+    swap
+    box_replace // on error: index out of bounds
+    // contracts/assurance-core/contract/assurance-core.algo.ts:172
+    // emit('ProviderStatusChanged', new arc4.Uint64(1), providerId, new arc4.Bool(active))
+    intc_1 // 1
+    itob
+    uncover 2
+    concat
+    swap
+    concat
+    pushbytes 0xe7e1e64f // method "ProviderStatusChanged(uint64,byte[32],bool)"
+    swap
+    concat
+    log
+    retsub
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getProvider[routing]() -> void:
+getProvider:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:175
+    // @abimethod({ readonly: true })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // contracts/assurance-core/contract/assurance-core.algo.ts:61
+    // providers = BoxMap<RecordId, ProviderRecord>({ keyPrefix: 'p' })
+    bytec_0 // "p"
+    swap
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:178
+    // assert(provider.exists, 'provider missing')
+    dup
+    box_len
+    bury 1
+    assert // provider missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:179
+    // return provider.value
+    box_get
+    pop
+    // contracts/assurance-core/contract/assurance-core.algo.ts:175
+    // @abimethod({ readonly: true })
+    bytec 4 // 0x151f7c75
+    swap
+    concat
+    log
+    retsub
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.createPolicy[routing]() -> void:
+createPolicy:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:182
+    // @abimethod({ allowActions: 'NoOp' })
+    proto 0 0
+    txna ApplicationArgs 1
+    dupn 2
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    cover 2
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 3
+    dup
+    cover 3
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    dup
+    cover 3
+    cover 6
+    txna ApplicationArgs 4
+    dup
+    cover 4
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    cover 7
+    txna ApplicationArgs 5
+    dup
+    cover 4
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    cover 3
+    txna ApplicationArgs 6
+    dup
+    cover 5
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    cover 3
+    // contracts/assurance-core/contract/assurance-core.algo.ts:191
+    // this.requireUnpaused()
+    callsub requireUnpaused
+    // contracts/assurance-core/contract/assurance-core.algo.ts:192
+    // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    txn RekeyTo
+    global ZeroAddress
+    ==
+    assert // unsafe rekey
+    // contracts/assurance-core/contract/assurance-core.algo.ts:314
+    // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
+    dig 1
+    bytec 7 // 0x0000000000000000000000000000000000000000000000000000000000000000
+    ==
+    // contracts/assurance-core/contract/assurance-core.algo.ts:193
+    // assert(!this.isZeroId(policyId), 'policy id must be non-zero')
+    !
+    assert // policy id must be non-zero
+    // contracts/assurance-core/contract/assurance-core.algo.ts:314
+    // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
+    dup
+    bytec 7 // 0x0000000000000000000000000000000000000000000000000000000000000000
+    ==
+    // contracts/assurance-core/contract/assurance-core.algo.ts:194
+    // assert(!this.isZeroId(providerId), 'provider id must be non-zero')
+    !
+    assert // provider id must be non-zero
+    // contracts/assurance-core/contract/assurance-core.algo.ts:61
+    // providers = BoxMap<RecordId, ProviderRecord>({ keyPrefix: 'p' })
+    bytec_0 // "p"
+    swap
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:196
+    // assert(provider.exists, 'provider missing')
+    dup
+    box_len
+    bury 1
+    assert // provider missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:197
+    // assert(provider.value.active.native === true, 'provider inactive')
+    box_get
+    pop
+    dup
+    intc 4 // 768
+    getbit
+    bytec 8 // 0x00
+    intc_0 // 0
+    uncover 2
+    setbit
+    intc_0 // 0
+    getbit
+    intc_1 // 1
+    ==
+    assert // provider inactive
+    // contracts/assurance-core/contract/assurance-core.algo.ts:198
+    // assert(provider.value.ownerAddress.bytes === Txn.sender.bytes, 'provider owner only')
+    extract 0 32
+    txn Sender
+    ==
+    assert // provider owner only
+    // contracts/assurance-core/contract/assurance-core.algo.ts:62
+    // policies = BoxMap<RecordId, PolicyRecord>({ keyPrefix: 'l' })
+    bytec 9 // "l"
+    swap
+    concat
+    dup
+    cover 4
+    // contracts/assurance-core/contract/assurance-core.algo.ts:200
+    // assert(!policy.exists, 'policy already exists')
+    box_len
+    bury 1
+    !
+    assert // policy already exists
+    // contracts/assurance-core/contract/assurance-core.algo.ts:201
+    // assert(premiumBps >= 1 && premiumBps <= 10_000, 'invalid premium bps')
+    bz createPolicy_bool_false@4
+    frame_dig 0
+    pushint 10000
+    <=
+    bz createPolicy_bool_false@4
+    intc_1 // 1
+
+createPolicy_bool_merge@5:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:201
+    // assert(premiumBps >= 1 && premiumBps <= 10_000, 'invalid premium bps')
+    assert // invalid premium bps
+    // contracts/assurance-core/contract/assurance-core.algo.ts:202
+    // assert(collateralRatioBps >= 1 && collateralRatioBps <= 10_000, 'invalid collateral bps')
+    frame_dig 1
+    bz createPolicy_bool_false@8
+    frame_dig 1
+    pushint 10000
+    <=
+    bz createPolicy_bool_false@8
+    intc_1 // 1
+
+createPolicy_bool_merge@9:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:202
+    // assert(collateralRatioBps >= 1 && collateralRatioBps <= 10_000, 'invalid collateral bps')
+    assert // invalid collateral bps
+    // contracts/assurance-core/contract/assurance-core.algo.ts:203
+    // assert(maxCoverageAmount > 0, 'maximum coverage must be positive')
+    swap
+    assert // maximum coverage must be positive
+    // contracts/assurance-core/contract/assurance-core.algo.ts:204
+    // assert(claimWindowSeconds > 0, 'claim window must be positive')
+    assert // claim window must be positive
+    // contracts/assurance-core/contract/assurance-core.algo.ts:206
+    // const createdAt = Global.latestTimestamp
+    global LatestTimestamp
+    // contracts/assurance-core/contract/assurance-core.algo.ts:214
+    // createdAt: new arc4.Uint64(createdAt),
+    itob
+    // contracts/assurance-core/contract/assurance-core.algo.ts:207-215
+    // policy.value = new PolicyRecord({
+    //   providerId,
+    //   active: new arc4.Bool(true),
+    //   premiumBps: new arc4.Uint64(premiumBps),
+    //   collateralRatioBps: new arc4.Uint64(collateralRatioBps),
+    //   maxCoverageAmount: new arc4.Uint64(maxCoverageAmount),
+    //   claimWindowSeconds: new arc4.Uint64(claimWindowSeconds),
+    //   createdAt: new arc4.Uint64(createdAt),
+    // })
+    uncover 6
+    dup
+    cover 2
+    // contracts/assurance-core/contract/assurance-core.algo.ts:209
+    // active: new arc4.Bool(true),
+    pushbytes 0x80
+    // contracts/assurance-core/contract/assurance-core.algo.ts:207-215
+    // policy.value = new PolicyRecord({
+    //   providerId,
+    //   active: new arc4.Bool(true),
+    //   premiumBps: new arc4.Uint64(premiumBps),
+    //   collateralRatioBps: new arc4.Uint64(collateralRatioBps),
+    //   maxCoverageAmount: new arc4.Uint64(maxCoverageAmount),
+    //   claimWindowSeconds: new arc4.Uint64(claimWindowSeconds),
+    //   createdAt: new arc4.Uint64(createdAt),
+    // })
+    concat
+    uncover 7
+    dup
+    cover 3
+    concat
+    uncover 7
+    dup
+    cover 4
+    concat
+    uncover 7
+    dup
+    cover 5
+    concat
+    uncover 7
+    dup
+    cover 6
+    concat
+    dig 1
+    concat
+    uncover 7
+    swap
+    box_put
+    // contracts/assurance-core/contract/assurance-core.algo.ts:218
+    // new arc4.Uint64(1),
+    intc_1 // 1
+    itob
+    // contracts/assurance-core/contract/assurance-core.algo.ts:216-226
+    // emit(
+    //   'PolicyCreated',
+    //   new arc4.Uint64(1),
+    //   policyId,
+    //   providerId,
+    //   new arc4.Uint64(premiumBps),
+    //   new arc4.Uint64(collateralRatioBps),
+    //   new arc4.Uint64(maxCoverageAmount),
+    //   new arc4.Uint64(claimWindowSeconds),
+    //   new arc4.Uint64(createdAt),
+    // )
+    uncover 7
+    concat
+    uncover 6
+    concat
+    uncover 2
+    concat
+    uncover 2
+    concat
+    uncover 2
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    pushbytes 0x9a942998 // method "PolicyCreated(uint64,byte[32],byte[32],uint64,uint64,uint64,uint64,uint64)"
+    swap
+    concat
+    log
+    retsub
+
+createPolicy_bool_false@8:
+    intc_0 // 0
+    b createPolicy_bool_merge@9
+
+createPolicy_bool_false@4:
+    intc_0 // 0
+    b createPolicy_bool_merge@5
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.setPolicyStatus[routing]() -> void:
+setPolicyStatus:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:229
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_1 // 1
+    ==
+    assert // invalid number of bytes for arc4.bool
+    dup
+    intc_0 // 0
+    getbit
+    // contracts/assurance-core/contract/assurance-core.algo.ts:231
+    // this.requireUnpaused()
+    callsub requireUnpaused
+    // contracts/assurance-core/contract/assurance-core.algo.ts:232
+    // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    txn RekeyTo
+    global ZeroAddress
+    ==
+    assert // unsafe rekey
+    // contracts/assurance-core/contract/assurance-core.algo.ts:62
+    // policies = BoxMap<RecordId, PolicyRecord>({ keyPrefix: 'l' })
+    bytec 9 // "l"
+    dig 3
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:234
+    // assert(policy.exists, 'policy missing')
+    dup
+    box_len
+    bury 1
+    assert // policy missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:235
+    // const provider = this.providers(policy.value.providerId)
+    dup
+    box_get
+    pop
+    dup
+    extract 0 32
+    // contracts/assurance-core/contract/assurance-core.algo.ts:61
+    // providers = BoxMap<RecordId, ProviderRecord>({ keyPrefix: 'p' })
+    bytec_0 // "p"
+    swap
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:236
+    // assert(provider.exists, 'provider missing')
+    dup
+    box_len
+    bury 1
+    assert // provider missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:237
+    // assert(provider.value.ownerAddress.bytes === Txn.sender.bytes, 'provider owner only')
+    box_get
+    pop
+    extract 0 32
+    txn Sender
+    ==
+    assert // provider owner only
+    // contracts/assurance-core/contract/assurance-core.algo.ts:238
+    // assert(policy.value.active.native !== active, 'policy status unchanged')
+    pushint 256
+    getbit
+    bytec 8 // 0x00
+    intc_0 // 0
+    uncover 2
+    setbit
+    intc_0 // 0
+    getbit
+    dig 2
+    !=
+    assert // policy status unchanged
+    // contracts/assurance-core/contract/assurance-core.algo.ts:239
+    // policy.value.active = new arc4.Bool(active)
+    dup
+    intc_2 // 32
+    intc_1 // 1
+    box_extract
+    intc_0 // 0
+    uncover 3
+    setbit
+    intc_2 // 32
+    swap
+    box_replace // on error: index out of bounds
+    // contracts/assurance-core/contract/assurance-core.algo.ts:240
+    // emit('PolicyStatusChanged', new arc4.Uint64(1), policyId, new arc4.Bool(active))
+    intc_1 // 1
+    itob
+    uncover 2
+    concat
+    swap
+    concat
+    pushbytes 0x00c78086 // method "PolicyStatusChanged(uint64,byte[32],bool)"
+    swap
+    concat
+    log
+    retsub
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getPolicy[routing]() -> void:
+getPolicy:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:243
+    // @abimethod({ readonly: true })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // contracts/assurance-core/contract/assurance-core.algo.ts:62
+    // policies = BoxMap<RecordId, PolicyRecord>({ keyPrefix: 'l' })
+    bytec 9 // "l"
+    swap
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:246
+    // assert(policy.exists, 'policy missing')
+    dup
+    box_len
+    bury 1
+    assert // policy missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:247
+    // return policy.value
+    box_get
+    pop
+    // contracts/assurance-core/contract/assurance-core.algo.ts:243
+    // @abimethod({ readonly: true })
+    bytec 4 // 0x151f7c75
+    swap
+    concat
+    log
+    retsub
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.depositStake[routing]() -> void:
+depositStake:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:250
+    // @abimethod({ allowActions: 'NoOp' })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txn GroupIndex
+    intc_1 // 1
+    -
+    dup
+    gtxns TypeEnum
+    pushint 4 // axfer
+    ==
+    assert // transaction type is axfer
+    // contracts/assurance-core/contract/assurance-core.algo.ts:252
+    // this.requireUnpaused()
+    callsub requireUnpaused
+    // contracts/assurance-core/contract/assurance-core.algo.ts:253
+    // assert(this.assetOptedIn.value === 1, 'asset not opted in')
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:55
+    // assetOptedIn = GlobalState<uint64>()
+    bytec_3 // "assetOptedIn"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:253
+    // assert(this.assetOptedIn.value === 1, 'asset not opted in')
+    app_global_get_ex
+    assert // check GlobalState exists
+    intc_1 // 1
+    ==
+    assert // asset not opted in
+    // contracts/assurance-core/contract/assurance-core.algo.ts:254
+    // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    txn RekeyTo
+    global ZeroAddress
+    ==
+    assert // unsafe rekey
+    // contracts/assurance-core/contract/assurance-core.algo.ts:255
+    // assert(Global.groupSize === 2, 'exactly two group members required')
+    global GroupSize
+    pushint 2
+    ==
+    assert // exactly two group members required
+    // contracts/assurance-core/contract/assurance-core.algo.ts:256
+    // assert(Txn.groupIndex === 1, 'application call must be second')
+    txn GroupIndex
+    intc_1 // 1
+    ==
+    assert // application call must be second
+    // contracts/assurance-core/contract/assurance-core.algo.ts:61
+    // providers = BoxMap<RecordId, ProviderRecord>({ keyPrefix: 'p' })
+    bytec_0 // "p"
+    dig 2
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:259
+    // assert(provider.exists, 'provider missing')
+    dup
+    box_len
+    bury 1
+    assert // provider missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:260
+    // assert(provider.value.active.native === true, 'provider inactive')
+    dup
+    box_get
+    pop
+    dup
+    intc 4 // 768
+    getbit
+    bytec 8 // 0x00
+    intc_0 // 0
+    uncover 2
+    setbit
+    intc_0 // 0
+    getbit
+    intc_1 // 1
+    ==
+    assert // provider inactive
+    // contracts/assurance-core/contract/assurance-core.algo.ts:261
+    // assert(provider.value.ownerAddress.bytes === Txn.sender.bytes, 'provider owner only')
+    dup
+    extract 0 32
+    txn Sender
+    ==
+    assert // provider owner only
+    // contracts/assurance-core/contract/assurance-core.algo.ts:262
+    // assert(transfer.sender.bytes === Txn.sender.bytes, 'transfer sender mismatch')
+    dig 2
+    gtxns Sender
+    txn Sender
+    ==
+    assert // transfer sender mismatch
+    // contracts/assurance-core/contract/assurance-core.algo.ts:263
+    // assert(transfer.assetReceiver.bytes === Global.currentApplicationAddress.bytes, 'transfer receiver mismatch')
+    dig 2
+    gtxns AssetReceiver
+    global CurrentApplicationAddress
+    ==
+    assert // transfer receiver mismatch
+    // contracts/assurance-core/contract/assurance-core.algo.ts:264
+    // assert(transfer.xferAsset.id === this.acceptedAssetId.value, 'wrong asset')
+    dig 2
+    gtxns XferAsset
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:53
+    // acceptedAssetId = GlobalState<uint64>()
+    bytec 5 // "acceptedAssetId"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:264
+    // assert(transfer.xferAsset.id === this.acceptedAssetId.value, 'wrong asset')
+    app_global_get_ex
+    assert // check GlobalState exists
+    swap
+    dig 1
+    ==
+    assert // wrong asset
+    // contracts/assurance-core/contract/assurance-core.algo.ts:265
+    // assert(transfer.assetAmount > 0, 'stake amount must be positive')
+    dig 3
+    gtxns AssetAmount
+    dup
+    assert // stake amount must be positive
+    // contracts/assurance-core/contract/assurance-core.algo.ts:266
+    // assert(transfer.assetSender.bytes === Global.zeroAddress.bytes, 'asset sender is not allowed')
+    dig 4
+    gtxns AssetSender
+    global ZeroAddress
+    ==
+    assert // asset sender is not allowed
+    // contracts/assurance-core/contract/assurance-core.algo.ts:267
+    // assert(transfer.assetCloseTo.bytes === Global.zeroAddress.bytes, 'asset close-to is not allowed')
+    dig 4
+    gtxns AssetCloseTo
+    global ZeroAddress
+    ==
+    assert // asset close-to is not allowed
+    // contracts/assurance-core/contract/assurance-core.algo.ts:268
+    // assert(transfer.rekeyTo.bytes === Global.zeroAddress.bytes, 'transfer rekey is not allowed')
+    uncover 4
+    gtxns RekeyTo
+    global ZeroAddress
+    ==
+    assert // transfer rekey is not allowed
+    // contracts/assurance-core/contract/assurance-core.algo.ts:270
+    // assert(provider.value.stakeTotal.asUint64() <= maxUint64 - transfer.assetAmount, 'provider stake overflow')
+    uncover 2
+    pushint 97
+    extract_uint64
+    // contracts/assurance-core/contract/assurance-core.algo.ts:269
+    // const maxUint64 = new arc4.Uint64(18446744073709551615n).asUint64()
+    intc 5 // 18446744073709551615
+    // contracts/assurance-core/contract/assurance-core.algo.ts:270
+    // assert(provider.value.stakeTotal.asUint64() <= maxUint64 - transfer.assetAmount, 'provider stake overflow')
+    dig 2
+    -
+    dup2
+    <=
+    assert // provider stake overflow
+    // contracts/assurance-core/contract/assurance-core.algo.ts:271
+    // assert(this.totalProviderStake.value <= maxUint64 - transfer.assetAmount, 'global stake overflow')
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:56
+    // totalProviderStake = GlobalState<uint64>()
+    bytec 6 // "totalProviderStake"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:271
+    // assert(this.totalProviderStake.value <= maxUint64 - transfer.assetAmount, 'global stake overflow')
+    app_global_get_ex
+    assert // check GlobalState exists
+    dup
+    uncover 2
+    <=
+    assert // global stake overflow
+    // contracts/assurance-core/contract/assurance-core.algo.ts:272
+    // const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
+    global CurrentApplicationAddress
+    uncover 4
+    asset_holding_get AssetBalance
+    assert // account opted into asset
+    // contracts/assurance-core/contract/assurance-core.algo.ts:273
+    // assert(this.totalProviderStake.value + transfer.assetAmount <= applicationHolding, 'tracked stake exceeds balance')
+    swap
+    dig 3
+    +
+    dup
+    uncover 2
+    <=
+    assert // tracked stake exceeds balance
+    // contracts/assurance-core/contract/assurance-core.algo.ts:275
+    // provider.value.stakeTotal = new arc4.Uint64(provider.value.stakeTotal.asUint64() + transfer.assetAmount)
+    swap
+    dig 2
+    +
+    itob
+    dig 3
+    pushint 97
+    uncover 2
+    box_replace // on error: index out of bounds
+    // contracts/assurance-core/contract/assurance-core.algo.ts:56
+    // totalProviderStake = GlobalState<uint64>()
+    bytec 6 // "totalProviderStake"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:276
+    // this.totalProviderStake.value += transfer.assetAmount
+    swap
+    app_global_put
+    // contracts/assurance-core/contract/assurance-core.algo.ts:279
+    // new arc4.Uint64(1),
+    intc_1 // 1
+    itob
+    // contracts/assurance-core/contract/assurance-core.algo.ts:281
+    // new arc4.Uint64(transfer.assetAmount),
+    swap
+    itob
+    // contracts/assurance-core/contract/assurance-core.algo.ts:282
+    // new arc4.Uint64(provider.value.stakeTotal.asUint64()),
+    uncover 2
+    box_get
+    pop
+    extract 97 8
+    // contracts/assurance-core/contract/assurance-core.algo.ts:277-283
+    // emit(
+    //   'StakeDeposited',
+    //   new arc4.Uint64(1),
+    //   providerId,
+    //   new arc4.Uint64(transfer.assetAmount),
+    //   new arc4.Uint64(provider.value.stakeTotal.asUint64()),
+    // )
+    uncover 2
+    uncover 3
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    pushbytes 0xe0c01f0c // method "StakeDeposited(uint64,byte[32],uint64,uint64)"
+    swap
+    concat
+    log
+    retsub
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getAvailableCapacity[routing]() -> void:
+getAvailableCapacity:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:286
+    // @abimethod({ readonly: true })
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // contracts/assurance-core/contract/assurance-core.algo.ts:61
+    // providers = BoxMap<RecordId, ProviderRecord>({ keyPrefix: 'p' })
+    bytec_0 // "p"
+    dig 2
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:289
+    // assert(provider.exists, 'provider missing')
+    dup
+    box_len
+    bury 1
+    assert // provider missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:62
+    // policies = BoxMap<RecordId, PolicyRecord>({ keyPrefix: 'l' })
+    bytec 9 // "l"
+    uncover 2
+    concat
+    // contracts/assurance-core/contract/assurance-core.algo.ts:291
+    // assert(policy.exists, 'policy missing')
+    dup
+    box_len
+    bury 1
+    assert // policy missing
+    // contracts/assurance-core/contract/assurance-core.algo.ts:292
+    // assert(policy.value.providerId.bytes === providerId.bytes, 'policy provider mismatch')
+    box_get
+    pop
+    dup
+    extract 0 32
+    uncover 3
+    ==
+    assert // policy provider mismatch
+    // contracts/assurance-core/contract/assurance-core.algo.ts:293
+    // assert(provider.value.stakeTotal.asUint64() >= provider.value.stakeLocked.asUint64(), 'locked stake exceeds total')
+    swap
+    box_get
+    pop
+    dup
+    pushint 97
+    extract_uint64
+    dig 1
+    pushint 105
+    extract_uint64
+    >=
+    assert // locked stake exceeds total
+    // contracts/assurance-core/contract/assurance-core.algo.ts:297
+    // const maxUint64 = new arc4.Uint64(18446744073709551615n).asUint64()
+    intc 5 // 18446744073709551615
+    cover 2
+    // contracts/assurance-core/contract/assurance-core.algo.ts:299
+    // const unencumberedStake: biguint = provider.value.stakeTotal.asBigUint() - provider.value.stakeLocked.asBigUint()
+    dup
+    extract 97 8
+    swap
+    extract 105 8
+    b-
+    // contracts/assurance-core/contract/assurance-core.algo.ts:300
+    // const capacity: biguint = (unencumberedStake * 10_000n) / policy.value.collateralRatioBps.asBigUint()
+    pushbytes 0x2710
+    b*
+    swap
+    extract 41 8
+    b/
+    dup
+    // contracts/assurance-core/contract/assurance-core.algo.ts:301
+    // if (capacity > maxBigUint) return maxUint64
+    pushbytes 0xffffffffffffffff
+    b>
+    bz getAvailableCapacity_after_if_else@3
+    pop
+
+getAvailableCapacity_after_inlined_contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getAvailableCapacity@4:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:286
+    // @abimethod({ readonly: true })
+    itob
+    bytec 4 // 0x151f7c75
+    swap
+    concat
+    log
+    retsub
+
+getAvailableCapacity_after_if_else@3:
+    bury 1
+    // contracts/assurance-core/contract/assurance-core.algo.ts:302
+    // return new arc4.Uint64(capacity).asUint64()
+    dup
+    len
+    intc_3 // 8
+    <=
+    assert // overflow
+    intc_3 // 8
+    bzero
+    b|
+    btoi
+    // contracts/assurance-core/contract/assurance-core.algo.ts:286
+    // @abimethod({ readonly: true })
+    b getAvailableCapacity_after_inlined_contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getAvailableCapacity@4
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getConfig[routing]() -> void:
+getConfig:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:320
+    // admin: new arc4.Address(this.admin.value),
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:51
+    // admin = GlobalState<Account>()
+    bytec_1 // "admin"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:320
+    // admin: new arc4.Address(this.admin.value),
+    app_global_get_ex
+    assert // check GlobalState exists
+    // contracts/assurance-core/contract/assurance-core.algo.ts:321
+    // adjudicator: new arc4.Address(this.adjudicator.value),
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:52
+    // adjudicator = GlobalState<Account>()
+    bytec 10 // "adjudicator"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:321
+    // adjudicator: new arc4.Address(this.adjudicator.value),
+    app_global_get_ex
+    assert // check GlobalState exists
+    // contracts/assurance-core/contract/assurance-core.algo.ts:322
+    // acceptedAssetId: new arc4.Uint64(this.acceptedAssetId.value),
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:53
+    // acceptedAssetId = GlobalState<uint64>()
+    bytec 5 // "acceptedAssetId"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:322
+    // acceptedAssetId: new arc4.Uint64(this.acceptedAssetId.value),
+    app_global_get_ex
+    assert // check GlobalState exists
+    itob
+    // contracts/assurance-core/contract/assurance-core.algo.ts:323
+    // paused: new arc4.Uint64(this.paused.value),
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:54
+    // paused = GlobalState<uint64>()
+    bytec_2 // "paused"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:323
     // paused: new arc4.Uint64(this.paused.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:121
+    // contracts/assurance-core/contract/assurance-core.algo.ts:324
     // assetOptedIn: new arc4.Uint64(this.assetOptedIn.value),
     intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:52
+    // contracts/assurance-core/contract/assurance-core.algo.ts:55
     // assetOptedIn = GlobalState<uint64>()
-    bytec_0 // "assetOptedIn"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:121
+    bytec_3 // "assetOptedIn"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:324
     // assetOptedIn: new arc4.Uint64(this.assetOptedIn.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:116-122
+    // contracts/assurance-core/contract/assurance-core.algo.ts:319-325
     // return new AssuranceConfig({
     //   admin: new arc4.Address(this.admin.value),
     //   adjudicator: new arc4.Address(this.adjudicator.value),
@@ -400,9 +1594,9 @@ getConfig:
     concat
     swap
     concat
-    // contracts/assurance-core/contract/assurance-core.algo.ts:114
+    // contracts/assurance-core/contract/assurance-core.algo.ts:317
     // @abimethod({ readonly: true })
-    bytec 8 // 0x151f7c75
+    bytec 4 // 0x151f7c75
     swap
     concat
     log
@@ -411,40 +1605,40 @@ getConfig:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getAccounting[routing]() -> void:
 getAccounting:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:128
+    // contracts/assurance-core/contract/assurance-core.algo.ts:331
     // totalProviderStake: new arc4.Uint64(this.totalProviderStake.value),
     intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:53
+    // contracts/assurance-core/contract/assurance-core.algo.ts:56
     // totalProviderStake = GlobalState<uint64>()
-    bytec 5 // "totalProviderStake"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:128
+    bytec 6 // "totalProviderStake"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:331
     // totalProviderStake: new arc4.Uint64(this.totalProviderStake.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:129
+    // contracts/assurance-core/contract/assurance-core.algo.ts:332
     // premiumReserve: new arc4.Uint64(this.premiumReserve.value),
     intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:54
+    // contracts/assurance-core/contract/assurance-core.algo.ts:57
     // premiumReserve = GlobalState<uint64>()
-    bytec 6 // "premiumReserve"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:129
+    bytec 11 // "premiumReserve"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:332
     // premiumReserve: new arc4.Uint64(this.premiumReserve.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:130
+    // contracts/assurance-core/contract/assurance-core.algo.ts:333
     // totalOpenFaultExposure: new arc4.Uint64(this.totalOpenFaultExposure.value),
     intc_0 // 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:55
+    // contracts/assurance-core/contract/assurance-core.algo.ts:58
     // totalOpenFaultExposure = GlobalState<uint64>()
-    bytec 7 // "totalOpenFaultExposure"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:130
+    bytec 12 // "totalOpenFaultExposure"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:333
     // totalOpenFaultExposure: new arc4.Uint64(this.totalOpenFaultExposure.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:127-131
+    // contracts/assurance-core/contract/assurance-core.algo.ts:330-334
     // return new AssuranceAccounting({
     //   totalProviderStake: new arc4.Uint64(this.totalProviderStake.value),
     //   premiumReserve: new arc4.Uint64(this.premiumReserve.value),
@@ -454,10 +1648,27 @@ getAccounting:
     concat
     swap
     concat
-    // contracts/assurance-core/contract/assurance-core.algo.ts:125
+    // contracts/assurance-core/contract/assurance-core.algo.ts:328
     // @abimethod({ readonly: true })
-    bytec 8 // 0x151f7c75
+    bytec 4 // 0x151f7c75
     swap
     concat
     log
+    retsub
+
+
+// contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.requireUnpaused() -> void:
+requireUnpaused:
+    // contracts/assurance-core/contract/assurance-core.algo.ts:306
+    // assert(this.paused.value === 0, 'protocol paused')
+    intc_0 // 0
+    // contracts/assurance-core/contract/assurance-core.algo.ts:54
+    // paused = GlobalState<uint64>()
+    bytec_2 // "paused"
+    // contracts/assurance-core/contract/assurance-core.algo.ts:306
+    // assert(this.paused.value === 0, 'protocol paused')
+    app_global_get_ex
+    assert // check GlobalState exists
+    !
+    assert // protocol paused
     retsub

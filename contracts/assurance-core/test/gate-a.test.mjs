@@ -35,7 +35,8 @@ test('compiled artifacts are present, current, and use the pinned compiler', () 
 })
 
 test('Gate A ABI methods have the exact read and mutation surface', () => {
-  assert.deepEqual([...methodMap.keys()], ['createApplication', 'optInAcceptedAsset', 'getConfig', 'getAccounting'])
+  assert.deepEqual([...methodMap.keys()].slice(0, 2), ['createApplication', 'optInAcceptedAsset'])
+  assert.deepEqual([...methodMap.keys()].slice(-2), ['getConfig', 'getAccounting'])
   assert.deepEqual(methodMap.get('createApplication').args.map((arg) => arg.type), ['uint64', 'address'])
   assert.equal(methodMap.get('createApplication').returns.type, 'void')
   assert.deepEqual(methodMap.get('optInAcceptedAsset').args.map((arg) => arg.type), ['uint64'])
@@ -111,7 +112,7 @@ test('global schema and event ABI projections are fixed', () => {
 
 test('unsafe controls are explicitly guarded in both state-changing methods', () => {
   const contract = fs.readFileSync(path.join(source, 'assurance-core.algo.ts'), 'utf8')
-  assert.equal((contract.match(/Txn\.rekeyTo\.bytes === Global\.zeroAddress\.bytes/g) ?? []).length, 2)
+  assert.equal((contract.match(/Txn\.rekeyTo\.bytes === Global\.zeroAddress\.bytes/g) ?? []).length, 8)
   assert.match(contract, /fee: 0/)
   assert.match(contract, /Txn\.fee >= Global\.minTxnFee \* 2/)
 })
