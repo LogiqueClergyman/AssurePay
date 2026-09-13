@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gate A ACCEPTED; Gates B–F remain NOT_STARTED
+Status: IN_PROGRESS — Gate A ACCEPTED; Gate B REVIEW; Gates C–F remain NOT_STARTED
 
 ## Baseline
 
@@ -48,12 +48,32 @@ Status: ACCEPTED
 
 ## Gate B — Provider, policy, and stake
 
-Status: NOT_STARTED
+Status: REVIEW
 
 - Implemented behavior:
-- Negative cases:
-- Capacity evidence:
+  - Added admin-only `setPaused(bool)` with no-op rejection, explicit zero-rekey guard, and `ProtocolPauseChanged(uint64,bool)`, version `1`. Registration, provider status, policy creation/status, and typed stake deposits reject while paused; pausing changes no entity or accounting state.
+  - Added provider registration and status/read methods. Provider ownership is derived from `Txn.sender`; records initialize active with zero stake/lock/exposure and confirmed `Global.latestTimestamp`. Registration and status changes emit the frozen provider events. Provider deactivation/reactivation changes only the active byte.
+  - Added immutable policy creation and owner-controlled status/read methods. Creation binds the policy to an active provider owned by the caller, enforces `1..10_000` bps and positive maximum/window, and status changes only the active byte.
+  - Added `depositStake(byte[32],axfer)void`. The real group profile is exactly `[owner axfer -> application, owner application call]`; the typed `axfer` argument compiles to the preceding group member. It validates group size/order, sender/receiver/ASA/amount, all unsafe asset fields, application rekey, opt-in, provider ownership/status, checked uint64 additions, and actual application ASA balance before writing provider/global stake.
+- ABI and events:
+  - Gate B methods: `setPaused(bool)void`, `registerProvider(byte[32],address,byte[32])void`, `setProviderStatus(byte[32],bool)void`, `getProvider(byte[32])(address,address,byte[32],bool,uint64,uint64,uint64,uint64)`, `createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)void`, `setPolicyStatus(byte[32],bool)void`, `getPolicy(byte[32])(byte[32],bool,uint64,uint64,uint64,uint64,uint64)`, `depositStake(byte[32],axfer)void`, and `getAvailableCapacity(byte[32],byte[32])uint64`.
+  - Events are ARC-28 versioned with exact signatures: `ProtocolPauseChanged(uint64,bool)`, `ProviderRegistered(uint64,byte[32],address,address,byte[32],uint64)`, `ProviderStatusChanged(uint64,byte[32],bool)`, `PolicyCreated(uint64,byte[32],byte[32],uint64,uint64,uint64,uint64,uint64)`, `PolicyStatusChanged(uint64,byte[32],bool)`, and `StakeDeposited(uint64,byte[32],uint64,uint64)`.
+- Capacity arithmetic:
+  - `getAvailableCapacity` requires both fixed box records and exact provider/policy binding, then computes `floor((stakeTotal - stakeLocked) * 10_000 / collateralRatioBps)`.
+  - Puya compiles `arc4.Uint64.asBigUint()` arithmetic to AVM v13 `b-`, `b*`, and `b/`; conversion back to uint64 is saturated at `18,446,744,073,709,551,615` before conversion. Deterministic tests cover ratios, floor rounding, locked stake, zero unencumbered stake, invalid locked state, and saturation.
+- Box MBR evidence:
+  - LocalNet application minimum balance after ASA opt-in was `200,000` microAlgos. After one provider and two policies it was `357,100` microAlgos: provider delta `67,300`, policy deltas `44,900` each. The runner then created a second provider only for the binding-negative test; final observed minimum balance was `424,400` microAlgos. Application balance remained `600,000` microAlgos, explicitly distinguishing balance from minimum balance.
+- Negative and rollback evidence:
+  - Deterministic suite covers ABI/event shape, zero/duplicate IDs, zero payout/key, bps and positive-term bounds, ownership/status no-ops, fixed box namespaces/references, group validation, unsafe asset fields/rekeys, actual-balance invariant, rollback model, and capacity failures.
+  - The real LocalNet runner rejected `48` labeled cases covering non-admin/no-op pause, all paused Gate B mutations, duplicate/zero/invalid/missing-box provider and policy operations, non-owner/inactive status/creation/deposit, wrong group size/order, wrong sender/receiver/ASA/amount, asset sender/close-to/rekey, application rekey, pre-opt-in deposit, provider-policy mismatch, and duplicate group replay. Failed groups left application ALGO/ASA balances, boxes, and accounting unchanged; the successful deposit moved `123` ASA and set both provider and global stake to `123`.
+- LocalNet public evidence (final run, genesis `dockernet-v1`, round `343`): ASA `1358`; application `1359`; application address `SNREASBV6GJKOTLB6NLPLVVWAWADWPVP6KI6NI2LNX7ABWZR3KB3RNJ2KU`; second negative-test app `1362`; provider ID `0707070707070707070707070707070707070707070707070707070707070707`; policy IDs `0909090909090909090909090909090909090909090909090909090909090909` and `0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a`.
+  - Public transaction IDs: creation `YKBAUSPOCKLN4SLDS2YAVOZJP2VW4YGS2CRZZXGLWJL6NTEW354Q`; config read `DNGFLXHPOR2EKSGSHLIA45XAT26CKFNISTVTXSO3NIB2OQNM6KFA`; accounting read `NR533HXHPYQH4JYADW4IBDD6LH5UMZTSSNXKRIH7LQO4XPBWPCKA`; ASA opt-in `F6Q3FUC55EUWFJYHC5U37CK6FCUXHLHQIBKMOFBOBTUDKP64CRHA`; provider registration `3AR2GBA6NBTGVXGXEKVM3K2VSJXXFYYCI3LBSEELDKRZWU54JBCA`; policy creation `UCQSYV6JLUZBZVZ7LCEXQZCCWTDPPYMQS6GWRXASSKOFLT4JY2DQ` and `D6OWBK7D7ZW43CQLAITLCASF7KFZLV236GPWRJFGN35MAORQGMWA`; pause `3R5Y35FDPJ54O7JURA5334SYH67HPMFXQ3B7Z6EK43GXOO2XYCZA`; unpause `4A7N2W3ME35IZE5QFLEPXWE2JM5Q5RUVAKOF4WCNY4D32ETVDXPQ`; policy status `VS7TXQGJSGJSUUBHSGHRBZMWYWLTUIG4Q3VNXPPEU6XYRVT2X22Q` and `UIVJ45G3ZOOTRACH36SLMNQSZ4AYOPCN7OTFKPN5ZIX47ETU24XA`; provider status `RH2KFQAEIRIWONZJMJUWSCLNCLNGTWKWLNLPBCTAYW7CRVODWAEQ` and `KPGQTVE4BB7YMOLRDC2TF5RA3IQWCKAL6CMIZKCBKBKSVNZH6EPQ`; deposit application call `UALLGHN6WLC4Y3MSOMLFT2B7V3H2WMWHWFQBWESL2MD6XCLKN2RQ`.
 - Verification:
+  - `npm run typecheck:p1` — passed with PuyaTs `1.3.0` / Puya `5.10.0`.
+  - `npm run build:contract:p1` — passed; ARC-32/ARC-56, TEAL, maps, and typed client regenerated.
+  - `npm run test:p1` — **13 passed, 0 failed**; deterministic tests require no LocalNet.
+  - `npm run localnet:p1` — passed against real LocalNet `dockernet-v1`; all positive, decoded-event/read, negative, rollback, MBR, stake, capacity, and duplicate-replay checks passed.
+- Deviations and scope: no compiler/protocol conflict was found. The AVM v13 biguint primitive is used for the required wide arithmetic; no invented global maximum, withdrawal, coverage, Gate C mutation, TestNet runner, backend, SDK, or P0 change was added.
 
 ## Gate C — Coverage profile
 
