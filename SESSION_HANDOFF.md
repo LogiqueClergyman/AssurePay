@@ -3,17 +3,17 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: REVIEW — Gate A PASS; awaiting orchestrator review
+- State: IN_PROGRESS — Gate A ACCEPTED; Gate B READY
 - Branch: `main`
-- Starting checkpoint: `886a08d2daf808d2e6e6b303afe4cf8a515d6fb2`
-- Active packet: `planning/P1_GATE_A_STORAGE.md`
+- Starting checkpoint: `cd6f036`
+- Active packet: `planning/P1_GATE_B_PROVIDER_POLICY_STAKE.md`
 - Results: `planning/P1_RESULTS.md`
 
 P0 is complete with real TestNet success and rollback evidence. Its production constraints are recorded in D-010, D-016, D-017, D-018, and D-019. Do not reopen P0 or modify `spikes/p0-atomic/**` during P1 without an orchestrator-approved shared-code extraction.
 
 ## P1 scope and gate
 
-The phase-level P1 packet fixes the complete contract model and gates. The active Luna-sized Gate A packet is self-contained; an implementation session must not read the phase-level packet or `/docs`.
+Gate A is accepted. The active Luna-sized Gate B packet is self-contained; an implementation session must not read the phase-level packet, the completed Gate A packet, or `/docs`.
 
 P1 proceeds sequentially:
 
@@ -30,10 +30,10 @@ P1 is complete only after all six gates pass. A missing user-controlled TestNet 
 
 ## Exact next action
 
-Have the orchestrator review and accept Gate A evidence. After acceptance, start a fresh session for Gate B only using its new active packet; do not begin Gate B in this worktree before that review. Gate B must start by rereading `AGENTS.md`, this handoff, its active packet, and only the root/planning files that packet names.
+Start a fresh Luna session for Gate B only. Read `AGENTS.md`, this handoff, `planning/P1_GATE_B_PROVIDER_POLICY_STAKE.md`, and only the additional files named by that packet. Complete every Gate B exit condition, update results/handoff, and stop before Gate C.
 
 Do not access `/docs`. Do not start P2.
 
-## Planning worktree
+## Gate A review evidence
 
-The orchestrator created the P1 packet and handoff after the P0 closing commit. Confirm whether these planning changes are committed before starting implementation. Create commits only when the user's implementation prompt explicitly requests them.
+The orchestrator reproduced `npm run typecheck:p1`, `npm run build:contract:p1`, and `npm run test:p1` (7/7) at `cd6f036` with a clean worktree. Gate A storage sizes, MBR arithmetic, ABI surface, event encoding, authorization, atomic opt-in behavior, and LocalNet evidence satisfy its packet.

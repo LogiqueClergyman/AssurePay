@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gate A PASS; Gates B–F remain NOT_STARTED
+Status: IN_PROGRESS — Gate A ACCEPTED; Gates B–F remain NOT_STARTED
 
 ## Baseline
 
@@ -12,7 +12,7 @@ Status: IN_PROGRESS — Gate A PASS; Gates B–F remain NOT_STARTED
 
 ## Gate A — Contract skeleton and storage
 
-Status: PASS
+Status: ACCEPTED
 
 - Storage layout and exact byte sizes:
   - ARC-4 fixed tuples are used directly as box values. ARC-4 `bool` is one byte in these structs; all uint fields are uint64. No dynamic fields or speculative fields were added.
@@ -44,6 +44,7 @@ Status: PASS
   - `npm run localnet:p1` — passed against LocalNet `dockernet-v1`; the script creates a real ASA and apps, proves creation/configuration/accounting reads, successful pooled inner ASA opt-in and holding, non-admin/wrong-asset/rekey/repeated/insufficient-balance rejection, and state atomicity.
   - LocalNet evidence from the final run at round **120**: genesis `dockernet-v1`, ASA **1137**, application **1138**, app address `KHJVMSPD53NFZWLB4IC3SSMXJTR2WV3PFYDEEW2M7CM5WJIYASM5E2ISEE`, creation tx `3UY5SUTDZG3FV54FW5RLR4GIFLV5IIW2ZH242CMVVFVUZ4IZSV3A`, `getConfig` read tx `IWBKR7RMNCG6O37K7FF7MNAD275NLOMTOAF23HIMOB4AYHYZRTLQ`, `getAccounting` read tx `WCL5XDQWHHUY6NNX76FXWC4QMPPL5NYVHRD6BCCCC76AGKSSFYTQ`, opt-in tx `RRDHQYRCSBHTFV33IVMKLCOAGBNB2KUB5M4C3D3BFDDVHS2EIU3Q`, read calls and event decoding passed, and app min balance after opt-in was **200,000 microAlgos**. The proof also created test app **1141** for insufficient application-ALGO atomicity.
 - Compiler constraint/deviation: PuyaTs requires `BoxMap` proxies to be direct contract members with literal compile-time prefixes; this is implemented. The AVM rejects explicitly reading zero-address optional inner account fields as unavailable resources, so the opt-in inner transfer leaves `rekeyTo`/`assetCloseTo` implicit (safe zero defaults) while the outer application call explicitly rejects unsafe rekeying. No economic or storage-layout deviation was made.
+- Orchestrator review: accepted at commit `cd6f036`. Reproduced `typecheck:p1`, `build:contract:p1`, and all 7 deterministic tests with a clean worktree; reviewed the real LocalNet runner and its evidence against every Gate A exit condition.
 
 ## Gate B — Provider, policy, and stake
 
