@@ -19,7 +19,7 @@ Later phases may be prepared conceptually, but their code must not begin until t
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
 | P0 Atomic group spike | COMPLETE | `planning/P0_TESTNET_ACCEPTANCE.md` | TestNet accepted: assured-exact three-member settlement and actual atomic pool rejection proved |
-| P1 Assurance Core | IN_PROGRESS | `planning/P1_GATE_C_COVERAGE.md` | Gate C READY: assured-exact coverage opening, collateral locks, premium/exposure accounting, and atomic rollback |
+| P1 Assurance Core | IN_PROGRESS | `planning/P1_GATE_C_COVERAGE.md` | Gate C REVIEW: assured-exact coverage opening, collateral locks, premium/exposure accounting, and atomic rollback |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |
 | P4 Demo hardening | BLOCKED_BY_P3 | Not created | Pending |

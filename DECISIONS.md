@@ -132,6 +132,16 @@ This file records implementation decisions that affect later phases. Keep entrie
 - Consequences: Gate C implements and tests a production-local adapter registered through real `@x402/core`, binding all signed members and all five ABI arguments before simulation/submission. P2 must consume this exact profile. There is still no fourth member, fee sponsorship, same-group stake top-up, or provider signature.
 - Supersedes: D-016 only for the production application ABI and added metadata; D-016's scheme, canonical numeric fields, three-member group, role indices, payer signatures, and fee exclusions remain accepted.
 
+### D-021 — Gate C approval program page
+
+- Status: ACCEPTED
+- Date: 2026-09-13
+- Phase: P1/Gate C
+- Decision: Gate C deployment transactions allocate one additional approval-program page (`extraPages = 1`); the ABI, storage schema, group profile, and accounting interfaces remain unchanged.
+- Evidence: The compiled Gate C approval program is 2,330 bytes, above the one-page 2,048-byte limit and below the two-page 4,096-byte limit. Real LocalNet deployment and coverage settlement pass with the additional page.
+- Consequences: Gate C application minimum-balance evidence is reported separately from the unchanged record MBR values. Later gates must preserve this deployment parameter unless a smaller program is compiled.
+- Supersedes: none
+
 ## Open implementation facts
 
 - D-011 Gate A evidence recorded compiled box sizes and exact application minimum-balance funding.

@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gates A–B ACCEPTED; Gate C READY; Gates D–F remain NOT_STARTED
+Status: IN_PROGRESS — Gates A–B ACCEPTED; Gate C REVIEW; Gates D–F remain NOT_STARTED
 
 ## Baseline
 
@@ -78,12 +78,17 @@ Status: ACCEPTED
 
 ## Gate C — Coverage profile
 
-Status: READY
+Status: REVIEW
 
-- P0 profile compatibility:
-- Premium arithmetic:
-- Group validation and rollback:
-- Verification:
+- P0 profile compatibility: Implemented production `assurance-core-v1` over the accepted `assured-exact` x402 v2 group: index 0 payer -> stored provider payout / accepted ASA / providerNet; index 1 same payer -> application / accepted ASA / premium; index 2 same payer `NoOp` application call. The application ABI is exactly `openCoverage(byte[32],byte[32],byte[32],byte[32],uint64)void`; `getCoverage(byte[32])` is read-only and returns the complete 193-byte `CoverageRecord`. The adapter registers the scheme with real `x402Facilitator().register(...)`, verifies all three single signatures and the recomputed group ID, binds every metadata and ABI argument, simulates, and submits immutable copies of the verified signed bytes.
+- Contract/accounting behavior: Coverage IDs are permanent tombstones in `0x63 || coverageId` boxes. Gate C validates pause/opt-in, exact group/order/index, non-zero IDs/request hash, provider/policy existence/status/association, common sender, payout/application receivers, accepted ASA, unsafe transfer/rekey fields, derived premium/net, maximum coverage, stake validity/capacity, checked lock/exposure/reserve/expiry additions, and post-premium application balance. Success stores status `OPEN = 1`, `stakeTopupAmount = 0`, `exposureReleased = false`, then increases provider locked stake, provider/global exposure, and premium reserve without changing total stake and emits the frozen `CoverageOpened(..., version=1)` event.
+- Arithmetic: AVM `biguint` computes `floor(gross * premiumBps / 10_000)`, applies the one-unit minimum, derives `providerNet = gross - premium`, and computes ceiling collateral with `(gross * collateralRatioBps + 9_999) / 10_000`. Deterministic tests cover floor/minimum, ceiling, exact-capacity and one-unit-insufficient cases, maximum uint64 boundaries, conservation, and mixed-policy summation. Gate C deployment uses one additional approval page because the compiled program is 2,330 bytes; this is recorded as implementation fact D-021 and does not change the frozen ABI/profile/storage.
+- Deterministic verification: `npm run test:p1` — **19 passed, 0 failed**. Tests cover artifact/ABI/event/record shape, arithmetic and state accounting, x402 registration, metadata/group/role/signature/binding rejection, simulation-before-submission, immutable prepared bytes, and distinct simulation/submission/confirmation failures without LocalNet.
+- Real LocalNet evidence (final run, `dockernet-v1`, round `709`): ASA `1757`; application `1758`; application address `54EGMDZHFEDIH3YQATR6IN64ERCAV7EB6ETRVMU43QVQDONILHDS2GVVAY`; coverage provider `0c`*32 with payout distinct from payer; policies `0b`*32 at 2,500 bps collateral and `0d`*32 at 7,500 bps collateral; coverage IDs `15`*32 and `16`*32. Explicit MBR funding tx `7DSINMY4FYX5TPL5UWNNCW5HE5AVNNC35WDZL3SF4IPOO3OXE6XA` funded 92,900 microAlgos. Observed coverage box MBR delta was **92,900** per box and **185,800** for two boxes; final application min balance was **767,300** microAlgos and ALGO balance **992,900** microAlgos.
+- Successful state/balance evidence: coverage 1 gross/providerNet/premium/lock = **40/39/1/10** and coverage 2 = **100/98/2/75**; mixed-policy lock sum **85**. Payer/provider/application ASA deltas were respectively `(-40,+39,+1)` and `(-100,+98,+2)`. Provider 3 state ended at stake total **123**, locked **85**, open exposure **140**; global totals were provider stake **246**, premium reserve **3**, open exposure **140**; capacities were **152** under the 2,500-bps policy and **50** under the 7,500-bps policy. Both `CoverageOpened` events and complete `getCoverage` reads decoded successfully. First group ID `sEK/1hbDFHbXQqWbd+oJLDruMXv38socvo12oMymZag=` had transaction IDs `AAAMF35KKYGOULGZ7UQZZZCNQLMU4XEK6RG6EM4WAR54UTR2JSPQ`, `UNRWNE7CXTVBY6I4UZAJGJ4EI3ZFLULEOPTD7LPJIEQF4HDB5Q2Q`, and `HA2DRFYH4CHHORGQHZ36C5V3CUCWAFHALFCSK6O3A7R3REBRJHSQ`. Second group ID `EJIQYf/+XtCprFgfW+SsrynK4lNl7zSJg8FZJ0G7RCQ=` had transaction IDs `QM55HPM5ZU7KJ6QRZYDBKKY4TYDKJH6CCCTCBLPXNUX4BT2CZPMA`, `XARTPB3CKSAETA2VHJQHQFMIRRWIRSQD2Q3QDGZP6E6USG4KQOJQ`, and `KCFFUGWXJXANACSSIJ3K3D7R2YS6QD37RWD4BQKDK6JVRZP2WRXA`.
+- Rollback/rejection evidence: A distinct validly signed gross-51 group under the 7,500-bps policy failed x402 simulation with category `simulation`; facilitator submissions remained **0**. Submitting the exact same signed bytes to the real transaction pool failed the intended application assertion and left payer/provider/application ASA and ALGO balances, coverage MBR, provider/policy/coverage boxes, and global accounting unchanged. The runner also exercised **13** representative Gate C on-chain rejection cases: duplicate ID, payout/amount/sender/order, missing coverage box, zero request hash, unsafe rekey, paused, inactive policy, and inactive provider, in addition to the dedicated insufficient-capacity pool rejection.
+- Required commands: `npm run typecheck:p1` passed; `npm run build:contract:p1` passed; `npm run test:p1` passed (**19/19**); `npm run localnet:p1` passed against real `dockernet-v1` with prior Gate A/B behavior green and **60** total rejected cases.
+- Deviations/blockers: none. Gate C is left in `REVIEW` as required; Gate D, TestNet, P2, UI, backend, and infrastructure work were not started.
 
 ## Gate D — Withdrawal, close, claims, and refunds
 
