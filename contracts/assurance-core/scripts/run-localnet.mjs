@@ -307,7 +307,10 @@ const rejectCall = async (sender, signature, values, refs, label, foreignAssets 
 }
 const typedDepositArgs = (id) => [algosdk.ABIMethod.fromSignature('depositStake(byte[32],axfer)void').getSelector(), id]
 const decodeStateUInt = (state, key) => Number(state.get(key).uint)
-const appBalance = async () => Number((await algod.accountInformation(appAddress).do()).amount)
+const algoBalance = async (address) => Number((await algod.accountInformation(address).do()).amount)
+const payerAlgoBalance = async () => algoBalance(payerAddress)
+const providerAlgoBalance = async () => algoBalance(otherAddress)
+const appBalance = async () => algoBalance(appAddress)
 const appMinBalance = async () => Number((await algod.accountInformation(appAddress).do()).minBalance)
 const appAssetBalance = async () => {
   const account = await algod.accountInformation(appAddress).do()
@@ -678,7 +681,7 @@ const coverageRequirements = ({ coverageId, provider, policy, requestHash, gross
     requestCommitment: Buffer.from(requestHash).toString('base64'),
   },
 })
-const makeCoverageGroup = async ({ coverageId, policy, gross, requestHash = new Uint8Array(32).fill(31), transferReceiver = otherAddress, transferAsset = assetId, transferAmount = undefined, transferSender = payerAddress, callSender = payerAddress, appRekeyTo = undefined, transferRekeyTo = undefined, transferCloseTo = undefined, includeCoverageBox = true }) => {
+const makeCoverageGroup = async ({ coverageId, policy, gross, requestHash = new Uint8Array(32).fill(31), transferReceiver = otherAddress, transferAsset = assetId, transferAmount = undefined, transferSender = payerAddress, callSender = payerAddress, assetSender = undefined, appRekeyTo = undefined, transferRekeyTo = undefined, transferCloseTo = undefined, includeCoverageBox = true }) => {
   const premium = Math.max(1, Math.floor(gross * 250 / 10_000))
   const providerNet = gross - premium
   const providerTransfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -686,6 +689,7 @@ const makeCoverageGroup = async ({ coverageId, policy, gross, requestHash = new 
     receiver: transferReceiver,
     amount: transferAmount ?? providerNet,
     assetIndex: transferAsset,
+    assetSender,
     closeRemainderTo: transferCloseTo,
     rekeyTo: transferRekeyTo,
     suggestedParams: await params(),
@@ -727,7 +731,11 @@ const submitViaCore = async (fixture) => {
     submit: async (bytes) => { submissions += 1; return algod.sendRawTransaction(bytes).do() },
   })
   x402.register(LOCALNET_NETWORK, scheme)
-  const paymentPayload = { x402Version: 2, payload: { paymentGroup: fixture.signed.map((item) => Buffer.from(item).toString('base64')), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 } }
+  const paymentPayload = {
+    x402Version: 2,
+    accepted: fixture.requirements,
+    payload: { paymentGroup: fixture.signed.map((item) => Buffer.from(item).toString('base64')), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 },
+  }
   const verification = await x402.verify(paymentPayload, fixture.requirements)
   assert.equal(verification.isValid, true, 'x402 simulation accepted coverage')
   const settlement = await x402.settle(paymentPayload, fixture.requirements)
@@ -739,6 +747,23 @@ const coverageState = async (id, ref) => {
   return algosdk.ABIType.from('(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)').decode(logBytes(read.pending).subarray(4))
 }
 const asaBalance = async (address) => Number((await algod.accountInformation(address).do()).assets?.find((holding) => Number(holding.assetId) === assetId)?.amount ?? 0)
+const boxSnapshot = async (name) => {
+  try { return (await algod.getApplicationBoxByName(appId, name).do()).value }
+  catch { return undefined }
+}
+const gateCStateSnapshot = async (extraBoxes = []) => ({
+  payerAlgo: await payerAlgoBalance(),
+  providerAlgo: await providerAlgoBalance(),
+  applicationAlgo: await appBalance(),
+  payerAsset: await asaBalance(payerAddress),
+  providerAsset: await asaBalance(otherAddress),
+  applicationAsset: await appAssetBalance(),
+  applicationMinBalance: await appMinBalance(),
+  boxes: Object.fromEntries(await Promise.all([...new Set([
+    providerBox3, policyBoxGate3, policyBoxGate4, coverageBox1, coverageBox2, coverageBoxBad, ...extraBoxes,
+  ].map((name) => Buffer.from(name).toString('base64')))].map(async (encoded) => [encoded, await boxSnapshot(Buffer.from(encoded, 'base64'))]))),
+  globalState: await applicationState(appId),
+})
 const coverageMbrFunding = await send(algosdk.makePaymentTxnWithSuggestedParamsFromObject({
   sender: payerAddress,
   receiver: appAddress,
@@ -780,15 +805,23 @@ assert.equal(capacityAfterFirst, 152n)
 assert.equal(capacityAfterSecond, 50n)
 
 const insufficientCoverage = await makeCoverageGroup({ coverageId: coverageIdBad, policy: policyIdGate4, gross: 51, requestHash: new Uint8Array(32).fill(33) })
+const gateCRejectionCases = []
 let simulationSubmissions = 0
 const rejectionScheme = createAssuredExactFacilitator({ algod, network: LOCALNET_NETWORK, applicationId: appId, applicationAddress: appAddress, acceptedAssetId: assetId, submit: async (bytes) => { simulationSubmissions += 1; return algod.sendRawTransaction(bytes).do() } })
 const rejectionCore = new x402Facilitator().register(LOCALNET_NETWORK, rejectionScheme)
-const insufficientPayload = { x402Version: 2, payload: { paymentGroup: insufficientCoverage.signed.map((item) => Buffer.from(item).toString('base64')), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 } }
+const insufficientPayload = {
+  x402Version: 2,
+  accepted: insufficientCoverage.requirements,
+  payload: { paymentGroup: insufficientCoverage.signed.map((item) => Buffer.from(item).toString('base64')), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 },
+}
 const insufficientVerification = await rejectionCore.verify(insufficientPayload, insufficientCoverage.requirements)
 assert.equal(insufficientVerification.isValid, false)
 assert.equal(insufficientVerification.invalidReason, 'simulation')
 assert.equal(simulationSubmissions, 0, 'x402 did not submit simulated rejection')
-const rollbackBefore = { payerAlgo: await appBalance(), payerAsset: await asaBalance(payerAddress), providerAsset: await asaBalance(otherAddress), appAsset: await appAssetBalance(), appMin: await appMinBalance(), state: await applicationState(appId) }
+assert.match(insufficientVerification.invalidMessage, /assert failed pc=\d+/i)
+const simulationFingerprint = insufficientVerification.invalidMessage.match(/pc=\d+/i)?.[0]
+assert.ok(simulationFingerprint, 'simulation identified an application assertion PC')
+const rollbackBefore = await gateCStateSnapshot()
 let poolError
 try {
   const response = await algod.sendRawTransaction(insufficientCoverage.signed).do()
@@ -796,17 +829,21 @@ try {
 } catch (error) { poolError = error }
 assert.ok(poolError, 'insufficient capacity entered and was rejected by the transaction pool')
 rejectedCount += 1
-assert.match(String(poolError), /reject|pool|assert|application/i)
-assert.deepEqual({ payerAlgo: await appBalance(), payerAsset: await asaBalance(payerAddress), providerAsset: await asaBalance(otherAddress), appAsset: await appAssetBalance(), appMin: await appMinBalance() }, { payerAlgo: rollbackBefore.payerAlgo, payerAsset: rollbackBefore.payerAsset, providerAsset: rollbackBefore.providerAsset, appAsset: rollbackBefore.appAsset, appMin: rollbackBefore.appMin })
-const rollbackState = await applicationState(appId)
-for (const key of ['totalProviderStake', 'premiumReserve', 'totalOpenFaultExposure']) assert.deepEqual(rollbackState.get(key), rollbackBefore.state.get(key), `${key} atomic rollback`)
-let badCoverageBox
-try { badCoverageBox = await algod.getApplicationBoxByName(appId, coverageBoxBad).do() } catch {}
-assert.equal(badCoverageBox, undefined, 'rejected coverage box absent')
+gateCRejectionCases.push('insufficient capacity')
+const poolErrorText = JSON.stringify(poolError, Object.getOwnPropertyNames(poolError))
+assert.match(poolErrorText, /reject|pool|assert|application/i)
+assert.match(poolErrorText, /insufficient capacity|assert/i)
+const poolFingerprint = poolErrorText.match(/failedAt[=: ]+\d+|pc[=: ]+\d+/i)?.[0]?.replace(/[=: ]+/, '=')
+assert.ok(poolFingerprint, 'pool rejection identified an application assertion PC')
+assert.equal(poolFingerprint, simulationFingerprint, 'simulation and pool identify the same application assertion/PC')
+assert.deepEqual(await gateCStateSnapshot(), rollbackBefore, 'insufficient capacity atomically rolled back all Gate C state')
 
 // Representative on-chain binding negatives. Each group is ABI-validly
 // signed, but the application assertion must reject the whole group.
 const rejectedSignedCoverage = async (signed, label) => {
+  const applicationArgs = algosdk.decodeSignedTransaction(signed[2]).txn.applicationCall.appArgs
+  const relevantBox = boxKey('c', applicationArgs[1])
+  const before = await gateCStateSnapshot([relevantBox])
   let error
   try {
     const response = await algod.sendRawTransaction(signed).do()
@@ -815,6 +852,8 @@ const rejectedSignedCoverage = async (signed, label) => {
   assert.ok(error, `${label} unexpectedly succeeded`)
   rejectedCount += 1
   assert.match(String(error), /reject|pool|assert|overspend|balance|rekey|asset|application|incomplete|group/i, label)
+  assert.deepEqual(await gateCStateSnapshot([relevantBox]), before, `${label} atomic rollback`)
+  gateCRejectionCases.push(label)
 }
 const duplicateCoverage = await makeCoverageGroup({ coverageId: coverageId1, policy: policyIdGate3, gross: 40 })
 await rejectedSignedCoverage(duplicateCoverage.signed, 'duplicate coverage id')
@@ -822,14 +861,28 @@ const wrongPayout = await makeCoverageGroup({ coverageId: new Uint8Array(32).fil
 await rejectedSignedCoverage(wrongPayout.signed, 'wrong payout')
 const wrongAmount = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(25), policy: policyIdGate3, gross: 40, transferAmount: 40 })
 await rejectedSignedCoverage(wrongAmount.signed, 'wrong provider amount')
+const wrongCoverageAsset = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(38), policy: policyIdGate3, gross: 40, transferAsset: assetId + 1 })
+await rejectedSignedCoverage(wrongCoverageAsset.signed, 'wrong coverage ASA')
 const wrongSender = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(26), policy: policyIdGate3, gross: 40, transferSender: otherAddress, transferAmount: 39 })
 await rejectedSignedCoverage(wrongSender.signed, 'wrong payer sender')
-const wrongOrder = [wrongAmount.group[1], wrongAmount.group[0], wrongAmount.group[2]]
-await rejectedSignedCoverage(wrongOrder.map((txn) => sign(txn, payer)), 'wrong group order')
+const reordered = [wrongAmount.group[1], wrongAmount.group[0], wrongAmount.group[2]]
+reordered.forEach((txn) => { txn.group = undefined })
+const wrongOrder = algosdk.assignGroupID(reordered).map((txn) => sign(txn, payer))
+await rejectedSignedCoverage(wrongOrder, 'wrong group order')
+const exactGroupBase = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(39), policy: policyIdGate3, gross: 40 })
+const extraGroupPayment = algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: payerAddress, receiver: payerAddress, amount: 0, suggestedParams: await params() })
+const exactGroupTransactions = algosdk.assignGroupID([...exactGroupBase.group, extraGroupPayment])
+await rejectedSignedCoverage(exactGroupTransactions.map((txn) => sign(txn, payer)), 'wrong exact group size')
 const missingCoverageBox = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(27), policy: policyIdGate3, gross: 40, includeCoverageBox: false })
 await rejectedSignedCoverage(missingCoverageBox.signed, 'missing coverage box reference')
 const zeroHash = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(28), policy: policyIdGate3, gross: 40, requestHash: new Uint8Array(32) })
 await rejectedSignedCoverage(zeroHash.signed, 'zero request hash')
+const unsafeTransferAssetSender = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(29), policy: policyIdGate3, gross: 40, assetSender: otherAddress })
+await rejectedSignedCoverage(unsafeTransferAssetSender.signed, 'unsafe transfer assetSender')
+const unsafeTransferCloseTo = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(36), policy: policyIdGate3, gross: 40, transferCloseTo: otherAddress })
+await rejectedSignedCoverage(unsafeTransferCloseTo.signed, 'unsafe transfer close-to')
+const unsafeTransferRekey = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(37), policy: policyIdGate3, gross: 40, transferRekeyTo: otherAddress })
+await rejectedSignedCoverage(unsafeTransferRekey.signed, 'unsafe transfer rekey')
 const unsafeRekey = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(29), policy: policyIdGate3, gross: 40, appRekeyTo: otherAddress })
 await rejectedSignedCoverage(unsafeRekey.signed, 'unsafe application rekey')
 await call(payer, appArgs('setPaused(bool)', [true]))
@@ -906,8 +959,8 @@ console.log(JSON.stringify({
     secondTransactionIds: secondCoverage.group.map((txn) => txn.txID()),
     firstGroupId: firstResult.settlement.groupId,
     secondGroupId: secondResult.settlement.groupId,
-    insufficientCapacity: { simulationReason: insufficientVerification.invalidReason, facilitatorSubmissions: simulationSubmissions, actualPoolRollback: true },
-    rejectionCases: 13,
+    insufficientCapacity: { simulationReason: insufficientVerification.invalidReason, simulationAssertionPc: simulationFingerprint, poolAssertionPc: poolFingerprint, facilitatorSubmissions: simulationSubmissions, actualPoolRollback: true },
+    rejectionCases: gateCRejectionCases.length,
   },
   evidence: 'provider/policy/pause/status/deposit and CoverageOpened events/reads decoded; Gate C x402 simulation and actual-pool rollback passed',
 }, null, 2))

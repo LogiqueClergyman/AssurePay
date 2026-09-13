@@ -370,12 +370,14 @@ export class AssuranceCore extends Contract {
     assert(provider.value.openFaultExposure.asUint64() <= maxUint64 - grossAmount, 'provider exposure overflow')
     assert(this.totalOpenFaultExposure.value <= maxUint64 - grossAmount, 'global exposure overflow')
     assert(this.premiumReserve.value <= maxUint64 - premium, 'premium reserve overflow')
-    assert(this.totalProviderStake.value <= maxUint64 - premium, 'tracked stake overflow')
+    const newPremiumReserve: uint64 = this.premiumReserve.value + premium
+    assert(this.totalProviderStake.value <= maxUint64 - newPremiumReserve, 'tracked stake overflow')
+    const newTrackedAssetBalance: uint64 = this.totalProviderStake.value + newPremiumReserve
     const openedAt = Global.latestTimestamp
     assert(openedAt <= maxUint64 - policy.value.claimWindowSeconds.asUint64(), 'expiry overflow')
     const expiresAt: uint64 = openedAt + policy.value.claimWindowSeconds.asUint64()
     const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
-    assert(this.totalProviderStake.value + premium <= applicationHolding, 'tracked stake exceeds balance')
+    assert(newTrackedAssetBalance <= applicationHolding, 'tracked stake exceeds balance')
 
     coverage.value = new CoverageRecord({
       providerId,
@@ -395,7 +397,7 @@ export class AssuranceCore extends Contract {
     provider.value.stakeLocked = new arc4.Uint64(provider.value.stakeLocked.asUint64() + lockedStake)
     provider.value.openFaultExposure = new arc4.Uint64(provider.value.openFaultExposure.asUint64() + grossAmount)
     this.totalOpenFaultExposure.value += grossAmount
-    this.premiumReserve.value += premium
+    this.premiumReserve.value = newPremiumReserve
     emit(
       'CoverageOpened',
       new arc4.Uint64(1),

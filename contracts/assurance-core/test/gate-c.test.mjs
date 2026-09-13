@@ -5,6 +5,7 @@ import path from 'node:path'
 import test from 'node:test'
 import algosdk from 'algosdk'
 import { x402Facilitator } from '@x402/core/facilitator'
+import { isPaymentPayload } from '@x402/core/schemas'
 import {
   ASSURED_EXACT_SCHEME,
   ASSURANCE_CORE_PROFILE,
@@ -41,7 +42,8 @@ test('Gate C ABI, immutable record, status, and event are exact', () => {
   assert.equal(arc56.events.find((event) => event.name === 'CoverageOpened').args.map((arg) => arg.type).join(','), 'uint64,byte[32],byte[32],byte[32],address,uint64,uint64,uint64,byte[32],uint64,uint64')
   const signature = 'CoverageOpened(uint64,byte[32],byte[32],byte[32],address,uint64,uint64,uint64,byte[32],uint64,uint64)'
   const event = arc56.events.find((item) => item.name === 'CoverageOpened')
-  assert.deepEqual([...eventPrefix(signature)], [...eventPrefix(signature)])
+  assert.deepEqual([...eventPrefix(signature)], [0x45, 0xd4, 0x3a, 0xe7])
+  assert.equal(event.name, 'CoverageOpened')
   assert.equal(source.includes('COVERAGE_STATUS_OPEN: uint64 = 1'), true)
   assert.equal(source.includes('COVERAGE_STATUS_REFUNDED: uint64 = 2'), true)
   assert.equal(source.includes('COVERAGE_STATUS_CLOSED: uint64 = 3'), true)
@@ -90,6 +92,20 @@ test('Gate C state model conserves accounting and sums immutable mixed-policy lo
   assert.equal(state.stakeTotal - state.stakeLocked, 825n)
   assert.throws(() => { if (state.stakeTotal - state.stakeLocked < 826n) throw new Error('insufficient capacity') }, /insufficient/)
   assert.throws(() => { if (max - max < 1n) throw new Error('overflow') }, /overflow/)
+})
+
+test('Gate C accounting checks the existing premium reserve in the complete balance invariant', () => {
+  const totalProviderStake = 90n
+  const existingPremiumReserve = 8n
+  const newPremium = 3n
+  const actualApplicationBalance = 100n
+  const newPremiumReserve = existingPremiumReserve + newPremium
+  assert.equal(totalProviderStake + newPremium <= actualApplicationBalance, true, 'old expression would pass')
+  assert.equal(totalProviderStake + newPremiumReserve <= actualApplicationBalance, false, 'complete invariant rejects')
+  assert.throws(() => {
+    if (totalProviderStake > max - newPremiumReserve) throw new Error('tracked stake overflow')
+    if (totalProviderStake + newPremiumReserve > actualApplicationBalance) throw new Error('tracked stake exceeds balance')
+  }, /tracked stake exceeds balance/)
 })
 
 const makeValidFixture = () => {
@@ -164,13 +180,56 @@ const makeValidFixture = () => {
   return {
     payer,
     requirements,
-    payload: { x402Version: 2, payload: { paymentGroup: signed.map(b64), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 } },
+    payload: {
+      x402Version: 2,
+      resource: { url: 'https://assurepay.test/coverage', description: 'Gate C coverage', mimeType: 'application/json', serviceName: 'AssurePay', tags: ['coverage'] },
+      accepted: requirements,
+      payload: { paymentGroup: signed.map(b64), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 },
+      extensions: { 'assurepay-test': { deterministic: true } },
+    },
     signed,
   }
 }
 
+const cloneWithRequirements = (fixture, requirements) => ({
+  ...fixture,
+  requirements,
+  payload: { ...fixture.payload, accepted: requirements },
+})
+
+const mutateSignedGroup = (fixture, mutate, signerAccounts = undefined) => {
+  const txns = fixture.signed.map((signed) => algosdk.decodeSignedTransaction(signed).txn)
+  txns.forEach((txn) => { txn.group = undefined })
+  mutate(txns)
+  const grouped = algosdk.assignGroupID(txns)
+  const signed = grouped.map((txn, index) => txn.signTxn((signerAccounts?.[index] ?? fixture.payer).sk))
+  return {
+    ...fixture,
+    signed,
+    payload: { ...fixture.payload, payload: { ...fixture.payload.payload, paymentGroup: signed.map(b64) } },
+  }
+}
+
+const replaceGroupMember = (fixture, index, bytes) => ({
+  ...fixture,
+  payload: { ...fixture.payload, payload: { ...fixture.payload.payload, paymentGroup: fixture.payload.payload.paymentGroup.map((item, member) => member === index ? b64(bytes) : item) } },
+})
+
+const malformedMultisig = (fixture) => {
+  const txn = algosdk.decodeSignedTransaction(fixture.signed[0]).txn
+  return replaceGroupMember(fixture, 0, algosdk.createMultisigTransaction(txn, { version: 1, threshold: 1, addrs: [fixture.payer.addr.toString(), algosdk.generateAccount().addr.toString()] }))
+}
+
+const malformedLogicSig = (fixture) => {
+  const txn = algosdk.decodeSignedTransaction(fixture.signed[0]).txn
+  const logic = new algosdk.LogicSigAccount(new Uint8Array([1, 1]))
+  logic.sign(fixture.payer.sk)
+  return replaceGroupMember(fixture, 0, algosdk.signLogicSigTransactionObject(txn, logic).blob)
+}
+
 test('assured-exact binds every member, registers with real x402 core, and settles immutable bytes', async () => {
   const fixture = makeValidFixture()
+  assert.equal(isPaymentPayload(fixture.payload), true)
   const calls = []
   const facilitator = createAssuredExactFacilitator({
     algod: {}, applicationId: 77, acceptedAssetId: 55,
@@ -180,6 +239,9 @@ test('assured-exact binds every member, registers with real x402 core, and settl
   })
   const core = new x402Facilitator().register(LOCALNET_NETWORK, facilitator)
   assert.deepEqual(core.getSupported().kinds, [{ x402Version: 2, scheme: ASSURED_EXACT_SCHEME, network: LOCALNET_NETWORK, extra: { profile: ASSURANCE_CORE_PROFILE } }])
+  assert.equal(facilitator.caipFamily, 'algorand:*')
+  assert.deepEqual(facilitator.getSigners(), [])
+  assert.throws(() => createAssuredExactFacilitator({ algod: {}, applicationId: 77, applicationAddress: algosdk.getApplicationAddress(78).toString(), acceptedAssetId: 55 }), /application address does not match/)
   const verified = await core.verify(fixture.payload, fixture.requirements)
   assert.deepEqual(verified, { isValid: true, payer: fixture.payer.addr.toString() })
   fixture.payload.payload.paymentGroup[0] = b64(new Uint8Array([1]))
@@ -215,8 +277,10 @@ test('signed-byte rejection, simulation, submission, and confirmation failures a
   assert.equal(simulationFailure.invalidReason, 'simulation')
   assert.deepEqual(calls, ['simulate'])
 
-  await assert.rejects(() => make({ submission: true }).settle(fixture.payload, fixture.requirements), (error) => error instanceof AssuredExactError && error.category === 'submission')
-  await assert.rejects(() => make({ confirmation: true }).settle(fixture.payload, fixture.requirements), (error) => error instanceof AssuredExactError && error.category === 'confirmation')
+  const submissionFailure = await make({ submission: true }).settle(fixture.payload, fixture.requirements)
+  assert.deepEqual(submissionFailure, { success: false, errorReason: 'submission', errorMessage: '[submission] transaction pool rejected the group', transaction: '', network: LOCALNET_NETWORK, payer: fixture.payer.addr.toString() })
+  const confirmationFailure = await make({ confirmation: true }).settle(fixture.payload, fixture.requirements)
+  assert.deepEqual(confirmationFailure, { success: false, errorReason: 'confirmation', errorMessage: '[confirmation] confirmed transaction failed', transaction: '', network: LOCALNET_NETWORK, payer: fixture.payer.addr.toString() })
 })
 
 test('malformed metadata, wrong role/order, unsafe fields, ABI mismatch, and missing box refs reject before simulation', async () => {
@@ -240,4 +304,117 @@ test('malformed metadata, wrong role/order, unsafe fields, ABI mismatch, and mis
   const bindingResult = await facilitator.verify(fixture.payload, { ...fixture.requirements, extra: { ...fixture.requirements.extra, providerNet: '999' } })
   assert.equal(bindingResult.invalidReason, 'binding')
   assert.equal(simulated, 0)
+})
+
+test('Gate C deterministic adapter mutations reject before simulation and never submit', async () => {
+  const fixture = makeValidFixture()
+  let simulations = 0
+  let submissions = 0
+  const facilitator = createAssuredExactFacilitator({
+    algod: {}, applicationId: 77, acceptedAssetId: 55,
+    simulate: async () => { simulations += 1 },
+    submit: async () => { submissions += 1; return { txId: 'unexpected' } },
+  })
+  const rejected = async (candidate, requirements = candidate.requirements, reason = undefined, label = 'candidate') => {
+    const result = await facilitator.verify(candidate.payload, requirements)
+    assert.equal(result.isValid, false, `${label} unexpectedly verified`)
+    if (reason) assert.equal(result.invalidReason, reason)
+    assert.equal(simulations, 0, 'rejection did not simulate')
+    assert.equal(submissions, 0, 'rejection did not submit')
+  }
+
+  const metadataMutations = [
+    ['wrong scheme', { ...fixture.requirements, scheme: 'exact' }, 'binding'],
+    ['wrong network', { ...fixture.requirements, network: 'algorand:testnet' }, 'binding'],
+    ['wrong profile', { ...fixture.requirements, extra: { ...fixture.requirements.extra, profile: 'other' } }, 'binding'],
+    ['wrong ASA', { ...fixture.requirements, asset: '56' }, 'binding'],
+    ['wrong receivers', { ...fixture.requirements, payTo: algosdk.generateAccount().addr.toString(), extra: { ...fixture.requirements.extra, provider: algosdk.generateAccount().addr.toString() } }, 'binding'],
+    ['wrong amounts', { ...fixture.requirements, amount: '1001' }, 'binding'],
+    ['wrong app id', { ...fixture.requirements, extra: { ...fixture.requirements.extra, applicationId: '78' } }, 'binding'],
+    ['non-canonical metadata', { ...fixture.requirements, extra: { ...fixture.requirements.extra, providerNet: '0999' } }, 'payload'],
+  ]
+  for (const [label, requirements, reason] of metadataMutations) await rejected(cloneWithRequirements(fixture, requirements), requirements, reason, label)
+
+  const payloadShapeMutations = [
+    ['wrong indices', { ...fixture.payload, payload: { ...fixture.payload.payload, providerIndex: 1 } }, 'group'],
+    ['wrong group size', { ...fixture.payload, payload: { ...fixture.payload.payload, paymentGroup: fixture.payload.payload.paymentGroup.slice(0, 2) } }, 'group'],
+    ['malformed envelope', { x402Version: 2, accepted: fixture.requirements, payload: fixture.payload.payload, unexpected: true }, 'payload'],
+    ['non-canonical group metadata', { ...fixture.payload, payload: { ...fixture.payload.payload, paymentGroup: [...fixture.payload.payload.paymentGroup.slice(0, 2), `${fixture.payload.payload.paymentGroup[2]}=`] } }, 'payload'],
+  ]
+  for (const [label, payload, reason] of payloadShapeMutations) await rejected({ ...fixture, payload }, fixture.requirements, reason, label)
+
+  await rejected(malformedMultisig(fixture), fixture.requirements, 'signature')
+  await rejected(malformedLogicSig(fixture), fixture.requirements, 'signature')
+  for (let index = 0; index < 3; index += 1) {
+    const decoded = algosdk.decodeSignedTransaction(fixture.signed[index])
+    await rejected(replaceGroupMember(fixture, index, algosdk.encodeMsgpack(new algosdk.SignedTransaction({ txn: decoded.txn }))), fixture.requirements, 'signature')
+    const corrupted = Buffer.from(decoded.sig)
+    corrupted[0] ^= 1
+    await rejected(replaceGroupMember(fixture, index, algosdk.encodeMsgpack(new algosdk.SignedTransaction({ txn: decoded.txn, sig: corrupted }))), fixture.requirements, 'signature')
+    const wrongKey = algosdk.generateAccount()
+    await rejected(replaceGroupMember(fixture, index, decoded.txn.signTxn(wrongKey.sk)), fixture.requirements, 'signature')
+  }
+
+  const regrouped = mutateSignedGroup(fixture, (txns) => {
+    const reordered = [txns[1], txns[0], txns[2]]
+    txns.splice(0, txns.length, ...reordered)
+  })
+  await rejected(regrouped, fixture.requirements, 'binding')
+  const wrongSenderAccount = algosdk.generateAccount()
+  const wrongSender = mutateSignedGroup(fixture, (txns) => { txns[0].sender = algosdk.decodeAddress(wrongSenderAccount.addr.toString()) }, [wrongSenderAccount, fixture.payer, fixture.payer])
+  await rejected(wrongSender, fixture.requirements, 'role')
+  const wrongGroupId = replaceGroupMember(fixture, 0, (() => {
+    const decoded = algosdk.decodeSignedTransaction(fixture.signed[0])
+    decoded.txn.group = filled(99)
+    return decoded.txn.signTxn(fixture.payer.sk)
+  })())
+  await rejected(wrongGroupId, fixture.requirements, 'group')
+
+  const transferMutations = [
+    ['wrong transfer asset', (txns) => { txns[0].assetTransfer.assetIndex = 56 }, 'binding'],
+    ['wrong provider receiver', (txns) => { txns[0].assetTransfer.receiver = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }, 'binding'],
+    ['wrong premium receiver', (txns) => { txns[1].assetTransfer.receiver = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }, 'binding'],
+    ['wrong provider amount', (txns) => { txns[0].assetTransfer.amount += 1n }, 'binding'],
+    ['wrong premium amount', (txns) => { txns[1].assetTransfer.amount += 1n }, 'binding'],
+    ['assetSender', (txns) => { txns[0].assetTransfer.assetSender = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }, 'binding'],
+    ['close-to', (txns) => { txns[0].assetTransfer.closeRemainderTo = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }, 'binding'],
+    ['transfer rekey', (txns) => { txns[0].rekeyTo = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }, 'role'],
+    ['premium assetSender', (txns) => { txns[1].assetTransfer.assetSender = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }, 'binding'],
+    ['premium close-to', (txns) => { txns[1].assetTransfer.closeRemainderTo = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }, 'binding'],
+    ['premium transfer rekey', (txns) => { txns[1].rekeyTo = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }, 'role'],
+  ]
+  for (const [label, mutate, reason] of transferMutations) await rejected(mutateSignedGroup(fixture, mutate), fixture.requirements, reason)
+
+  const appMutations = [
+    ['selector', (txns) => { txns[2].applicationCall.appArgs[0] = filled(88) }],
+    ['NoOp', (txns) => { txns[2].applicationCall.onComplete = 1 }],
+    ['coverage ABI arg', (txns) => { txns[2].applicationCall.appArgs[1] = filled(88) }],
+    ['provider ABI arg', (txns) => { txns[2].applicationCall.appArgs[2] = filled(88) }],
+    ['policy ABI arg', (txns) => { txns[2].applicationCall.appArgs[3] = filled(88) }],
+    ['request ABI arg', (txns) => { txns[2].applicationCall.appArgs[4] = filled(88) }],
+    ['gross ABI arg', (txns) => { txns[2].applicationCall.appArgs[5] = algosdk.ABIType.from('uint64').encode(1001n) }],
+    ['boxes', (txns) => { txns[2].applicationCall.boxes[2].name = Buffer.concat([Buffer.from('c'), filled(88)]) }],
+    ['foreign asset', (txns) => { txns[2].applicationCall.foreignAssets[0] = 56 }],
+    ['unexpected account', (txns) => { txns[2].applicationCall.accounts = [algosdk.decodeAddress(algosdk.generateAccount().addr.toString())] }],
+    ['unexpected app', (txns) => { txns[2].applicationCall.foreignApps = [78] }],
+    ['application rekey', (txns) => { txns[2].rekeyTo = algosdk.decodeAddress(algosdk.generateAccount().addr.toString()) }],
+  ]
+  for (const [label, mutate] of appMutations) await rejected(mutateSignedGroup(fixture, mutate), fixture.requirements)
+
+  assert.equal(isPaymentPayload(fixture.payload), true, 'standard x402 v2 payload schema')
+  const valid = await facilitator.verify(fixture.payload, fixture.requirements)
+  assert.equal(valid.isValid, true)
+  fixture.payload.payload.providerIndex = 1
+  const failedReverify = await facilitator.verify(fixture.payload, fixture.requirements)
+  assert.equal(failedReverify.isValid, false)
+  const staleSettlement = await facilitator.settle(fixture.payload, fixture.requirements)
+  assert.equal(staleSettlement.success, false)
+  assert.equal(staleSettlement.errorReason, 'group')
+  assert.equal(submissions, 0, 'stale snapshot was not submitted')
+  const malformedVerification = await facilitator.verify(null, fixture.requirements)
+  assert.deepEqual(malformedVerification, { isValid: false, invalidReason: 'payload', invalidMessage: '[payload] object expected' })
+  const malformedSettlement = await facilitator.settle(null, fixture.requirements)
+  assert.deepEqual(malformedSettlement, { success: false, errorReason: 'payload', errorMessage: '[payload] object expected', transaction: '', network: LOCALNET_NETWORK, payer: '' })
+  const throwingPayload = new Proxy({}, { ownKeys: () => { throw new Error('malformed envelope') } })
+  assert.deepEqual(await facilitator.verify(throwingPayload, fixture.requirements), { isValid: false, invalidReason: 'payload', invalidMessage: '[payload] malformed payment payload' })
 })

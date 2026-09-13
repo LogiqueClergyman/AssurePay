@@ -67,12 +67,23 @@ const optionalAddress = (value) => value === undefined || equalBytes(value.publi
 const boxKey = (prefix, id) => Buffer.concat([Buffer.from(prefix), id])
 const simulationFailure = (value) => {
   if (!value || typeof value !== 'object') return undefined
-  for (const [key, child] of Object.entries(value)) {
-    const lower = key.toLowerCase()
-    if ((lower.includes('failure') || lower.includes('poolerror') || lower.includes('failedat')) && child !== '' && child !== undefined && child !== null && child !== false && child !== 0) return String(child)
-    const nested = simulationFailure(child)
-    if (nested) return nested
+  let failure
+  let failedAt
+  const visit = (node) => {
+    if (!node || typeof node !== 'object' || failure && failedAt !== undefined) return
+    for (const [key, child] of Object.entries(node)) {
+      const lower = key.toLowerCase()
+      if ((lower.includes('failure') || lower.includes('poolerror')) && child !== '' && child !== undefined && child !== null && child !== false && child !== 0) {
+        if (typeof child === 'string') failure ??= child
+        else visit(child)
+      } else if (lower.includes('failedat') && child !== '' && child !== undefined && child !== null && child !== false && child !== 0) {
+        failedAt ??= child
+      } else visit(child)
+      if (failure && failedAt !== undefined) return
+    }
   }
+  visit(value)
+  if (failure || failedAt !== undefined) return [failure, failedAt === undefined ? undefined : `failedAt=${String(failedAt)}`].filter(Boolean).join('; ')
   return undefined
 }
 
@@ -107,9 +118,13 @@ const validateRequirements = (requirements, configuration) => {
   }
 }
 
-const validatePayloadShape = (paymentPayload) => {
-  exactKeys(paymentPayload, ['x402Version', 'payload'])
+const validatePayloadShape = (paymentPayload, requirements) => {
+  if (!paymentPayload || typeof paymentPayload !== 'object' || Array.isArray(paymentPayload)) fail('payload', 'object expected')
+  const allowed = new Set(['x402Version', 'resource', 'accepted', 'payload', 'extensions'])
+  if (Object.keys(paymentPayload).some((key) => !allowed.has(key))) fail('payload', 'unexpected or missing fields')
+  if (!Object.prototype.hasOwnProperty.call(paymentPayload, 'accepted')) fail('payload', 'accepted requirements missing')
   if (paymentPayload.x402Version !== 2) fail('payload', 'x402Version must be 2')
+  if (stable(paymentPayload.accepted) !== stable(requirements)) fail('binding', 'accepted requirements mismatch')
   exactKeys(paymentPayload.payload, ['paymentGroup', 'providerIndex', 'premiumIndex', 'applicationIndex'])
   const payload = paymentPayload.payload
   if (!Array.isArray(payload.paymentGroup) || payload.paymentGroup.length !== 3 || payload.paymentGroup.some((item) => typeof item !== 'string')) fail('group', 'paymentGroup must contain exactly three base64 strings')
@@ -182,17 +197,19 @@ const validateGroup = (members, requirements, configuration) => {
 
 const prepare = async (paymentPayload, requirements, configuration) => {
   await sodium.ready
-  const payload = validatePayloadShape(paymentPayload)
+  const payload = validatePayloadShape(paymentPayload, requirements)
   const members = decodeMembers(payload.paymentGroup)
   const result = validateGroup(members, requirements, configuration)
   const signedBytes = members.map(({ bytes }) => Buffer.from(bytes))
+  let simulation
   try {
-    const simulation = await configuration.simulate(signedBytes.map((bytes) => Buffer.from(bytes)))
-    const failure = simulationFailure(simulation)
-    if (failure) fail('simulation', `x402 simulation rejected the group: ${failure}`)
+    simulation = await configuration.simulate(signedBytes.map((bytes) => Buffer.from(bytes)))
   } catch (error) {
-    fail('simulation', 'x402 simulation rejected the group', error)
+    if (error instanceof AssuredExactError) throw error
+    fail('simulation', `x402 simulation rejected the group: ${error instanceof Error ? error.message : 'request failed'}`, error)
   }
+  const failure = simulationFailure(simulation)
+  if (failure) fail('simulation', `x402 simulation rejected the group: ${failure}`)
   return Object.freeze({
     signedBytes: Object.freeze(signedBytes),
     requirementsFingerprint: stable(requirements),
@@ -206,45 +223,64 @@ export function createAssuredExactFacilitator({
   genesisId = 'dockernet-v1',
   genesisHash = undefined,
   applicationId,
-  applicationAddress = algosdk.getApplicationAddress(applicationId).toString(),
+  applicationAddress: suppliedApplicationAddress = undefined,
   acceptedAssetId,
   simulate = (signedBytes) => algod.simulateRawTransactions(signedBytes).do(),
   submit = (signedBytes) => algod.sendRawTransaction(signedBytes).do(),
   confirm = (txid) => algosdk.waitForConfirmation(algod, txid, 4),
 } = {}) {
   if (!algod || applicationId === undefined || acceptedAssetId === undefined) throw new Error('assured-exact facilitator configuration is incomplete')
+  const derivedApplicationAddress = algosdk.getApplicationAddress(applicationId).toString()
+  if (suppliedApplicationAddress !== undefined && suppliedApplicationAddress !== derivedApplicationAddress) throw new Error('assured-exact facilitator application address does not match application id')
+  const applicationAddress = suppliedApplicationAddress ?? derivedApplicationAddress
   const configuration = { network, genesisId, genesisHash, applicationId, applicationAddress, acceptedAssetId, simulate, submit, confirm }
   const snapshots = new WeakMap()
+  const failureResponse = (error, payer = '') => ({
+    success: false,
+    errorReason: error instanceof AssuredExactError ? error.category : 'payload',
+    errorMessage: error instanceof Error ? error.message : 'assured-exact settlement failed',
+    transaction: '',
+    network: configuration.network,
+    payer,
+  })
   const facilitator = {
     scheme: ASSURED_EXACT_SCHEME,
-    caipFamily: 'Algorand',
+    caipFamily: 'algorand:*',
     getExtra: () => ({ profile: ASSURANCE_CORE_PROFILE }),
-    getSigners: () => ['*'],
+    getSigners: () => [],
     verify: async (paymentPayload, requirements) => {
+      snapshots.delete(paymentPayload)
       try {
         const snapshot = await prepare(paymentPayload, requirements, configuration)
         snapshots.set(paymentPayload, snapshot)
         return { isValid: true, payer: snapshot.payer }
       } catch (error) {
-        if (!(error instanceof AssuredExactError)) throw error
-        return { isValid: false, invalidReason: error.category, invalidMessage: error.message }
+        if (error instanceof AssuredExactError) return { isValid: false, invalidReason: error.category, invalidMessage: error.message }
+        return { isValid: false, invalidReason: 'payload', invalidMessage: '[payload] malformed payment payload' }
       }
     },
     settle: async (paymentPayload, requirements) => {
       let snapshot = snapshots.get(paymentPayload)
-      if (!snapshot || snapshot.requirementsFingerprint !== stable(requirements)) snapshot = await prepare(paymentPayload, requirements, configuration)
+      if (!snapshot || snapshot.requirementsFingerprint !== stable(requirements)) {
+        try {
+          snapshot = await prepare(paymentPayload, requirements, configuration)
+        } catch (error) {
+          snapshots.delete(paymentPayload)
+          return failureResponse(error)
+        }
+      }
       let submitted
       try {
         submitted = await configuration.submit(snapshot.signedBytes.map((bytes) => Buffer.from(bytes)))
       } catch (error) {
-        fail('submission', 'transaction pool rejected the group', error)
+        return failureResponse(new AssuredExactError('submission', 'transaction pool rejected the group', error), snapshot.payer)
       }
-      const transaction = submitted.txId ?? submitted.txid
-      if (typeof transaction !== 'string' || transaction.length === 0) fail('submission', 'transaction pool returned no transaction id')
+      const transaction = submitted?.txId ?? submitted?.txid
+      if (typeof transaction !== 'string' || transaction.length === 0) return failureResponse(new AssuredExactError('submission', 'transaction pool returned no transaction id'), snapshot.payer)
       try {
         await configuration.confirm(transaction)
       } catch (error) {
-        fail('confirmation', 'confirmed transaction failed', error)
+        return failureResponse(new AssuredExactError('confirmation', 'confirmed transaction failed', error), snapshot.payer)
       }
       return {
         success: true,
