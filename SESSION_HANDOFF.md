@@ -3,9 +3,9 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: IN_PROGRESS — Gates A through C ACCEPTED; Gate D REVIEW; Gates E–F NOT_STARTED
+- State: IN_PROGRESS — Gates A through C ACCEPTED; Gate D REVIEW after remediation; Gates E–F NOT_STARTED
 - Branch: `main`
-- Starting checkpoint: `911b0af`
+- Starting checkpoint: `eec3cff` (clean committed Gate D orchestration checkpoint)
 - Active packet: `planning/P1_GATE_D_LIFECYCLE.md`
 - Results: `planning/P1_RESULTS.md`
 
@@ -19,7 +19,7 @@ Fresh review evidence: `dockernet-v1` round `979`, ASA `2070`, app `2071`; 21/21
 
 ## Gate D assignment
 
-Implemented only `planning/P1_GATE_D_LIFECYCLE.md`: safe owner withdrawals, permissionless expiry close, adjudicator-only finalization, stored-payer refunds, provider-fault stake/pool waterfall, permanent claim tombstones, and the deterministic plus real LocalNet invariant proofs specified there. Gate D is left in `REVIEW` pending orchestrator review.
+Implemented only `planning/P1_GATE_D_LIFECYCLE.md`: explicit pooled withdrawal fees, safe owner withdrawals, permissionless expiry close, adjudicator-only finalization, stored-payer refunds, provider-fault stake/pool waterfall, permanent claim tombstones, precise deployed-app simulation/pool assertion matching, seeded rollback/category coverage, and fresh real LocalNet invariant proofs. Gate D is left in `REVIEW` pending orchestrator review.
 
 Do not start Gate E consolidation, TestNet, P2, backend, UI, governance, or infrastructure. Do not change frozen records, statuses, events, or the `assurance-core-v1` group profile.
 
