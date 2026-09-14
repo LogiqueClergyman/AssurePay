@@ -19,7 +19,7 @@ Later phases may be prepared conceptually, but their code must not begin until t
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
 | P0 Atomic group spike | COMPLETE | `planning/P0_TESTNET_ACCEPTANCE.md` | TestNet accepted: assured-exact three-member settlement and actual atomic pool rejection proved |
-| P1 Assurance Core | IN_PROGRESS | `planning/P1_GATE_E_LOCALNET_LIFECYCLE.md` | Gate E REVIEW: canonical `gateE` lifecycle passed twice on real LocalNet without reset; pending orchestrator review |
+| P1 Assurance Core | IN_PROGRESS | `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md` | Gate F READY: secret-safe Pera preflight, real TestNet lifecycle, and read-only public evidence verification |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |
 | P4 Demo hardening | BLOCKED_BY_P3 | Not created | Pending |

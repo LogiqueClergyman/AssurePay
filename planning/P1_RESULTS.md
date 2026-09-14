@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gates A–D ACCEPTED; Gate E REVIEW; Gate F remains NOT_STARTED
+Status: IN_PROGRESS — Gates A–E ACCEPTED; Gate F READY
 
 ## Baseline
 
@@ -109,7 +109,7 @@ Status: ACCEPTED
 
 ## Gate E — LocalNet lifecycle
 
-Status: REVIEW
+Status: ACCEPTED
 
 - Scope: evidence-mapping correction only. The accepted contract, adapter, ABI/storage/events, generated artifacts, and `assurance-core-v1` three-member group profile were unchanged.
 - Required commands: `npm run typecheck:p1` passed; `npm run build:contract:p1` passed with generated-artifact diff empty; `npm run test:p1` passed **26/26**; two consecutive `npm run localnet:p1` executions passed against the same running LocalNet without reset or deletion.
@@ -134,10 +134,11 @@ Status: REVIEW
 - Final invariant flags 1–10 were all true: provider lock bounds, provider lock sums, provider exposure sums, global stake sum, global exposure sum, asset-liability bound, terminal release flags, permanent IDs, debit conservation, and stored-payer refunds.
 - Deterministic/model evidence remains the accepted **26/26** Gate A–D suite; it is distinct from the two real-chain lifecycle runs above.
 - Deviations/blockers: none. Gate F/TestNet, P2, backend, UI, governance, and infrastructure work were not started.
+- Orchestrator acceptance: accepted at commit `5a50f95` after inspecting the correction diff and independently reproducing typecheck/build, all **26/26** tests, an unchanged generated-artifact set, and two consecutive no-reset LocalNet runs. Fresh run identities were ASA/app/round **6214/6215/4519** and **6331/6332/4618**. Both reproduced 95 intended rejections, the canonical three-member coverage, matched deployed-app/PC failures, exact inner-refund decoding, five-payment application ALGO reconciliation `1,428,800`, provider stake equations `123 + 0 + 75 = 198`, final stake/reserve/exposure/ASA `198/29/100/227`, and all ten invariants.
 
 ## Gate F — TestNet acceptance
 
-Status: NOT_STARTED
+Status: READY
 
 - Preflight:
 - Network/ASA/application:
@@ -159,4 +160,4 @@ Status: NOT_STARTED
 
 ## Remaining work or blockers
 
-- None. Gates A through D are accepted. Gate E is ready from `planning/P1_GATE_E_LOCALNET_LIFECYCLE.md`.
+- None. Gates A through E are accepted. Gate F is ready from `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md`; its mutating path depends on the user's ignored P1 TestNet configuration and sufficient existing TestNet funds/ASA holding.

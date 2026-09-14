@@ -3,31 +3,30 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: IN_PROGRESS — Gates A through D ACCEPTED; Gate E REVIEW; Gate F NOT_STARTED
+- State: IN_PROGRESS — Gates A through E ACCEPTED; Gate F READY
 - Branch: `main`
-- Starting checkpoint: `e324bba` (accepted Gate E evidence checkpoint)
-- Active packet: `planning/P1_GATE_E_LOCALNET_LIFECYCLE.md`
+- Starting checkpoint: `5a50f95` (clean accepted Gate E checkpoint)
+- Active packet: `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md`
 - Results: `planning/P1_RESULTS.md`
 
 P0 remains complete. Do not modify or import from `spikes/p0-atomic/**`.
 
-## Gate E correction result
+## Accepted baseline
 
-The accepted LocalNet runner still emits one public top-level `gateE` object and now maps approved refunds to confirmed pending-response inner ASA transfers. Each approved claim asserts exactly one matching inner transfer with index, ASA, application sender, stored-payer receiver, amount, and zero fee. LocalNet exposes no stable inner transaction ID, so the evidence reports `transactionId: null` and explicitly states that no independent outer refund transaction exists.
+Gates A–E are accepted. The production contract, `assurance-core-v1` adapter, deterministic financial state machine, and canonical LocalNet lifecycle are green. Gate E's public result accurately maps approved refunds to their claim-call inner ASA transfers, reconciles all five application ALGO funding payments, and reconstructs global stake from all provider deposits, withdrawals, and claim debits.
 
-The same object reports all five application ALGO funding payments and reconciles `600,000 + 300,000 + 92,900 + 300,000 + 135,900 = 1,428,800` final application ALGO with no other ALGO flow. It identifies providers `07`, `08`, and `0c`, every successful deposit/withdrawal/claim stake debit, all policy/provider/creation transaction pairings, and proves final stake `123 + 0 + 75 = 198`.
+Independent Gate E acceptance reproduced 26/26 tests, a clean build/artifact diff, and consecutive `dockernet-v1` runs at ASA/app/round `6214/6215/4519` and `6331/6332/4618`. Both produced 95 intended rejections, final accounting `198/29/100/227`, and all ten invariants.
 
-Two consecutive `npm run localnet:p1` executions passed against the same running LocalNet without reset or deletion:
+## Gate F assignment
 
-- Run one: genesis `dockernet-v1`, ASA `5979`, application `5980`, final round `4321`.
-- Run two/final: genesis `dockernet-v1`, ASA `6096`, application `6097`, final round `4420`.
+Implement only `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md`: P1-owned opaque Pera signer, non-mutating preflight, one explicit real TestNet acceptance lifecycle, compact checked-in public evidence, and read-only evidence verification.
 
-Required typecheck, contract build, generated-artifact cleanliness, and all 26 deterministic tests passed. No TestNet, Gate F, P2, backend, UI, governance, or infrastructure work was started.
+Do not read populated `.env` files manually or expose secrets. Do not start P2, backend, UI, governance, MainNet, or infrastructure. Do not change the accepted contract, adapter, artifacts, or LocalNet runner.
 
 ## Exact next action
 
-Stop implementation and perform orchestrator review of Gate E. Do not mark Gate F ready or create/run a TestNet path.
+Start a fresh Luna/high implementation session from the committed orchestration successor to `5a50f95`. Implement the active packet through safe preflight. Run the mutating TestNet command only if preflight passes. Create focused commits only when the user prompt explicitly requests them, then stop with Gate F accurately `REVIEW`, `BLOCKED`, or `IN_PROGRESS`.
 
 ## Open decisions or blockers
 
-None.
+Gate F's mutating path requires the user's ignored P1 TestNet environment, funded Pera address, existing ASA holding, and reachable TestNet endpoint. The runner must discover and report these through preflight without exposing them.
