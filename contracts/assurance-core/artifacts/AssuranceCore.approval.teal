@@ -23,52 +23,52 @@ main:
     match main_optInAcceptedAsset_route@3 main_setPaused_route@4 main_registerProvider_route@5 main_setProviderStatus_route@6 main_getProvider_route@7 main_createPolicy_route@8 main_setPolicyStatus_route@9 main_getPolicy_route@10 main_depositStake_route@11 main_getAvailableCapacity_route@12 main_openCoverage_route@13 main_getCoverage_route@14 main_withdrawStake_route@15 main_closeCoverage_route@16 main_finalizeClaim_route@17 main_getClaim_route@18 main_getConfig_route@19 main_getAccounting_route@20
 
 main_after_if_else@23:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     err
 
 main_getAccounting_route@20:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:637
+    // contracts/assurance-core/contract/assurance-core.algo.ts:638
     // @abimethod({ readonly: true })
     callsub getAccounting
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
 main_getConfig_route@19:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:626
+    // contracts/assurance-core/contract/assurance-core.algo.ts:627
     // @abimethod({ readonly: true })
     callsub getConfig
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
 main_getClaim_route@18:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:591
+    // contracts/assurance-core/contract/assurance-core.algo.ts:592
     // @abimethod({ readonly: true })
     callsub getClaim
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
 main_finalizeClaim_route@17:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:485
+    // contracts/assurance-core/contract/assurance-core.algo.ts:486
     // @abimethod({ allowActions: 'NoOp' })
     callsub finalizeClaim
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
 main_closeCoverage_route@16:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:467
+    // contracts/assurance-core/contract/assurance-core.algo.ts:468
     // @abimethod({ allowActions: 'NoOp' })
     callsub closeCoverage
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -77,7 +77,7 @@ main_withdrawStake_route@15:
     // @abimethod({ allowActions: 'NoOp' })
     callsub withdrawStake
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -86,7 +86,7 @@ main_getCoverage_route@14:
     // @abimethod({ readonly: true })
     callsub getCoverage
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -95,7 +95,7 @@ main_openCoverage_route@13:
     // @abimethod({ allowActions: 'NoOp' })
     callsub openCoverage
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -104,7 +104,7 @@ main_getAvailableCapacity_route@12:
     // @abimethod({ readonly: true })
     callsub getAvailableCapacity
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -113,7 +113,7 @@ main_depositStake_route@11:
     // @abimethod({ allowActions: 'NoOp' })
     callsub depositStake
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -122,7 +122,7 @@ main_getPolicy_route@10:
     // @abimethod({ readonly: true })
     callsub getPolicy
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -131,7 +131,7 @@ main_setPolicyStatus_route@9:
     // @abimethod({ allowActions: 'NoOp' })
     callsub setPolicyStatus
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -140,7 +140,7 @@ main_createPolicy_route@8:
     // @abimethod({ allowActions: 'NoOp' })
     callsub createPolicy
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -149,7 +149,7 @@ main_getProvider_route@7:
     // @abimethod({ readonly: true })
     callsub getProvider
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -158,7 +158,7 @@ main_setProviderStatus_route@6:
     // @abimethod({ allowActions: 'NoOp' })
     callsub setProviderStatus
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -167,7 +167,7 @@ main_registerProvider_route@5:
     // @abimethod({ allowActions: 'NoOp' })
     callsub registerProvider
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -176,7 +176,7 @@ main_setPaused_route@4:
     // @abimethod({ allowActions: 'NoOp' })
     callsub setPaused
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -185,7 +185,7 @@ main_optInAcceptedAsset_route@3:
     // @abimethod({ allowActions: 'NoOp' })
     callsub optInAcceptedAsset
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -207,7 +207,7 @@ main_createApplication_route@22:
     // @abimethod({ onCreate: 'require', allowActions: 'NoOp' })
     callsub createApplication
     intc_1 // 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:647
+    // contracts/assurance-core/contract/assurance-core.algo.ts:648
     // return super.approvalProgram()
     return
 
@@ -559,7 +559,7 @@ registerProvider:
     global ZeroAddress
     ==
     assert // unsafe rekey
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 2
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -586,7 +586,7 @@ registerProvider:
     global ZeroAddress
     !=
     assert // payout must be non-zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 1
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -885,7 +885,7 @@ createPolicy:
     global ZeroAddress
     ==
     assert // unsafe rekey
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 1
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -894,7 +894,7 @@ createPolicy:
     // assert(!this.isZeroId(policyId), 'policy id must be non-zero')
     !
     assert // policy id must be non-zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dup
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -1651,7 +1651,7 @@ openCoverage:
     pushint 2
     ==
     assert // application call must be third
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 5
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -1660,7 +1660,7 @@ openCoverage:
     // assert(!this.isZeroId(coverageId), 'coverage id must be non-zero')
     !
     assert // coverage id must be non-zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 4
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -1669,7 +1669,7 @@ openCoverage:
     // assert(!this.isZeroId(providerId), 'provider id must be non-zero')
     !
     assert // provider id must be non-zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 3
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -1678,7 +1678,7 @@ openCoverage:
     // assert(!this.isZeroId(policyId), 'policy id must be non-zero')
     !
     assert // policy id must be non-zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 2
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -2332,7 +2332,7 @@ withdrawStake:
     global ZeroAddress
     ==
     assert // unsafe rekey
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 2
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -2399,64 +2399,72 @@ withdrawStake:
     dig 4
     >=
     assert // insufficient global stake
-    // contracts/assurance-core/contract/assurance-core.algo.ts:439
+    // contracts/assurance-core/contract/assurance-core.algo.ts:438
+    // assert(Txn.fee >= Global.minTxnFee * 2, 'outer fee must pool inner fee')
+    txn Fee
+    global MinTxnFee
+    pushint 2
+    *
+    >=
+    assert // outer fee must pool inner fee
+    // contracts/assurance-core/contract/assurance-core.algo.ts:440
     // const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
     global CurrentApplicationAddress
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:57
     // acceptedAssetId = GlobalState<uint64>()
     bytec 4 // "acceptedAssetId"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:439
+    // contracts/assurance-core/contract/assurance-core.algo.ts:440
     // const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
     app_global_get_ex
     assert // check GlobalState exists
     asset_holding_get AssetBalance
     assert // account opted into asset
-    // contracts/assurance-core/contract/assurance-core.algo.ts:440
+    // contracts/assurance-core/contract/assurance-core.algo.ts:441
     // assert(applicationHolding >= amount, 'insufficient application asset balance')
     dup
     dig 5
     >=
     assert // insufficient application asset balance
-    // contracts/assurance-core/contract/assurance-core.algo.ts:443
+    // contracts/assurance-core/contract/assurance-core.algo.ts:444
     // const newTotalProviderStake: uint64 = this.totalProviderStake.value - amount
     swap
     dig 4
     -
-    // contracts/assurance-core/contract/assurance-core.algo.ts:444
+    // contracts/assurance-core/contract/assurance-core.algo.ts:445
     // assert(newTotalProviderStake <= maxUint64 - this.premiumReserve.value, 'tracked stake overflow')
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:61
     // premiumReserve = GlobalState<uint64>()
     bytec 5 // "premiumReserve"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:444
+    // contracts/assurance-core/contract/assurance-core.algo.ts:445
     // assert(newTotalProviderStake <= maxUint64 - this.premiumReserve.value, 'tracked stake overflow')
     app_global_get_ex
     assert // check GlobalState exists
-    // contracts/assurance-core/contract/assurance-core.algo.ts:441
+    // contracts/assurance-core/contract/assurance-core.algo.ts:442
     // const maxUint64 = new arc4.Uint64(18446744073709551615n).asUint64()
     intc 4 // 18446744073709551615
-    // contracts/assurance-core/contract/assurance-core.algo.ts:444
+    // contracts/assurance-core/contract/assurance-core.algo.ts:445
     // assert(newTotalProviderStake <= maxUint64 - this.premiumReserve.value, 'tracked stake overflow')
     dig 1
     -
     dig 2
     >=
     assert // tracked stake overflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:445
+    // contracts/assurance-core/contract/assurance-core.algo.ts:446
     // const newTrackedAssetBalance: uint64 = newTotalProviderStake + this.premiumReserve.value
     dig 1
     +
-    // contracts/assurance-core/contract/assurance-core.algo.ts:446
+    // contracts/assurance-core/contract/assurance-core.algo.ts:447
     // const postWithdrawalHolding: uint64 = applicationHolding - amount
     uncover 2
     dig 5
     -
-    // contracts/assurance-core/contract/assurance-core.algo.ts:447
+    // contracts/assurance-core/contract/assurance-core.algo.ts:448
     // assert(newTrackedAssetBalance <= postWithdrawalHolding, 'tracked stake exceeds balance')
     <=
     assert // tracked stake exceeds balance
-    // contracts/assurance-core/contract/assurance-core.algo.ts:449
+    // contracts/assurance-core/contract/assurance-core.algo.ts:450
     // provider.value.stakeTotal = new arc4.Uint64(newProviderStake)
     swap
     itob
@@ -2467,11 +2475,11 @@ withdrawStake:
     // contracts/assurance-core/contract/assurance-core.algo.ts:60
     // totalProviderStake = GlobalState<uint64>()
     bytec_2 // "totalProviderStake"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:450
+    // contracts/assurance-core/contract/assurance-core.algo.ts:451
     // this.totalProviderStake.value = newTotalProviderStake
     uncover 2
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:451-457
+    // contracts/assurance-core/contract/assurance-core.algo.ts:452-458
     // itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: this.acceptedAssetId.value,
@@ -2480,20 +2488,20 @@ withdrawStake:
     //   fee: 0,
     // }).submit()
     itxn_begin
-    // contracts/assurance-core/contract/assurance-core.algo.ts:452
+    // contracts/assurance-core/contract/assurance-core.algo.ts:453
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // contracts/assurance-core/contract/assurance-core.algo.ts:453
+    // contracts/assurance-core/contract/assurance-core.algo.ts:454
     // xferAsset: this.acceptedAssetId.value,
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:57
     // acceptedAssetId = GlobalState<uint64>()
     bytec 4 // "acceptedAssetId"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:453
+    // contracts/assurance-core/contract/assurance-core.algo.ts:454
     // xferAsset: this.acceptedAssetId.value,
     app_global_get_ex
     assert // check GlobalState exists
-    // contracts/assurance-core/contract/assurance-core.algo.ts:455
+    // contracts/assurance-core/contract/assurance-core.algo.ts:456
     // assetReceiver: Account(provider.value.ownerAddress.bytes),
     uncover 3
     box_get
@@ -2504,7 +2512,7 @@ withdrawStake:
     itxn_field AssetAmount
     itxn_field XferAsset
     itxn_field Sender
-    // contracts/assurance-core/contract/assurance-core.algo.ts:451-457
+    // contracts/assurance-core/contract/assurance-core.algo.ts:452-458
     // itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: this.acceptedAssetId.value,
@@ -2514,11 +2522,11 @@ withdrawStake:
     // }).submit()
     pushint 4
     itxn_field TypeEnum
-    // contracts/assurance-core/contract/assurance-core.algo.ts:456
+    // contracts/assurance-core/contract/assurance-core.algo.ts:457
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // contracts/assurance-core/contract/assurance-core.algo.ts:451-457
+    // contracts/assurance-core/contract/assurance-core.algo.ts:452-458
     // itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: this.acceptedAssetId.value,
@@ -2527,11 +2535,11 @@ withdrawStake:
     //   fee: 0,
     // }).submit()
     itxn_submit
-    // contracts/assurance-core/contract/assurance-core.algo.ts:460
+    // contracts/assurance-core/contract/assurance-core.algo.ts:461
     // new arc4.Uint64(1),
     intc_1 // 1
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:458-464
+    // contracts/assurance-core/contract/assurance-core.algo.ts:459-465
     // emit(
     //   'StakeWithdrawn',
     //   new arc4.Uint64(1),
@@ -2554,7 +2562,7 @@ withdrawStake:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.closeCoverage[routing]() -> void:
 closeCoverage:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:467
+    // contracts/assurance-core/contract/assurance-core.algo.ts:468
     // @abimethod({ allowActions: 'NoOp' })
     txna ApplicationArgs 1
     dup
@@ -2562,18 +2570,18 @@ closeCoverage:
     intc_2 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // contracts/assurance-core/contract/assurance-core.algo.ts:469
+    // contracts/assurance-core/contract/assurance-core.algo.ts:470
     // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
     txn RekeyTo
     global ZeroAddress
     ==
     assert // unsafe rekey
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dup
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
     ==
-    // contracts/assurance-core/contract/assurance-core.algo.ts:470
+    // contracts/assurance-core/contract/assurance-core.algo.ts:471
     // assert(!this.isZeroId(coverageId), 'coverage id must be non-zero')
     !
     assert // coverage id must be non-zero
@@ -2582,13 +2590,13 @@ closeCoverage:
     bytec 12 // "c"
     dig 1
     concat
-    // contracts/assurance-core/contract/assurance-core.algo.ts:472
+    // contracts/assurance-core/contract/assurance-core.algo.ts:473
     // assert(coverage.exists, 'coverage missing')
     dup
     box_len
     bury 1
     assert // coverage missing
-    // contracts/assurance-core/contract/assurance-core.algo.ts:473
+    // contracts/assurance-core/contract/assurance-core.algo.ts:474
     // assert(coverage.value.status.asUint64() === COVERAGE_STATUS_OPEN, 'coverage is terminal')
     dup
     box_get
@@ -2599,7 +2607,7 @@ closeCoverage:
     intc_1 // 1
     ==
     assert // coverage is terminal
-    // contracts/assurance-core/contract/assurance-core.algo.ts:474
+    // contracts/assurance-core/contract/assurance-core.algo.ts:475
     // assert(!coverage.value.exposureReleased.native, 'coverage exposure already released')
     dup
     intc 7 // 1536
@@ -2612,7 +2620,7 @@ closeCoverage:
     getbit
     !
     assert // coverage exposure already released
-    // contracts/assurance-core/contract/assurance-core.algo.ts:475
+    // contracts/assurance-core/contract/assurance-core.algo.ts:476
     // assert(Global.latestTimestamp >= coverage.value.expiresAt.asUint64(), 'coverage has not expired')
     global LatestTimestamp
     dig 1
@@ -2620,7 +2628,7 @@ closeCoverage:
     extract_uint64
     >=
     assert // coverage has not expired
-    // contracts/assurance-core/contract/assurance-core.algo.ts:477
+    // contracts/assurance-core/contract/assurance-core.algo.ts:478
     // const provider = this.providers(coverage.value.providerId)
     extract 0 32
     // contracts/assurance-core/contract/assurance-core.algo.ts:65
@@ -2628,27 +2636,27 @@ closeCoverage:
     bytec_1 // "p"
     dig 1
     concat
-    // contracts/assurance-core/contract/assurance-core.algo.ts:478
+    // contracts/assurance-core/contract/assurance-core.algo.ts:479
     // assert(provider.exists, 'provider missing')
     box_len
     bury 1
     assert // provider missing
-    // contracts/assurance-core/contract/assurance-core.algo.ts:479
+    // contracts/assurance-core/contract/assurance-core.algo.ts:480
     // this.releaseExposure(coverageId, coverage.value.providerId)
     dig 2
     swap
     callsub releaseExposure
-    // contracts/assurance-core/contract/assurance-core.algo.ts:480
+    // contracts/assurance-core/contract/assurance-core.algo.ts:481
     // coverage.value.status = new arc4.Uint64(COVERAGE_STATUS_CLOSED)
     pushint 3
     itob
     intc 5 // 184
     swap
     box_replace // on error: index out of bounds
-    // contracts/assurance-core/contract/assurance-core.algo.ts:481
+    // contracts/assurance-core/contract/assurance-core.algo.ts:482
     // const closedAt = Global.latestTimestamp
     global LatestTimestamp
-    // contracts/assurance-core/contract/assurance-core.algo.ts:482
+    // contracts/assurance-core/contract/assurance-core.algo.ts:483
     // emit('CoverageClosed', new arc4.Uint64(1), coverageId, new arc4.Uint64(closedAt), new arc4.Bool(true))
     intc_1 // 1
     itob
@@ -2670,7 +2678,7 @@ closeCoverage:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.finalizeClaim[routing]() -> void:
 finalizeClaim:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:485
+    // contracts/assurance-core/contract/assurance-core.algo.ts:486
     // @abimethod({ allowActions: 'NoOp' })
     proto 0 0
     pushbytes ""
@@ -2734,40 +2742,40 @@ finalizeClaim:
     ==
     assert // invalid number of bytes for arc4.uint64
     btoi
-    // contracts/assurance-core/contract/assurance-core.algo.ts:494
+    // contracts/assurance-core/contract/assurance-core.algo.ts:495
     // assert(Txn.sender.bytes === this.adjudicator.value.bytes, 'adjudicator only')
     txn Sender
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:56
     // adjudicator = GlobalState<Account>()
     bytec 13 // "adjudicator"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:494
+    // contracts/assurance-core/contract/assurance-core.algo.ts:495
     // assert(Txn.sender.bytes === this.adjudicator.value.bytes, 'adjudicator only')
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // adjudicator only
-    // contracts/assurance-core/contract/assurance-core.algo.ts:495
+    // contracts/assurance-core/contract/assurance-core.algo.ts:496
     // assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
     txn RekeyTo
     global ZeroAddress
     ==
     assert // unsafe rekey
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 2
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
     ==
-    // contracts/assurance-core/contract/assurance-core.algo.ts:496
+    // contracts/assurance-core/contract/assurance-core.algo.ts:497
     // assert(!this.isZeroId(claimId), 'claim id must be non-zero')
     !
     assert // claim id must be non-zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:623
+    // contracts/assurance-core/contract/assurance-core.algo.ts:624
     // return value === Bytes.fromHex('0000000000000000000000000000000000000000000000000000000000000000')
     dig 1
     bytec_0 // 0x0000000000000000000000000000000000000000000000000000000000000000
     ==
-    // contracts/assurance-core/contract/assurance-core.algo.ts:497
+    // contracts/assurance-core/contract/assurance-core.algo.ts:498
     // assert(!this.isZeroId(coverageId), 'coverage id must be non-zero')
     !
     assert // coverage id must be non-zero
@@ -2778,7 +2786,7 @@ finalizeClaim:
     concat
     dup
     cover 8
-    // contracts/assurance-core/contract/assurance-core.algo.ts:499
+    // contracts/assurance-core/contract/assurance-core.algo.ts:500
     // assert(!claim.exists, 'claim already finalized')
     box_len
     bury 1
@@ -2791,13 +2799,13 @@ finalizeClaim:
     concat
     dup
     cover 4
-    // contracts/assurance-core/contract/assurance-core.algo.ts:501
+    // contracts/assurance-core/contract/assurance-core.algo.ts:502
     // assert(coverage.exists, 'coverage missing')
     dup
     box_len
     bury 1
     assert // coverage missing
-    // contracts/assurance-core/contract/assurance-core.algo.ts:502
+    // contracts/assurance-core/contract/assurance-core.algo.ts:503
     // assert(coverage.value.status.asUint64() === COVERAGE_STATUS_OPEN, 'coverage is terminal')
     box_get
     pop
@@ -2807,7 +2815,7 @@ finalizeClaim:
     intc_1 // 1
     ==
     assert // coverage is terminal
-    // contracts/assurance-core/contract/assurance-core.algo.ts:503
+    // contracts/assurance-core/contract/assurance-core.algo.ts:504
     // assert(!coverage.value.exposureReleased.native, 'coverage exposure already released')
     dup
     intc 7 // 1536
@@ -2820,7 +2828,7 @@ finalizeClaim:
     getbit
     !
     assert // coverage exposure already released
-    // contracts/assurance-core/contract/assurance-core.algo.ts:504
+    // contracts/assurance-core/contract/assurance-core.algo.ts:505
     // const provider = this.providers(coverage.value.providerId)
     dup
     extract 0 32
@@ -2831,37 +2839,37 @@ finalizeClaim:
     concat
     dup
     cover 5
-    // contracts/assurance-core/contract/assurance-core.algo.ts:505
+    // contracts/assurance-core/contract/assurance-core.algo.ts:506
     // assert(provider.exists, 'provider missing')
     box_len
     bury 1
     assert // provider missing
-    // contracts/assurance-core/contract/assurance-core.algo.ts:506
+    // contracts/assurance-core/contract/assurance-core.algo.ts:507
     // assert(resolutionCode > 0, 'resolution code must be positive')
     swap
     assert // resolution code must be positive
-    // contracts/assurance-core/contract/assurance-core.algo.ts:507
+    // contracts/assurance-core/contract/assurance-core.algo.ts:508
     // assert(approvedAmount <= coverage.value.grossAmount.asUint64(), 'claim exceeds gross amount')
     pushint 96
     extract_uint64
     <=
     assert // claim exceeds gross amount
-    // contracts/assurance-core/contract/assurance-core.algo.ts:508
+    // contracts/assurance-core/contract/assurance-core.algo.ts:509
     // if (!approved) {
     bnz finalizeClaim_else_body@3
-    // contracts/assurance-core/contract/assurance-core.algo.ts:509
+    // contracts/assurance-core/contract/assurance-core.algo.ts:510
     // assert(approvedAmount === 0, 'rejected claim amount must be zero')
     dig 2
     !
     assert // rejected claim amount must be zero
-    // contracts/assurance-core/contract/assurance-core.algo.ts:510
+    // contracts/assurance-core/contract/assurance-core.algo.ts:511
     // assert(!providerFault, 'rejected claim cannot have provider fault')
     frame_dig 2
     !
     assert // rejected claim cannot have provider fault
 
 finalizeClaim_after_if_else@4:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:514
+    // contracts/assurance-core/contract/assurance-core.algo.ts:515
     // if (approved) assert(Txn.fee >= Global.minTxnFee * 2, 'outer fee must pool inner fee')
     dig 3
     bz finalizeClaim_after_if_else@6
@@ -2873,21 +2881,21 @@ finalizeClaim_after_if_else@4:
     assert // outer fee must pool inner fee
 
 finalizeClaim_after_if_else@6:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:516
+    // contracts/assurance-core/contract/assurance-core.algo.ts:517
     // let stakeDebit: uint64 = 0
     intc_0 // 0
     frame_bury 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:517
+    // contracts/assurance-core/contract/assurance-core.algo.ts:518
     // let poolDebit: uint64 = 0
     intc_0 // 0
     frame_bury 0
-    // contracts/assurance-core/contract/assurance-core.algo.ts:518
+    // contracts/assurance-core/contract/assurance-core.algo.ts:519
     // if (approved && providerFault) {
     dig 3
     bz finalizeClaim_else_body@9
     frame_dig 2
     bz finalizeClaim_else_body@9
-    // contracts/assurance-core/contract/assurance-core.algo.ts:519
+    // contracts/assurance-core/contract/assurance-core.algo.ts:520
     // assert(provider.value.stakeTotal.asUint64() >= provider.value.stakeLocked.asUint64(), 'invalid stake state')
     dup
     box_get
@@ -2901,7 +2909,7 @@ finalizeClaim_after_if_else@6:
     dup2
     >=
     assert // invalid stake state
-    // contracts/assurance-core/contract/assurance-core.algo.ts:520
+    // contracts/assurance-core/contract/assurance-core.algo.ts:521
     // assert(provider.value.stakeLocked.asUint64() >= coverage.value.lockedStakeAmount.asUint64(), 'locked stake underflow')
     dig 3
     box_get
@@ -2911,18 +2919,18 @@ finalizeClaim_after_if_else@6:
     dup2
     >=
     assert // locked stake underflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:521
+    // contracts/assurance-core/contract/assurance-core.algo.ts:522
     // const remainingLockedStake: uint64 = provider.value.stakeLocked.asUint64() - coverage.value.lockedStakeAmount.asUint64()
     -
-    // contracts/assurance-core/contract/assurance-core.algo.ts:522
+    // contracts/assurance-core/contract/assurance-core.algo.ts:523
     // assert(provider.value.stakeTotal.asUint64() >= remainingLockedStake, 'stake total underflow')
     dup2
     >=
     assert // stake total underflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:523
+    // contracts/assurance-core/contract/assurance-core.algo.ts:524
     // const stakeAvailable: uint64 = provider.value.stakeTotal.asUint64() - remainingLockedStake
     -
-    // contracts/assurance-core/contract/assurance-core.algo.ts:524
+    // contracts/assurance-core/contract/assurance-core.algo.ts:525
     // stakeDebit = approvedAmount <= stakeAvailable ? approvedAmount : stakeAvailable
     dig 3
     dup
@@ -2934,19 +2942,19 @@ finalizeClaim_after_if_else@6:
     select
     dup
     frame_bury 1
-    // contracts/assurance-core/contract/assurance-core.algo.ts:525
+    // contracts/assurance-core/contract/assurance-core.algo.ts:526
     // poolDebit = approvedAmount - stakeDebit
     -
     frame_bury 0
 
 finalizeClaim_after_if_else@12:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:530
+    // contracts/assurance-core/contract/assurance-core.algo.ts:531
     // assert(this.totalProviderStake.value >= stakeDebit, 'global stake underflow')
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:60
     // totalProviderStake = GlobalState<uint64>()
     bytec_2 // "totalProviderStake"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:530
+    // contracts/assurance-core/contract/assurance-core.algo.ts:531
     // assert(this.totalProviderStake.value >= stakeDebit, 'global stake underflow')
     app_global_get_ex
     assert // check GlobalState exists
@@ -2955,13 +2963,13 @@ finalizeClaim_after_if_else@12:
     cover 2
     >=
     assert // global stake underflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:531
+    // contracts/assurance-core/contract/assurance-core.algo.ts:532
     // assert(this.premiumReserve.value >= poolDebit, 'insufficient premium reserve')
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:61
     // premiumReserve = GlobalState<uint64>()
     bytec 5 // "premiumReserve"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:531
+    // contracts/assurance-core/contract/assurance-core.algo.ts:532
     // assert(this.premiumReserve.value >= poolDebit, 'insufficient premium reserve')
     app_global_get_ex
     assert // check GlobalState exists
@@ -2970,40 +2978,40 @@ finalizeClaim_after_if_else@12:
     cover 2
     >=
     assert // insufficient premium reserve
-    // contracts/assurance-core/contract/assurance-core.algo.ts:532
+    // contracts/assurance-core/contract/assurance-core.algo.ts:533
     // const maxUint64 = new arc4.Uint64(18446744073709551615n).asUint64()
     intc 4 // 18446744073709551615
-    // contracts/assurance-core/contract/assurance-core.algo.ts:533
+    // contracts/assurance-core/contract/assurance-core.algo.ts:534
     // assert(stakeDebit <= maxUint64 - poolDebit, 'claim debit overflow')
     dig 1
     -
     dig 2
     >=
     assert // claim debit overflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:534
+    // contracts/assurance-core/contract/assurance-core.algo.ts:535
     // assert(stakeDebit + poolDebit === approvedAmount, 'claim debit mismatch')
     +
     dig 3
     ==
     assert // claim debit mismatch
-    // contracts/assurance-core/contract/assurance-core.algo.ts:535
+    // contracts/assurance-core/contract/assurance-core.algo.ts:536
     // if (approved) {
     dig 3
     bz finalizeClaim_after_if_else@14
-    // contracts/assurance-core/contract/assurance-core.algo.ts:536
+    // contracts/assurance-core/contract/assurance-core.algo.ts:537
     // const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
     global CurrentApplicationAddress
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:57
     // acceptedAssetId = GlobalState<uint64>()
     bytec 4 // "acceptedAssetId"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:536
+    // contracts/assurance-core/contract/assurance-core.algo.ts:537
     // const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
     app_global_get_ex
     assert // check GlobalState exists
     asset_holding_get AssetBalance
     assert // account opted into asset
-    // contracts/assurance-core/contract/assurance-core.algo.ts:537
+    // contracts/assurance-core/contract/assurance-core.algo.ts:538
     // assert(applicationHolding >= approvedAmount, 'insufficient application asset balance')
     dup
     dig 4
@@ -3011,55 +3019,55 @@ finalizeClaim_after_if_else@12:
     cover 3
     >=
     assert // insufficient application asset balance
-    // contracts/assurance-core/contract/assurance-core.algo.ts:538
+    // contracts/assurance-core/contract/assurance-core.algo.ts:539
     // const newTotalProviderStake: uint64 = this.totalProviderStake.value - stakeDebit
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:60
     // totalProviderStake = GlobalState<uint64>()
     bytec_2 // "totalProviderStake"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:538
+    // contracts/assurance-core/contract/assurance-core.algo.ts:539
     // const newTotalProviderStake: uint64 = this.totalProviderStake.value - stakeDebit
     app_global_get_ex
     assert // check GlobalState exists
     frame_dig 1
     -
-    // contracts/assurance-core/contract/assurance-core.algo.ts:539
+    // contracts/assurance-core/contract/assurance-core.algo.ts:540
     // const newPremiumReserve: uint64 = this.premiumReserve.value - poolDebit
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:61
     // premiumReserve = GlobalState<uint64>()
     bytec 5 // "premiumReserve"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:539
+    // contracts/assurance-core/contract/assurance-core.algo.ts:540
     // const newPremiumReserve: uint64 = this.premiumReserve.value - poolDebit
     app_global_get_ex
     assert // check GlobalState exists
     frame_dig 0
     -
-    // contracts/assurance-core/contract/assurance-core.algo.ts:532
+    // contracts/assurance-core/contract/assurance-core.algo.ts:533
     // const maxUint64 = new arc4.Uint64(18446744073709551615n).asUint64()
     intc 4 // 18446744073709551615
-    // contracts/assurance-core/contract/assurance-core.algo.ts:540
+    // contracts/assurance-core/contract/assurance-core.algo.ts:541
     // assert(newTotalProviderStake <= maxUint64 - newPremiumReserve, 'tracked stake overflow')
     dig 1
     -
     dig 2
     >=
     assert // tracked stake overflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:541
+    // contracts/assurance-core/contract/assurance-core.algo.ts:542
     // const newTrackedAssetBalance: uint64 = newTotalProviderStake + newPremiumReserve
     +
-    // contracts/assurance-core/contract/assurance-core.algo.ts:542
+    // contracts/assurance-core/contract/assurance-core.algo.ts:543
     // const postRefundHolding: uint64 = applicationHolding - approvedAmount
     swap
     uncover 2
     -
-    // contracts/assurance-core/contract/assurance-core.algo.ts:543
+    // contracts/assurance-core/contract/assurance-core.algo.ts:544
     // assert(newTrackedAssetBalance <= postRefundHolding, 'tracked stake exceeds balance')
     <=
     assert // tracked stake exceeds balance
 
 finalizeClaim_after_if_else@14:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:546
+    // contracts/assurance-core/contract/assurance-core.algo.ts:547
     // this.releaseExposure(coverageId, coverage.value.providerId)
     dig 1
     box_get
@@ -3068,11 +3076,11 @@ finalizeClaim_after_if_else@14:
     dig 5
     swap
     callsub releaseExposure
-    // contracts/assurance-core/contract/assurance-core.algo.ts:547
+    // contracts/assurance-core/contract/assurance-core.algo.ts:548
     // if (approved) {
     dig 3
     bz finalizeClaim_else_body@16
-    // contracts/assurance-core/contract/assurance-core.algo.ts:548
+    // contracts/assurance-core/contract/assurance-core.algo.ts:549
     // provider.value.stakeTotal = new arc4.Uint64(provider.value.stakeTotal.asUint64() - stakeDebit)
     dup
     box_get
@@ -3087,13 +3095,13 @@ finalizeClaim_after_if_else@14:
     pushint 97
     swap
     box_replace // on error: index out of bounds
-    // contracts/assurance-core/contract/assurance-core.algo.ts:549
+    // contracts/assurance-core/contract/assurance-core.algo.ts:550
     // this.totalProviderStake.value -= stakeDebit
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:60
     // totalProviderStake = GlobalState<uint64>()
     bytec_2 // "totalProviderStake"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:549
+    // contracts/assurance-core/contract/assurance-core.algo.ts:550
     // this.totalProviderStake.value -= stakeDebit
     app_global_get_ex
     assert // check GlobalState exists
@@ -3102,17 +3110,17 @@ finalizeClaim_after_if_else@14:
     // contracts/assurance-core/contract/assurance-core.algo.ts:60
     // totalProviderStake = GlobalState<uint64>()
     bytec_2 // "totalProviderStake"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:549
+    // contracts/assurance-core/contract/assurance-core.algo.ts:550
     // this.totalProviderStake.value -= stakeDebit
     swap
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:550
+    // contracts/assurance-core/contract/assurance-core.algo.ts:551
     // this.premiumReserve.value -= poolDebit
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:61
     // premiumReserve = GlobalState<uint64>()
     bytec 5 // "premiumReserve"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:550
+    // contracts/assurance-core/contract/assurance-core.algo.ts:551
     // this.premiumReserve.value -= poolDebit
     app_global_get_ex
     assert // check GlobalState exists
@@ -3121,11 +3129,11 @@ finalizeClaim_after_if_else@14:
     // contracts/assurance-core/contract/assurance-core.algo.ts:61
     // premiumReserve = GlobalState<uint64>()
     bytec 5 // "premiumReserve"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:550
+    // contracts/assurance-core/contract/assurance-core.algo.ts:551
     // this.premiumReserve.value -= poolDebit
     swap
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:551
+    // contracts/assurance-core/contract/assurance-core.algo.ts:552
     // coverage.value.status = new arc4.Uint64(COVERAGE_STATUS_REFUNDED)
     pushint 2
     itob
@@ -3135,25 +3143,25 @@ finalizeClaim_after_if_else@14:
     box_replace // on error: index out of bounds
 
 finalizeClaim_after_if_else@17:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:555
+    // contracts/assurance-core/contract/assurance-core.algo.ts:556
     // const resolvedAt = Global.latestTimestamp
     global LatestTimestamp
-    // contracts/assurance-core/contract/assurance-core.algo.ts:562
+    // contracts/assurance-core/contract/assurance-core.algo.ts:563
     // stakeDebit: new arc4.Uint64(stakeDebit),
     frame_dig 1
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:563
+    // contracts/assurance-core/contract/assurance-core.algo.ts:564
     // poolDebit: new arc4.Uint64(poolDebit),
     frame_dig 0
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:564
+    // contracts/assurance-core/contract/assurance-core.algo.ts:565
     // resolvedAt: new arc4.Uint64(resolvedAt),
     uncover 2
     itob
     dup
     cover 3
     cover 5
-    // contracts/assurance-core/contract/assurance-core.algo.ts:556-565
+    // contracts/assurance-core/contract/assurance-core.algo.ts:557-566
     // claim.value = new FinalizedClaimRecord({
     //   coverageId,
     //   approved: new arc4.Bool(approved),
@@ -3192,13 +3200,13 @@ finalizeClaim_after_if_else@17:
     uncover 12
     swap
     box_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:568
+    // contracts/assurance-core/contract/assurance-core.algo.ts:569
     // new arc4.Uint64(1),
     intc_1 // 1
     itob
     dup
     cover 7
-    // contracts/assurance-core/contract/assurance-core.algo.ts:566-576
+    // contracts/assurance-core/contract/assurance-core.algo.ts:567-577
     // emit(
     //   'ClaimFinalized',
     //   new arc4.Uint64(1),
@@ -3230,7 +3238,7 @@ finalizeClaim_after_if_else@17:
     swap
     concat
     log
-    // contracts/assurance-core/contract/assurance-core.algo.ts:577
+    // contracts/assurance-core/contract/assurance-core.algo.ts:578
     // if (approved) {
     uncover 5
     bz finalizeClaim_else_body@20
@@ -3239,7 +3247,7 @@ finalizeClaim_after_if_else@17:
     pop
     uncover 3
     pop
-    // contracts/assurance-core/contract/assurance-core.algo.ts:578-584
+    // contracts/assurance-core/contract/assurance-core.algo.ts:579-585
     // itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: this.acceptedAssetId.value,
@@ -3248,20 +3256,20 @@ finalizeClaim_after_if_else@17:
     //   fee: 0,
     // }).submit()
     itxn_begin
-    // contracts/assurance-core/contract/assurance-core.algo.ts:579
+    // contracts/assurance-core/contract/assurance-core.algo.ts:580
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // contracts/assurance-core/contract/assurance-core.algo.ts:580
+    // contracts/assurance-core/contract/assurance-core.algo.ts:581
     // xferAsset: this.acceptedAssetId.value,
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:57
     // acceptedAssetId = GlobalState<uint64>()
     bytec 4 // "acceptedAssetId"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:580
+    // contracts/assurance-core/contract/assurance-core.algo.ts:581
     // xferAsset: this.acceptedAssetId.value,
     app_global_get_ex
     assert // check GlobalState exists
-    // contracts/assurance-core/contract/assurance-core.algo.ts:582
+    // contracts/assurance-core/contract/assurance-core.algo.ts:583
     // assetReceiver: Account(coverage.value.payerAddress.bytes),
     uncover 3
     box_get
@@ -3275,7 +3283,7 @@ finalizeClaim_after_if_else@17:
     itxn_field XferAsset
     swap
     itxn_field Sender
-    // contracts/assurance-core/contract/assurance-core.algo.ts:578-584
+    // contracts/assurance-core/contract/assurance-core.algo.ts:579-585
     // itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: this.acceptedAssetId.value,
@@ -3285,11 +3293,11 @@ finalizeClaim_after_if_else@17:
     // }).submit()
     pushint 4
     itxn_field TypeEnum
-    // contracts/assurance-core/contract/assurance-core.algo.ts:583
+    // contracts/assurance-core/contract/assurance-core.algo.ts:584
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // contracts/assurance-core/contract/assurance-core.algo.ts:578-584
+    // contracts/assurance-core/contract/assurance-core.algo.ts:579-585
     // itxn.assetTransfer({
     //   sender: Global.currentApplicationAddress,
     //   xferAsset: this.acceptedAssetId.value,
@@ -3298,7 +3306,7 @@ finalizeClaim_after_if_else@17:
     //   fee: 0,
     // }).submit()
     itxn_submit
-    // contracts/assurance-core/contract/assurance-core.algo.ts:585
+    // contracts/assurance-core/contract/assurance-core.algo.ts:586
     // emit('RefundPaid', new arc4.Uint64(1), claimId, coverageId, new arc4.Address(coverage.value.payerAddress.bytes), new arc4.Uint64(approvedAmount))
     concat
     swap
@@ -3315,7 +3323,7 @@ finalizeClaim_else_body@20:
     bury 1
     uncover 3
     pop
-    // contracts/assurance-core/contract/assurance-core.algo.ts:587
+    // contracts/assurance-core/contract/assurance-core.algo.ts:588
     // emit('CoverageClosed', new arc4.Uint64(1), coverageId, new arc4.Uint64(resolvedAt), new arc4.Bool(false))
     uncover 2
     concat
@@ -3331,7 +3339,7 @@ finalizeClaim_else_body@20:
 
 finalizeClaim_else_body@16:
     pop
-    // contracts/assurance-core/contract/assurance-core.algo.ts:553
+    // contracts/assurance-core/contract/assurance-core.algo.ts:554
     // coverage.value.status = new arc4.Uint64(COVERAGE_STATUS_CLOSED)
     pushint 3
     itob
@@ -3342,7 +3350,7 @@ finalizeClaim_else_body@16:
     b finalizeClaim_after_if_else@17
 
 finalizeClaim_else_body@9:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:526
+    // contracts/assurance-core/contract/assurance-core.algo.ts:527
     // } else if (approved) {
     dig 3
     bz finalizeClaim_after_if_else@12
@@ -3351,7 +3359,7 @@ finalizeClaim_else_body@9:
     b finalizeClaim_after_if_else@12
 
 finalizeClaim_else_body@3:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:512
+    // contracts/assurance-core/contract/assurance-core.algo.ts:513
     // assert(approvedAmount > 0, 'approved claim amount must be positive')
     dig 2
     assert // approved claim amount must be positive
@@ -3360,7 +3368,7 @@ finalizeClaim_else_body@3:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getClaim[routing]() -> void:
 getClaim:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:591
+    // contracts/assurance-core/contract/assurance-core.algo.ts:592
     // @abimethod({ readonly: true })
     txna ApplicationArgs 1
     dup
@@ -3373,17 +3381,17 @@ getClaim:
     pushbytes "f"
     swap
     concat
-    // contracts/assurance-core/contract/assurance-core.algo.ts:594
+    // contracts/assurance-core/contract/assurance-core.algo.ts:595
     // assert(claim.exists, 'claim missing')
     dup
     box_len
     bury 1
     assert // claim missing
-    // contracts/assurance-core/contract/assurance-core.algo.ts:595
+    // contracts/assurance-core/contract/assurance-core.algo.ts:596
     // return claim.value
     box_get
     pop
-    // contracts/assurance-core/contract/assurance-core.algo.ts:591
+    // contracts/assurance-core/contract/assurance-core.algo.ts:592
     // @abimethod({ readonly: true })
     bytec 7 // 0x151f7c75
     swap
@@ -3394,60 +3402,60 @@ getClaim:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getConfig[routing]() -> void:
 getConfig:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:629
+    // contracts/assurance-core/contract/assurance-core.algo.ts:630
     // admin: new arc4.Address(this.admin.value),
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:55
     // admin = GlobalState<Account>()
     bytec 9 // "admin"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:629
+    // contracts/assurance-core/contract/assurance-core.algo.ts:630
     // admin: new arc4.Address(this.admin.value),
     app_global_get_ex
     assert // check GlobalState exists
-    // contracts/assurance-core/contract/assurance-core.algo.ts:630
+    // contracts/assurance-core/contract/assurance-core.algo.ts:631
     // adjudicator: new arc4.Address(this.adjudicator.value),
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:56
     // adjudicator = GlobalState<Account>()
     bytec 13 // "adjudicator"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:630
+    // contracts/assurance-core/contract/assurance-core.algo.ts:631
     // adjudicator: new arc4.Address(this.adjudicator.value),
     app_global_get_ex
     assert // check GlobalState exists
-    // contracts/assurance-core/contract/assurance-core.algo.ts:631
+    // contracts/assurance-core/contract/assurance-core.algo.ts:632
     // acceptedAssetId: new arc4.Uint64(this.acceptedAssetId.value),
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:57
     // acceptedAssetId = GlobalState<uint64>()
     bytec 4 // "acceptedAssetId"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:631
+    // contracts/assurance-core/contract/assurance-core.algo.ts:632
     // acceptedAssetId: new arc4.Uint64(this.acceptedAssetId.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:632
+    // contracts/assurance-core/contract/assurance-core.algo.ts:633
     // paused: new arc4.Uint64(this.paused.value),
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:58
     // paused = GlobalState<uint64>()
     bytec 10 // "paused"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:632
+    // contracts/assurance-core/contract/assurance-core.algo.ts:633
     // paused: new arc4.Uint64(this.paused.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:633
+    // contracts/assurance-core/contract/assurance-core.algo.ts:634
     // assetOptedIn: new arc4.Uint64(this.assetOptedIn.value),
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:59
     // assetOptedIn = GlobalState<uint64>()
     bytec 6 // "assetOptedIn"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:633
+    // contracts/assurance-core/contract/assurance-core.algo.ts:634
     // assetOptedIn: new arc4.Uint64(this.assetOptedIn.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:628-634
+    // contracts/assurance-core/contract/assurance-core.algo.ts:629-635
     // return new AssuranceConfig({
     //   admin: new arc4.Address(this.admin.value),
     //   adjudicator: new arc4.Address(this.adjudicator.value),
@@ -3464,7 +3472,7 @@ getConfig:
     concat
     swap
     concat
-    // contracts/assurance-core/contract/assurance-core.algo.ts:626
+    // contracts/assurance-core/contract/assurance-core.algo.ts:627
     // @abimethod({ readonly: true })
     bytec 7 // 0x151f7c75
     swap
@@ -3475,40 +3483,40 @@ getConfig:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.getAccounting[routing]() -> void:
 getAccounting:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:640
+    // contracts/assurance-core/contract/assurance-core.algo.ts:641
     // totalProviderStake: new arc4.Uint64(this.totalProviderStake.value),
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:60
     // totalProviderStake = GlobalState<uint64>()
     bytec_2 // "totalProviderStake"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:640
+    // contracts/assurance-core/contract/assurance-core.algo.ts:641
     // totalProviderStake: new arc4.Uint64(this.totalProviderStake.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:641
+    // contracts/assurance-core/contract/assurance-core.algo.ts:642
     // premiumReserve: new arc4.Uint64(this.premiumReserve.value),
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:61
     // premiumReserve = GlobalState<uint64>()
     bytec 5 // "premiumReserve"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:641
+    // contracts/assurance-core/contract/assurance-core.algo.ts:642
     // premiumReserve: new arc4.Uint64(this.premiumReserve.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:642
+    // contracts/assurance-core/contract/assurance-core.algo.ts:643
     // totalOpenFaultExposure: new arc4.Uint64(this.totalOpenFaultExposure.value),
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:62
     // totalOpenFaultExposure = GlobalState<uint64>()
     bytec 8 // "totalOpenFaultExposure"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:642
+    // contracts/assurance-core/contract/assurance-core.algo.ts:643
     // totalOpenFaultExposure: new arc4.Uint64(this.totalOpenFaultExposure.value),
     app_global_get_ex
     assert // check GlobalState exists
     itob
-    // contracts/assurance-core/contract/assurance-core.algo.ts:639-643
+    // contracts/assurance-core/contract/assurance-core.algo.ts:640-644
     // return new AssuranceAccounting({
     //   totalProviderStake: new arc4.Uint64(this.totalProviderStake.value),
     //   premiumReserve: new arc4.Uint64(this.premiumReserve.value),
@@ -3518,7 +3526,7 @@ getAccounting:
     concat
     swap
     concat
-    // contracts/assurance-core/contract/assurance-core.algo.ts:637
+    // contracts/assurance-core/contract/assurance-core.algo.ts:638
     // @abimethod({ readonly: true })
     bytec 7 // 0x151f7c75
     swap
@@ -3529,7 +3537,7 @@ getAccounting:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.releaseExposure(coverageId: bytes, providerId: bytes) -> void:
 releaseExposure:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:598
+    // contracts/assurance-core/contract/assurance-core.algo.ts:599
     // private releaseExposure(coverageId: arc4.StaticBytes<32>, providerId: arc4.StaticBytes<32>): void {
     proto 2 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:67
@@ -3542,19 +3550,19 @@ releaseExposure:
     bytec_1 // "p"
     frame_dig -1
     concat
-    // contracts/assurance-core/contract/assurance-core.algo.ts:601
+    // contracts/assurance-core/contract/assurance-core.algo.ts:602
     // assert(coverage.exists, 'coverage missing')
     dig 1
     box_len
     bury 1
     assert // coverage missing
-    // contracts/assurance-core/contract/assurance-core.algo.ts:602
+    // contracts/assurance-core/contract/assurance-core.algo.ts:603
     // assert(provider.exists, 'provider missing')
     dup
     box_len
     bury 1
     assert // provider missing
-    // contracts/assurance-core/contract/assurance-core.algo.ts:603
+    // contracts/assurance-core/contract/assurance-core.algo.ts:604
     // assert(coverage.value.status.asUint64() === COVERAGE_STATUS_OPEN, 'coverage is not open')
     dig 1
     box_get
@@ -3565,7 +3573,7 @@ releaseExposure:
     intc_1 // 1
     ==
     assert // coverage is not open
-    // contracts/assurance-core/contract/assurance-core.algo.ts:604
+    // contracts/assurance-core/contract/assurance-core.algo.ts:605
     // assert(!coverage.value.exposureReleased.native, 'coverage exposure already released')
     dup
     intc 7 // 1536
@@ -3578,7 +3586,7 @@ releaseExposure:
     getbit
     !
     assert // coverage exposure already released
-    // contracts/assurance-core/contract/assurance-core.algo.ts:605
+    // contracts/assurance-core/contract/assurance-core.algo.ts:606
     // assert(provider.value.stakeLocked.asUint64() >= coverage.value.lockedStakeAmount.asUint64(), 'locked stake underflow')
     dig 1
     box_get
@@ -3592,7 +3600,7 @@ releaseExposure:
     dup2
     >=
     assert // locked stake underflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:606
+    // contracts/assurance-core/contract/assurance-core.algo.ts:607
     // assert(provider.value.openFaultExposure.asUint64() >= coverage.value.grossAmount.asUint64(), 'provider exposure underflow')
     uncover 2
     pushint 113
@@ -3604,13 +3612,13 @@ releaseExposure:
     dig 1
     >=
     assert // provider exposure underflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:607
+    // contracts/assurance-core/contract/assurance-core.algo.ts:608
     // assert(this.totalOpenFaultExposure.value >= coverage.value.grossAmount.asUint64(), 'global exposure underflow')
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:62
     // totalOpenFaultExposure = GlobalState<uint64>()
     bytec 8 // "totalOpenFaultExposure"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:607
+    // contracts/assurance-core/contract/assurance-core.algo.ts:608
     // assert(this.totalOpenFaultExposure.value >= coverage.value.grossAmount.asUint64(), 'global exposure underflow')
     app_global_get_ex
     assert // check GlobalState exists
@@ -3618,7 +3626,7 @@ releaseExposure:
     uncover 2
     >=
     assert // global exposure underflow
-    // contracts/assurance-core/contract/assurance-core.algo.ts:608
+    // contracts/assurance-core/contract/assurance-core.algo.ts:609
     // provider.value.stakeLocked = new arc4.Uint64(provider.value.stakeLocked.asUint64() - coverage.value.lockedStakeAmount.asUint64())
     cover 2
     -
@@ -3627,7 +3635,7 @@ releaseExposure:
     pushint 105
     uncover 2
     box_replace // on error: index out of bounds
-    // contracts/assurance-core/contract/assurance-core.algo.ts:609
+    // contracts/assurance-core/contract/assurance-core.algo.ts:610
     // provider.value.openFaultExposure = new arc4.Uint64(provider.value.openFaultExposure.asUint64() - coverage.value.grossAmount.asUint64())
     dig 1
     box_get
@@ -3645,7 +3653,7 @@ releaseExposure:
     pushint 113
     uncover 2
     box_replace // on error: index out of bounds
-    // contracts/assurance-core/contract/assurance-core.algo.ts:610
+    // contracts/assurance-core/contract/assurance-core.algo.ts:611
     // this.totalOpenFaultExposure.value -= coverage.value.grossAmount.asUint64()
     dig 1
     box_get
@@ -3656,11 +3664,11 @@ releaseExposure:
     // contracts/assurance-core/contract/assurance-core.algo.ts:62
     // totalOpenFaultExposure = GlobalState<uint64>()
     bytec 8 // "totalOpenFaultExposure"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:610
+    // contracts/assurance-core/contract/assurance-core.algo.ts:611
     // this.totalOpenFaultExposure.value -= coverage.value.grossAmount.asUint64()
     swap
     app_global_put
-    // contracts/assurance-core/contract/assurance-core.algo.ts:611
+    // contracts/assurance-core/contract/assurance-core.algo.ts:612
     // coverage.value.exposureReleased = new arc4.Bool(true)
     dup
     pushint 192
@@ -3677,13 +3685,13 @@ releaseExposure:
 
 // contracts/assurance-core/contract/assurance-core.algo.ts::AssuranceCore.requireUnpaused() -> void:
 requireUnpaused:
-    // contracts/assurance-core/contract/assurance-core.algo.ts:615
+    // contracts/assurance-core/contract/assurance-core.algo.ts:616
     // assert(this.paused.value === 0, 'protocol paused')
     intc_0 // 0
     // contracts/assurance-core/contract/assurance-core.algo.ts:58
     // paused = GlobalState<uint64>()
     bytec 10 // "paused"
-    // contracts/assurance-core/contract/assurance-core.algo.ts:615
+    // contracts/assurance-core/contract/assurance-core.algo.ts:616
     // assert(this.paused.value === 0, 'protocol paused')
     app_global_get_ex
     assert // check GlobalState exists

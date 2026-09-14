@@ -75,9 +75,24 @@ class LifecycleModel {
     this.actual += stake
   }
   balance(payer) { return this.payerBalances.get(payer) ?? 0n }
+  deposit(providerId, owner, amount) {
+    return this.transact(() => {
+      if (this.paused) throw new Error('protocol paused')
+      if (amount <= 0n) throw new Error('deposit amount must be positive')
+      const provider = this.providers.get(providerId)
+      if (!provider || provider.owner !== owner) throw new Error('provider owner only')
+      if (!provider.active) throw new Error('provider inactive')
+      if (amount > max - provider.stakeTotal || amount > max - this.totalStake || amount > max - this.actual) throw new Error('overflow')
+      provider.stakeTotal += amount
+      this.totalStake += amount
+      this.actual += amount
+      return amount
+    })
+  }
   open(id, providerId, payer, gross, premium, locked, expiresAt) {
     return this.transact(() => {
       if (this.paused) throw new Error('protocol paused')
+      if (!id) throw new Error('coverage id must be non-zero')
       if (this.coverages.has(id)) throw new Error('coverage already exists')
       const provider = this.providers.get(providerId)
       if (!provider?.active) throw new Error('provider unavailable')
@@ -101,9 +116,11 @@ class LifecycleModel {
     this.totalExposure -= coverage.gross
     coverage.released = true
   }
-  withdraw(providerId, owner, amount) {
+  withdraw(providerId, owner, amount, fee = 2n) {
     return this.transact(() => {
       if (this.paused) throw new Error('protocol paused')
+      if (!providerId) throw new Error('provider id must be non-zero')
+      if (fee < 2n) throw new Error('outer fee must pool inner fee')
       const provider = this.providers.get(providerId)
       if (!provider || provider.owner !== owner) throw new Error('provider owner only')
       if (amount <= 0n || provider.stakeTotal < amount || provider.stakeTotal - amount < provider.stakeLocked) throw new Error('unsafe withdrawal')
@@ -118,6 +135,7 @@ class LifecycleModel {
   }
   close(id) {
     return this.transact(() => {
+      if (!id) throw new Error('coverage id must be non-zero')
       const coverage = this.coverages.get(id)
       if (!coverage || coverage.status !== OPEN || coverage.released) throw new Error('coverage terminal')
       if (this.now < coverage.expiresAt) throw new Error('not expired')
@@ -128,6 +146,7 @@ class LifecycleModel {
   }
   finalize(claimId, coverageId, approved, amount, providerFault, resolutionCode) {
     return this.transact(() => {
+      if (!claimId || !coverageId) throw new Error('claim and coverage ids must be non-zero')
       if (this.claims.has(claimId)) throw new Error('claim already finalized')
       const coverage = this.coverages.get(coverageId)
       if (!coverage || coverage.status !== OPEN || coverage.released) throw new Error('coverage terminal')
@@ -245,52 +264,154 @@ test('lifecycle model proves rollback, waterfall, tombstones, stored payer, paus
   model.invariant()
 })
 
-test('seeded lifecycle state machine checks invariants after every successful transition', () => {
+test('seeded lifecycle state machine checks rollback and invariants across every required category', () => {
   const model = new LifecycleModel()
   model.addProvider('p1', 'owner-1', 500n)
   model.addProvider('p2', 'owner-2', 350n)
+  const counts = {
+    deposits: { success: 0, failure: 0 },
+    mixedPolicyOpens: { success: 0, failure: 0 },
+    partialWithdrawals: { success: 0, failure: 0 },
+    fullWithdrawals: { success: 0, failure: 0 },
+    expiryCloses: { success: 0, failure: 0 },
+    rejectedClaims: { success: 0, failure: 0 },
+    approvedPoolClaims: { success: 0, failure: 0 },
+    approvedFaultClaims: { success: 0, failure: 0 },
+    zeroCapacity: { success: 0, failure: 0 },
+  }
+  const attempt = (category, action) => {
+    const before = model.snapshot()
+    try {
+      const result = action()
+      counts[category].success += 1
+      model.invariant()
+      return result
+    } catch (error) {
+      counts[category].failure += 1
+      assert.deepEqual(model.snapshot(), before, `${category} failure restored complete state`)
+      model.invariant()
+      return undefined
+    }
+  }
+
+  attempt('deposits', () => model.deposit('p1', 'owner-1', 50n))
+  attempt('deposits', () => model.deposit('p1', 'wrong-owner', 1n))
+  attempt('deposits', () => model.deposit('p1', 'owner-1', 0n))
+  attempt('mixedPolicyOpens', () => model.open('m1', 'p1', 'payer-m1', 40n, 1n, 10n, 5n))
+  attempt('mixedPolicyOpens', () => model.open('m2', 'p1', 'payer-m2', 100n, 2n, 75n, 100n))
+  attempt('partialWithdrawals', () => model.withdraw('p1', 'owner-1', 1n))
+  attempt('partialWithdrawals', () => model.withdraw('p1', 'owner-1', 466n))
+  model.now = 5n
+  attempt('expiryCloses', () => model.close('m1'))
+  attempt('expiryCloses', () => model.close('m1'))
+  attempt('expiryCloses', () => model.close(''))
+  attempt('mixedPolicyOpens', () => model.open('m-expired', 'p2', 'payer-expired', 5n, 1n, 5n, 5n))
+  attempt('expiryCloses', () => model.close('m-expired'))
+  attempt('mixedPolicyOpens', () => model.open('m-paused-close', 'p2', 'payer-paused-close', 5n, 1n, 5n, 100n))
+  model.paused = true
+  model.now = 100n
+  attempt('expiryCloses', () => model.close('m-paused-close'))
+  model.paused = false
+
+  attempt('mixedPolicyOpens', () => model.open('m-rejected', 'p2', 'payer-rejected', 5n, 1n, 5n, 100n))
+  model.paused = true
+  attempt('rejectedClaims', () => model.finalize('claim-rejected', 'm-rejected', false, 0n, false, 1n))
+  model.paused = false
+  attempt('mixedPolicyOpens', () => model.open('m-pool', 'p2', 'payer-pool', 30n, 3n, 30n, 100n))
+  attempt('approvedPoolClaims', () => model.finalize('claim-pool', 'm-pool', true, 3n, false, 2n))
+
+  attempt('mixedPolicyOpens', () => model.open('m-other', 'p1', 'payer-other', 10n, 10n, 10n, 100n))
+  attempt('partialWithdrawals', () => model.withdraw('p1', 'owner-1', 439n))
+  attempt('mixedPolicyOpens', () => model.open('m-fault', 'p1', 'payer-fault', 100n, 100n, 25n, 100n))
+  const fault = attempt('approvedFaultClaims', () => model.finalize('claim-fault', 'm-fault', true, 100n, true, 3n))
+  assert.deepEqual([fault.stakeDebit, fault.poolDebit], [25n, 75n])
+  assert.equal(model.coverages.get('m-other').status, OPEN)
+  assert.equal(model.providers.get('p1').stakeLocked, 85n)
+  model.now = 100n
+  attempt('expiryCloses', () => model.close('m2'))
+  attempt('expiryCloses', () => model.close('m-other'))
+  attempt('fullWithdrawals', () => model.withdraw('p1', 'owner-1', 85n))
+  attempt('zeroCapacity', () => model.open('m-zero-capacity', 'p1', 'payer-zero', 1n, 1n, 1n, 300n))
+
+  model.providers.get('p2').active = false
+  attempt('partialWithdrawals', () => model.withdraw('p2', 'owner-2', 1n))
+  model.providers.get('p2').active = true
+  model.paused = true
+  attempt('partialWithdrawals', () => model.withdraw('p2', 'owner-2', 1n))
+  model.paused = false
+  attempt('partialWithdrawals', () => model.withdraw('', 'owner-2', 1n))
+  attempt('rejectedClaims', () => model.finalize('', 'm2', false, 0n, false, 1n))
+  attempt('rejectedClaims', () => model.finalize('claim-bad-bool', 'm2', false, 1n, false, 1n))
+
+  attempt('mixedPolicyOpens', () => model.open('race-claim-first', 'p2', 'payer-race-1', 5n, 1n, 5n, 300n))
+  attempt('approvedPoolClaims', () => model.finalize('claim-race-1', 'race-claim-first', true, 1n, false, 4n))
+  attempt('expiryCloses', () => model.close('race-claim-first'))
+  attempt('mixedPolicyOpens', () => model.open('race-close-first', 'p2', 'payer-race-2', 5n, 1n, 5n, 200n))
+  model.now = 200n
+  attempt('expiryCloses', () => model.close('race-close-first'))
+  attempt('rejectedClaims', () => model.finalize('claim-race-2', 'race-close-first', false, 0n, false, 4n))
+
   let seed = 0x9e3779b9
   const next = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed }
   let nextCoverage = 10
   let nextClaim = 10
   const openIds = () => [...model.coverages.entries()].filter(([, coverage]) => coverage.status === OPEN && !coverage.released)
-  for (let step = 0; step < 250; step += 1) {
+  for (let step = 0; step < 250 - 37; step += 1) {
     const roll = next() % 100
     const open = openIds()
-    try {
-      if (roll < 25) {
-        const providerId = next() % 2 === 0 ? 'p1' : 'p2'
-        const gross = BigInt(5 + (next() % 35))
-        const locked = gross
-        const premium = BigInt(1 + (next() % 4))
-        model.open(`s${nextCoverage++}`, providerId, `payer-${next() % 4}`, gross, premium, locked, model.now + BigInt(1 + (next() % 5)))
-      } else if (roll < 40) {
-        const providerId = next() % 2 === 0 ? 'p1' : 'p2'
-        const provider = model.providers.get(providerId)
-        model.withdraw(providerId, provider.owner, BigInt(1 + (next() % 8)))
-      } else if (roll < 55 && open.length) {
-        model.now += BigInt(next() % 6)
-        const [id] = open[next() % open.length]
-        model.close(id)
-      } else if (roll < 75 && open.length) {
-        const [id, coverage] = open[next() % open.length]
-        const amount = BigInt(1 + (next() % Number(coverage.gross)))
-        model.finalize(`sclaim${nextClaim++}`, id, false, 0n, false, 1n + BigInt(next() % 4))
-        assert.equal(amount <= coverage.gross, true)
-      } else if (open.length) {
-        const [id, coverage] = open[next() % open.length]
-        const amount = BigInt(1 + (next() % Number(coverage.gross)))
-        model.finalize(`sclaim${nextClaim++}`, id, true, amount, next() % 2 === 0, 1n + BigInt(next() % 4))
-      } else {
-        model.now += 1n
-      }
-    } catch {
-      // Failure is part of the seeded schedule; transact() must have restored state.
+    if (roll < 15) {
+      const providerId = next() % 2 === 0 ? 'p1' : 'p2'
+      const provider = model.providers.get(providerId)
+      attempt('deposits', () => model.deposit(providerId, provider.owner, BigInt(1 + (next() % 8))))
+    } else if (roll < 35) {
+      const providerId = next() % 2 === 0 ? 'p1' : 'p2'
+      const gross = BigInt(5 + (next() % 35))
+      const locked = BigInt(1 + (next() % Number(gross)))
+      const premium = BigInt(1 + (next() % 4))
+      attempt('mixedPolicyOpens', () => model.open(`s${nextCoverage++}`, providerId, `payer-${next() % 4}`, gross, premium, locked, model.now + BigInt(1 + (next() % 5))))
+    } else if (roll < 50) {
+      const providerId = next() % 2 === 0 ? 'p1' : 'p2'
+      const provider = model.providers.get(providerId)
+      attempt('partialWithdrawals', () => model.withdraw(providerId, provider.owner, BigInt(1 + (next() % 8))))
+    } else if (roll < 63 && open.length) {
+      model.now += BigInt(next() % 6)
+      const [id] = open[next() % open.length]
+      attempt('expiryCloses', () => model.close(id))
+    } else if (roll < 78 && open.length) {
+      const [id, coverage] = open[next() % open.length]
+      attempt('rejectedClaims', () => model.finalize(`sclaim${nextClaim++}`, id, false, 0n, false, 1n + BigInt(next() % 4)))
+      assert.equal(coverage.status !== OPEN, true)
+    } else if (open.length) {
+      const [id, coverage] = open[next() % open.length]
+      const amount = BigInt(1 + (next() % Number(coverage.gross)))
+      const providerFault = next() % 2 === 0
+      attempt(providerFault ? 'approvedFaultClaims' : 'approvedPoolClaims', () => model.finalize(`sclaim${nextClaim++}`, id, true, amount, providerFault, 1n + BigInt(next() % 4)))
+    } else {
+      model.now += 1n
     }
     model.invariant()
   }
+  for (const category of Object.keys(counts)) {
+    assert.ok(counts[category].success + counts[category].failure > 0, `${category} was attempted`)
+  }
+  assert.ok(counts.deposits.success > 0 && counts.deposits.failure > 0)
+  assert.ok(counts.rejectedClaims.success > 0 && counts.rejectedClaims.failure > 0)
+  assert.ok(counts.approvedPoolClaims.success > 0)
+  assert.ok(counts.approvedFaultClaims.success > 0)
+  assert.ok(counts.partialWithdrawals.success > 0 && counts.fullWithdrawals.success > 0)
+  assert.ok(counts.expiryCloses.success > 0 && counts.expiryCloses.failure > 0)
+  assert.ok(counts.zeroCapacity.failure > 0)
+  assert.deepEqual(counts, {
+    deposits: { success: 31, failure: 2 },
+    mixedPolicyOpens: { success: 40, failure: 6 },
+    partialWithdrawals: { success: 39, failure: 10 },
+    fullWithdrawals: { success: 1, failure: 0 },
+    expiryCloses: { success: 8, failure: 9 },
+    rejectedClaims: { success: 13, failure: 3 },
+    approvedPoolClaims: { success: 11, failure: 0 },
+    approvedFaultClaims: { success: 8, failure: 0 },
+    zeroCapacity: { success: 0, failure: 1 },
+  })
   assert.ok(model.claims.size > 0)
-  assert.ok([...model.claims.values()].some((claim) => claim.approved && claim.providerFault))
-  assert.ok([...model.claims.values()].some((claim) => claim.approved && !claim.providerFault))
-  assert.ok([...model.claims.values()].some((claim) => !claim.approved))
+  model.invariant()
 })

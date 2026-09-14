@@ -435,6 +435,7 @@ export class AssuranceCore extends Contract {
     assert(provider.value.stakeTotal.asUint64() >= amount, 'insufficient provider stake')
     assert(provider.value.stakeTotal.asUint64() - amount >= provider.value.stakeLocked.asUint64(), 'stake is locked')
     assert(this.totalProviderStake.value >= amount, 'insufficient global stake')
+    assert(Txn.fee >= Global.minTxnFee * 2, 'outer fee must pool inner fee')
 
     const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
     assert(applicationHolding >= amount, 'insufficient application asset balance')
