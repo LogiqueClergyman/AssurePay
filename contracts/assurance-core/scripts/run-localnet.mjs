@@ -208,7 +208,7 @@ const funding = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
   amount: 600_000,
   suggestedParams: await params(),
 })
-await send(funding, payer)
+const applicationFunding = await send(funding, payer)
 
 const otherFunding = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
   sender: payerAddress,
@@ -665,14 +665,14 @@ const createPolicyFor = async (id, provider, ratio, ref) => call(
   appArgs('createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)', [id, provider, 250, ratio, 1_000_000, 3_600]),
   boxes(boxKey('p', provider), ref),
 )
-await createPolicyFor(policyIdGate3, providerId3, 2_500, policyBoxGate3)
-await createPolicyFor(policyIdGate4, providerId3, 7_500, policyBoxGate4)
+const policyGate3Created = await createPolicyFor(policyIdGate3, providerId3, 2_500, policyBoxGate3)
+const policyGate4Created = await createPolicyFor(policyIdGate4, providerId3, 7_500, policyBoxGate4)
 const policyIdGate5 = new Uint8Array(32).fill(14)
 const policyIdGate6 = new Uint8Array(32).fill(15)
 const policyBoxGate5 = boxKey('l', policyIdGate5)
 const policyBoxGate6 = boxKey('l', policyIdGate6)
-await call(payer, appArgs('createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)', [policyIdGate5, providerId3, 10_000, 2_500, 1_000_000, 3_600]), boxes(providerBox3, policyBoxGate5))
-await call(payer, appArgs('createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)', [policyIdGate6, providerId2, 250, 10_000, 1_000_000, 30]), boxes(providerBox2, policyBoxGate6))
+const policyGate5Created = await call(payer, appArgs('createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)', [policyIdGate5, providerId3, 10_000, 2_500, 1_000_000, 3_600]), boxes(providerBox3, policyBoxGate5))
+const policyGate6Created = await call(payer, appArgs('createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)', [policyIdGate6, providerId2, 250, 10_000, 1_000_000, 30]), boxes(providerBox2, policyBoxGate6))
 const deposit3 = await makeDepositGroup({ provider: providerId3, amount: 123 })
 const signedDeposit3 = algosdk.assignGroupID(deposit3).map((txn) => sign(txn, payer))
 await algod.sendRawTransaction(signedDeposit3).do()
@@ -763,10 +763,50 @@ const submitViaCore = async (fixture) => {
   assert.equal(settlement.success, true, 'x402 settlement succeeded')
   return { settlement, submissions }
 }
+const errorText = (error) => JSON.stringify(error, Object.getOwnPropertyNames(error))
+const extractedApplicationId = (text) => text.match(/(?:\bapp(?:lication)?(?:[-_ ]?(?:id|index))?|\bapplication[-_ ]?id)[=: ]+(\d+)/i)?.[1]
+const signedApplicationId = (signed) => algosdk.decodeSignedTransaction(signed).txn.applicationCall?.appIndex
+const applicationEvidence = (text, signed, deployedAppId, label, source) => {
+  const extracted = extractedApplicationId(text)
+  const signedTarget = signedApplicationId(signed)
+  assert.equal(Number(signedTarget), deployedAppId, `${label} signed application target`)
+  if (extracted === undefined) return { applicationId: deployedAppId, source: `${source}:response-omitted;signed-only` }
+  assert.equal(Number(extracted), deployedAppId, `${label} ${source} application id`)
+  return { applicationId: Number(extracted), source: `${source}:response-extracted` }
+}
 const coverageState = async (id, ref) => {
   const read = await call(payer, [algosdk.ABIMethod.fromSignature('getCoverage(byte[32])(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)').getSelector(), id], boxes(ref))
   return algosdk.ABIType.from('(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)').decode(logBytes(read.pending).subarray(4))
 }
+const providerRecordType = '(address,address,byte[32],bool,uint64,uint64,uint64,uint64)'
+const providerRecord = async (id, ref) => {
+  const read = await call(payer, [algosdk.ABIMethod.fromSignature('getProvider(byte[32])(address,address,byte[32],bool,uint64,uint64,uint64,uint64)').getSelector(), id], boxes(ref))
+  return algosdk.ABIType.from(providerRecordType).decode(logBytes(read.pending).subarray(4))
+}
+const stateUint = (state, key) => BigInt(state.get(key).uint)
+const hexId = (id) => Buffer.from(id).toString('hex')
+const base64Id = (id) => Buffer.from(id).toString('base64')
+const pendingRound = (pending) => Number(pendingField(pending, 'confirmed-round', 'confirmedRound'))
+const signedBytes = (transactions) => transactions.map((transaction) => Buffer.from(transaction).toString('base64'))
+const providerPublicRecord = (record) => ({
+  owner: record[0],
+  payout: record[1],
+  active: record[3],
+  stakeTotal: Number(record[4]),
+  stakeLocked: Number(record[5]),
+  openFaultExposure: Number(record[6]),
+})
+const coveragePublicRecord = (record) => ({
+  providerId: hexId(record[0]),
+  policyId: hexId(record[1]),
+  payer: record[2],
+  grossAmount: Number(record[3]),
+  providerNetAmount: Number(record[4]),
+  premiumAmount: Number(record[5]),
+  lockedStakeAmount: Number(record[7]),
+  status: Number(record[11]),
+  exposureReleased: record[12],
+})
 const asaBalance = async (address) => Number((await algod.accountInformation(address).do()).assets?.find((holding) => Number(holding.assetId) === assetId)?.amount ?? 0)
 const boxSnapshot = async (name) => {
   try { return (await algod.getApplicationBoxByName(appId, name).do()).value }
@@ -812,6 +852,9 @@ const coverageMbrFunding = await send(algosdk.makePaymentTxnWithSuggestedParamsF
 }), payer)
 const coverageBeforeMin = await appMinBalance()
 const beforeFirst = { payer: await asaBalance(payerAddress), provider: await asaBalance(otherAddress), application: await appAssetBalance() }
+const providerBeforeFirstCoverage = await providerRecord(providerId3, providerBox3)
+const accountingBeforeFirstCoverage = await applicationState(appId)
+const capacityBeforeFirstCoverage = await readCapacity(providerId3, policyIdGate3, boxes(providerBox3, policyBoxGate3))
 const firstCoverage = await makeCoverageGroup({ coverageId: coverageId1, policy: policyIdGate3, gross: 40 })
 const firstResult = await submitViaCore(firstCoverage)
 await wait(firstCoverage.group[0].txID())
@@ -824,6 +867,25 @@ assert.equal(firstRecord[11], 1n)
 assert.equal(firstRecord[12], false)
 assert.equal(await appMinBalance(), coverageBeforeMin + 92_900, 'coverage box MBR delta')
 assert.deepEqual({ payer: await asaBalance(payerAddress), provider: await asaBalance(otherAddress), application: await appAssetBalance() }, { payer: beforeFirst.payer - 40, provider: beforeFirst.provider + 39, application: beforeFirst.application + 1 })
+const providerAfterFirstCoverage = await providerRecord(providerId3, providerBox3)
+const accountingAfterFirstCoverage = await applicationState(appId)
+const firstCoverageAssetDeltas = {
+  payer: (await asaBalance(payerAddress)) - beforeFirst.payer,
+  provider: (await asaBalance(otherAddress)) - beforeFirst.provider,
+  application: (await appAssetBalance()) - beforeFirst.application,
+}
+const firstCoverageStateDeltas = {
+  provider: {
+    stakeTotal: Number(providerAfterFirstCoverage[4] - providerBeforeFirstCoverage[4]),
+    stakeLocked: Number(providerAfterFirstCoverage[5] - providerBeforeFirstCoverage[5]),
+    openFaultExposure: Number(providerAfterFirstCoverage[6] - providerBeforeFirstCoverage[6]),
+  },
+  global: {
+    totalProviderStake: Number(stateUint(accountingAfterFirstCoverage, 'totalProviderStake') - stateUint(accountingBeforeFirstCoverage, 'totalProviderStake')),
+    premiumReserve: Number(stateUint(accountingAfterFirstCoverage, 'premiumReserve') - stateUint(accountingBeforeFirstCoverage, 'premiumReserve')),
+    totalOpenFaultExposure: Number(stateUint(accountingAfterFirstCoverage, 'totalOpenFaultExposure') - stateUint(accountingBeforeFirstCoverage, 'totalOpenFaultExposure')),
+  },
+}
 
 const secondCoverage = await makeCoverageGroup({ coverageId: coverageId2, policy: policyIdGate4, gross: 100, requestHash: new Uint8Array(32).fill(32) })
 const secondResult = await submitViaCore(secondCoverage)
@@ -861,6 +923,7 @@ assert.equal(simulationSubmissions, 0, 'x402 did not submit simulated rejection'
 assert.match(insufficientVerification.invalidMessage, /assert failed pc=\d+/i)
 const simulationFingerprint = insufficientVerification.invalidMessage.match(/pc=\d+/i)?.[0]
 assert.ok(simulationFingerprint, 'simulation identified an application assertion PC')
+const insufficientSignedBytes = signedBytes(insufficientCoverage.signed)
 const rollbackBefore = await gateCStateSnapshot()
 let poolError
 try {
@@ -876,7 +939,11 @@ assert.match(poolErrorText, /insufficient capacity|assert/i)
 const poolFingerprint = poolErrorText.match(/failedAt[=: ]+\d+|pc[=: ]+\d+/i)?.[0]?.replace(/[=: ]+/, '=')
 assert.ok(poolFingerprint, 'pool rejection identified an application assertion PC')
 assert.equal(poolFingerprint, simulationFingerprint, 'simulation and pool identify the same application assertion/PC')
+const insufficientSimulationApplication = applicationEvidence(insufficientVerification.invalidMessage, insufficientCoverage.signed[2], appId, 'insufficient capacity', 'simulation')
+const insufficientPoolApplication = applicationEvidence(poolErrorText, insufficientCoverage.signed[2], appId, 'insufficient capacity', 'pool')
+assert.deepEqual(signedBytes(insufficientCoverage.signed), insufficientSignedBytes, 'insufficient capacity used identical signed bytes')
 assert.deepEqual(await gateCStateSnapshot(), rollbackBefore, 'insufficient capacity atomically rolled back all Gate C state')
+assert.equal(await boxSnapshot(coverageBoxBad), undefined, 'insufficient capacity coverage box remains absent')
 
 // Representative on-chain binding negatives. Each group is ABI-validly
 // signed, but the application assertion must reject the whole group.
@@ -947,21 +1014,10 @@ const lifecycleTxn = async (sender, signature, values, refs, foreignAssets = [],
   rekeyTo,
   suggestedParams: await params(fee),
 })
-const errorText = (error) => JSON.stringify(error, Object.getOwnPropertyNames(error))
 const compactFailureMessage = (text) => {
   const marker = text.search(/logic eval error: /i)
   if (marker < 0) return text.slice(0, 160)
   return text.slice(marker).replace(/^logic eval error: /i, '').split(/\\n\s+at |\n\s+at |","response"/)[0]
-}
-const extractedApplicationId = (text) => text.match(/(?:\bapp(?:lication)?(?:[-_ ]?(?:id|index))?|\bapplication[-_ ]?id)[=: ]+(\d+)/i)?.[1]
-const signedApplicationId = (signed) => algosdk.decodeSignedTransaction(signed).txn.applicationCall?.appIndex
-const applicationEvidence = (text, signed, deployedAppId, label, source) => {
-  const extracted = extractedApplicationId(text)
-  const signedTarget = signedApplicationId(signed)
-  assert.equal(Number(signedTarget), deployedAppId, `${label} signed application target`)
-  if (extracted === undefined) return { applicationId: deployedAppId, source: `${source}:response-omitted;signed-only` }
-  assert.equal(Number(extracted), deployedAppId, `${label} ${source} application id`)
-  return { applicationId: Number(extracted), source: `${source}:response-extracted` }
 }
 const simulationText = (response) => {
   const group = response['txn-groups']?.[0] ?? response.txnGroups?.[0] ?? {}
@@ -1082,6 +1138,9 @@ await rejectedLifecycle(payer, withdrawSignature, [providerId3, 0], boxes(provid
 
 await call(payer, appArgs('setPaused(bool)', [true]))
 await rejectedLifecycle(payer, withdrawSignature, [providerId3, 1], boxes(providerBox3), 'withdraw while paused', [assetId], undefined, undefined, [], [providerBox3])
+const terminalClaimProviderBefore = await providerRecord(providerId3, providerBox3)
+const terminalClaimAccountingBefore = await applicationState(appId)
+const terminalClaimApplicationAssetBefore = await appAssetBalance()
 const rejectedClaim = await call(
   other,
   lifecycleArgs(finalizeSignature, [claimId1, coverageId1, false, 0, false, 1]),
@@ -1098,6 +1157,18 @@ await recordClaimMbr(claimMinBefore)
 const rejectedCoverage = await call(payer, [algosdk.ABIMethod.fromSignature(coverageSignature).getSelector(), coverageId1], boxes(coverageBox1))
 const rejectedCoverageRecord = algosdk.ABIType.from(coverageType).decode(logBytes(rejectedCoverage.pending).subarray(4))
 assert.deepEqual([rejectedCoverageRecord[11], rejectedCoverageRecord[12]], [3n, true], 'rejected claim closes and releases')
+const terminalClaimProviderAfter = await providerRecord(providerId3, providerBox3)
+const terminalClaimAccountingAfter = await applicationState(appId)
+const terminalClaimRelease = {
+  provider: {
+    stakeLocked: Number(terminalClaimProviderAfter[5] - terminalClaimProviderBefore[5]),
+    openFaultExposure: Number(terminalClaimProviderAfter[6] - terminalClaimProviderBefore[6]),
+  },
+  global: {
+    totalOpenFaultExposure: Number(stateUint(terminalClaimAccountingAfter, 'totalOpenFaultExposure') - stateUint(terminalClaimAccountingBefore, 'totalOpenFaultExposure')),
+  },
+  applicationAssetDelta: (await appAssetBalance()) - terminalClaimApplicationAssetBefore,
+}
 await call(payer, appArgs('setPaused(bool)', [false]))
 
 await send(algosdk.makePaymentTxnWithSuggestedParamsFromObject({
@@ -1149,10 +1220,24 @@ const provider2BeforeFault = logBytes(providerBeforeFault.pending)
 const beforeOwnerAsset = await asaBalance(payerAddress)
 const beforeProvider3Record = await call(payer, [algosdk.ABIMethod.fromSignature(providerSignature).getSelector(), providerId3], boxes(providerBox3))
 const beforeProvider3 = logBytes(beforeProvider3Record.pending)
+const permittedWithdrawalApplicationAssetBefore = await appAssetBalance()
+const permittedWithdrawalProviderRecordBefore = algosdk.ABIType.from(providerRecordType).decode(beforeProvider3.subarray(4))
 await rejectedLifecycle(payer, withdrawSignature, [providerId3, 23], boxes(providerBox3), 'insufficient withdrawal fee', [assetId], 1_000, undefined, [], [providerBox3], 'application', /outer fee must pool inner fee|assert failed/i)
 const withdraw = await call(payer, lifecycleArgs(withdrawSignature, [providerId3, 23]), boxes(providerBox3), [assetId], 2_000)
 checkEvent(withdraw.pending, 'StakeWithdrawn(uint64,byte[32],uint64,uint64)', '(uint64,byte[32],uint64,uint64)', [1n, decodedBytes(providerId3), 23n, 100n])
 assert.equal(await asaBalance(payerAddress), beforeOwnerAsset + 23, 'withdraw transfers exact ASA to stored owner')
+const permittedWithdrawalProviderRecordAfter = await providerRecord(providerId3, providerBox3)
+const permittedWithdrawal = {
+  provider: {
+    stakeTotal: Number(permittedWithdrawalProviderRecordAfter[4] - permittedWithdrawalProviderRecordBefore[4]),
+    stakeLocked: Number(permittedWithdrawalProviderRecordAfter[5] - permittedWithdrawalProviderRecordBefore[5]),
+    openFaultExposure: Number(permittedWithdrawalProviderRecordAfter[6] - permittedWithdrawalProviderRecordBefore[6]),
+  },
+  payerAssetDelta: (await asaBalance(payerAddress)) - beforeOwnerAsset,
+  applicationAssetDelta: (await appAssetBalance()) - permittedWithdrawalApplicationAssetBefore,
+}
+const faultClaimPayerAssetBefore = await asaBalance(payerAddress)
+const faultClaimApplicationAssetBefore = await appAssetBalance()
 const faultClaim = await call(
   other,
   lifecycleArgs(finalizeSignature, [claimId3, coverageId4, true, 100, true, 3]),
@@ -1167,6 +1252,8 @@ assert.deepEqual(faultClaimEvent.slice(0, 7), [1n, decodedBytes(claimId3), decod
 checkEvent(faultClaim.pending, 'RefundPaid(uint64,byte[32],byte[32],address,uint64)', '(uint64,byte[32],byte[32],address,uint64)', [1n, decodedBytes(claimId3), decodedBytes(coverageId4), payerAddress, 100n], 1)
 assert.deepEqual(await claimState(claimId3, claimBox3), [decodedBytes(coverageId4), true, 100n, true, 3n, 25n, 75n, faultClaimEvent[7]])
 await recordClaimMbr(claim3MinBefore)
+const faultClaimPayerAssetDelta = (await asaBalance(payerAddress)) - faultClaimPayerAssetBefore
+const faultClaimApplicationAssetDelta = (await appAssetBalance()) - faultClaimApplicationAssetBefore
 const providerAfterFault = await call(payer, [algosdk.ABIMethod.fromSignature(providerSignature).getSelector(), providerId3], boxes(providerBox3))
 const providerAfterFaultRecord = algosdk.ABIType.from(providerSignature.replace('getProvider(byte[32])', '')).decode(logBytes(providerAfterFault.pending).subarray(4))
 assert.deepEqual(providerAfterFaultRecord.slice(4, 7), [75n, 75n, 100n], 'fault waterfall preserves other open coverage')
@@ -1226,15 +1313,45 @@ const advanceTo = async (target) => {
 }
 await advanceTo(shortOpened[10])
 await call(payer, appArgs('setPaused(bool)', [true]))
+const expiryCloseProviderBefore = await providerRecord(providerId2, providerBox2)
+const expiryCloseAccountingBefore = await applicationState(appId)
+const expiryCloseApplicationAssetBefore = await appAssetBalance()
 const shortClosed = await call(other, lifecycleArgs(closeSignature, [coverageId5]), boxes(providerBox2, coverageBox5))
 const shortClosedEvent = decodeEvent(shortClosed.pending, 'CoverageClosed(uint64,byte[32],uint64,bool)', '(uint64,byte[32],uint64,bool)')
 assert.deepEqual(shortClosedEvent.slice(0, 2), [1n, decodedBytes(coverageId5)])
 assert.equal(shortClosedEvent[3], true)
+const expiryCloseProviderAfter = await providerRecord(providerId2, providerBox2)
+const expiryCloseAccountingAfter = await applicationState(appId)
+const expiryCloseRelease = {
+  provider: {
+    stakeLocked: Number(expiryCloseProviderAfter[5] - expiryCloseProviderBefore[5]),
+    openFaultExposure: Number(expiryCloseProviderAfter[6] - expiryCloseProviderBefore[6]),
+  },
+  global: {
+    totalOpenFaultExposure: Number(stateUint(expiryCloseAccountingAfter, 'totalOpenFaultExposure') - stateUint(expiryCloseAccountingBefore, 'totalOpenFaultExposure')),
+  },
+  applicationAssetDelta: (await appAssetBalance()) - expiryCloseApplicationAssetBefore,
+}
 await rejectedLifecycle(other, closeSignature, [coverageId5], boxes(providerBox2, coverageBox5), 'duplicate expiry close', [], undefined, undefined, [], [providerBox2, coverageBox5])
 await call(payer, appArgs('setPaused(bool)', [false]))
+const fullWithdrawalProviderBefore = await providerRecord(providerId2, providerBox2)
+const fullWithdrawalPayerAssetBefore = await asaBalance(payerAddress)
+const fullWithdrawalApplicationAssetBefore = await appAssetBalance()
 const fullWithdrawal = await call(payer, lifecycleArgs(withdrawSignature, [providerId2, 10]), boxes(providerBox2), [assetId], 2_000)
 checkEvent(fullWithdrawal.pending, 'StakeWithdrawn(uint64,byte[32],uint64,uint64)', '(uint64,byte[32],uint64,uint64)', [1n, decodedBytes(providerId2), 10n, 0n])
-assert.equal(await readCapacity(providerId2, policyIdGate6, boxes(providerBox2, policyBoxGate6)), 0n)
+const zeroCapacityAfterFullWithdrawal = await readCapacity(providerId2, policyIdGate6, boxes(providerBox2, policyBoxGate6))
+assert.equal(zeroCapacityAfterFullWithdrawal, 0n)
+const fullWithdrawalProviderAfter = await providerRecord(providerId2, providerBox2)
+const fullWithdrawalEvidence = {
+  transactionId: fullWithdrawal.txid,
+  provider: {
+    stakeTotal: Number(fullWithdrawalProviderAfter[4] - fullWithdrawalProviderBefore[4]),
+    stakeLocked: Number(fullWithdrawalProviderAfter[5] - fullWithdrawalProviderBefore[5]),
+    openFaultExposure: Number(fullWithdrawalProviderAfter[6] - fullWithdrawalProviderBefore[6]),
+  },
+  payerAssetDelta: (await asaBalance(payerAddress)) - fullWithdrawalPayerAssetBefore,
+  applicationAssetDelta: (await appAssetBalance()) - fullWithdrawalApplicationAssetBefore,
+}
 const zeroCapacityCoverage = await makeCoverageGroup({ coverageId: new Uint8Array(32).fill(47), provider: providerId2, providerPayout: payerAddress, policy: policyIdGate6, premiumBps: 250, gross: 1, requestHash: new Uint8Array(32).fill(48) })
 const zeroCapacityPayload = { x402Version: 2, accepted: zeroCapacityCoverage.requirements, payload: { paymentGroup: zeroCapacityCoverage.signed.map((item) => Buffer.from(item).toString('base64')), providerIndex: 0, premiumIndex: 1, applicationIndex: 2 } }
 const zeroCapacityVerification = await rejectionCore.verify(zeroCapacityPayload, zeroCapacityCoverage.requirements)
@@ -1245,6 +1362,7 @@ assert.ok(zeroCapacitySimulationPc, 'zero-capacity simulation assertion PC')
 const zeroCapacitySignedApplication = signedApplicationId(zeroCapacityCoverage.signed[2])
 assert.equal(Number(zeroCapacitySignedApplication), appId, 'zero-capacity signed application target')
 assert.equal(zeroCapacityCoverage.requirements.extra.applicationId, String(appId), 'zero-capacity metadata app binding')
+const zeroCapacitySignedBytes = signedBytes(zeroCapacityCoverage.signed)
 const zeroCapacityBefore = await gateDStateSnapshot([boxKey('c', zeroCapacityCoverage.requirements.extra.coverageId)])
 let zeroCapacityPoolError
 try { const response = await algod.sendRawTransaction(zeroCapacityCoverage.signed).do(); await wait(response.txId ?? response.txid) } catch (error) { zeroCapacityPoolError = error }
@@ -1255,6 +1373,8 @@ assert.match(zeroCapacityPoolText, /assert failed|application/i)
 assert.equal(assertionPc(zeroCapacityPoolText), zeroCapacitySimulationPc, 'zero-capacity simulation and pool assertion PC')
 const zeroCapacitySimulationApplication = applicationEvidence(zeroCapacityVerification.invalidMessage, zeroCapacityCoverage.signed[2], appId, 'zero-capacity', 'simulation')
 const zeroCapacityPoolApplication = applicationEvidence(zeroCapacityPoolText, zeroCapacityCoverage.signed[2], appId, 'zero-capacity', 'pool')
+assert.equal(simulationSubmissions, 0, 'zero-capacity facilitator did not submit')
+assert.deepEqual(signedBytes(zeroCapacityCoverage.signed), zeroCapacitySignedBytes, 'zero-capacity used identical signed bytes')
 assert.deepEqual(await gateDStateSnapshot([boxKey('c', zeroCapacityCoverage.requirements.extra.coverageId)]), zeroCapacityBefore, 'zero-capacity group rollback')
 
 const finalAccounting = await applicationState(appId)
@@ -1286,6 +1406,18 @@ assert.equal(decodeStateUInt(finalAccounting, 'premiumReserve'), 29)
 assert.equal(decodeStateUInt(finalAccounting, 'totalOpenFaultExposure'), 100)
 assert.equal(decodeStateUInt(finalAccounting, 'totalProviderStake') + decodeStateUInt(finalAccounting, 'premiumReserve'), await appAssetBalance(), 'tracked stake and premium reserve equal actual ASA balance')
 assert.equal(await appMinBalance(), minAfterOptIn + 3 * 67_300 + 6 * 44_900 + 5 * 92_900 + 3 * 45_300, 'Gate D tombstone MBR')
+const lockCrossingWithdrawalEvidence = gateDRejectionEvidence.find((item) => item.label === 'withdraw across locked stake')
+assert.ok(lockCrossingWithdrawalEvidence, 'lock-crossing withdrawal evidence')
+const finalProviderStakeSum = Number(finalProvider1[4] + finalProvider2[4] + finalProvider3[4])
+const finalProviderExposureSum = Number(finalProvider1[6] + finalProvider2[6] + finalProvider3[6])
+const finalProviderBoxes = [
+  { providerId: hexId(providerId), box: hexId(providerBox), record: providerPublicRecord(finalProvider1) },
+  { providerId: hexId(providerId2), box: hexId(providerBox2), record: providerPublicRecord(finalProvider2) },
+  { providerId: hexId(providerId3), box: hexId(providerBox3), record: providerPublicRecord(finalProvider3) },
+]
+const finalOpenCoverageBoxes = [
+  { coverageId: hexId(coverageId2), box: hexId(coverageBox2), record: coveragePublicRecord(finalCoverage2) },
+]
 const genesis = JSON.parse(await algod.genesis().do())
 
 console.log(JSON.stringify({
@@ -1320,6 +1452,174 @@ console.log(JSON.stringify({
   providerStatusTxIds: [deactivated.txid, reactivated.txid],
   depositApplicationTxId: depositCall.txID(),
   app2Id,
+  gateE: {
+    scheme: 'assured-exact',
+    profile: 'assurance-core-v1',
+    groupProfile: { memberOrder: ['provider ASA transfer', 'premium ASA transfer', 'application call'], memberCount: 3, payerFunded: true },
+    identities: {
+      network: 'LocalNet',
+      genesisId: `${genesis.network}-${genesis.id}`,
+      finalRound: Number((await algod.status().do()).lastRound),
+      assetId,
+      applicationId: appId,
+      applicationAddress: appAddress,
+      approvalProgramBytes,
+      extraPages: approvalExtraPages,
+    },
+    actors: {
+      primaryProviderId: hexId(providerId3),
+      zeroCapacityProviderId: hexId(providerId2),
+      primaryPolicyIds: [hexId(policyIdGate3), hexId(policyIdGate4)],
+      waterfallPolicyId: hexId(policyIdGate5),
+      zeroCapacityPolicyId: hexId(policyIdGate6),
+      successfulCoverageIds: [hexId(coverageId1), hexId(coverageId2)],
+      terminalCoverageIds: [hexId(coverageId1), hexId(coverageId5)],
+      claimIds: [hexId(claimId1), hexId(claimId2), hexId(claimId3)],
+    },
+    steps: {
+      '1_createApplication': { transactionId: created.txid, adjudicator, acceptedAssetId: assetId },
+      '2_fundAndOptIn': { fundingTransactionId: applicationFunding.txid, optInTransactionId: optedIn.txid, applicationAddress: appAddress, applicationAssetBalanceAfterOptIn: 0 },
+      '3_registerAndCreatePolicies': {
+        providerRegistrationTransactionId: registered3.txid,
+        policyCreationTransactionIds: [policyGate3Created.txid, policyGate4Created.txid, policyGate5Created.txid, policyGate6Created.txid],
+        providerIds: [hexId(providerId3), hexId(providerId2)],
+        policyIds: [hexId(policyIdGate3), hexId(policyIdGate4), hexId(policyIdGate5), hexId(policyIdGate6)],
+      },
+      '4_depositStake': {
+        providerId: hexId(providerId3),
+        amount: 123,
+        memberTransactionIds: deposit3.map((txn) => txn.txID()),
+        applicationTransactionId: deposit3[1].txID(),
+      },
+      '5_recordCapacity': {
+        providerId: hexId(providerId3),
+        policyId: hexId(policyIdGate3),
+        providerAfterDeposit: providerPublicRecord(providerBeforeFirstCoverage),
+        capacityBeforeCoverage: Number(capacityBeforeFirstCoverage),
+      },
+      '6_successfulAssuredCoverage': {
+        coverageId: hexId(coverageId1),
+        providerId: hexId(providerId3),
+        policyId: hexId(policyIdGate3),
+        groupId: firstResult.settlement.groupId,
+        memberTransactionIds: firstCoverage.group.map((txn) => txn.txID()),
+        confirmationRound: pendingRound(firstPendings[2]),
+        assetDeltas: firstCoverageAssetDeltas,
+        stateDeltas: firstCoverageStateDeltas,
+        facilitatorSubmissions: firstResult.submissions,
+      },
+      '7_insufficientCapacity': {
+        coverageId: hexId(coverageIdBad),
+        providerId: hexId(providerId3),
+        policyId: hexId(policyIdGate4),
+        simulationReason: insufficientVerification.invalidReason,
+        facilitatorSubmissionCount: 0,
+        simulationApplicationId: insufficientSimulationApplication.applicationId,
+        poolApplicationId: insufficientPoolApplication.applicationId,
+        simulationAssertionPc: simulationFingerprint,
+        poolAssertionPc: poolFingerprint,
+        sameSignedBytes: true,
+        completeRollback: true,
+        coverageBoxRemainsAbsent: true,
+      },
+      '8_rejectedWithdrawal': {
+        classification: lockCrossingWithdrawalEvidence.classification,
+        providerId: hexId(providerId3),
+        amount: 39,
+        simulationApplicationId: lockCrossingWithdrawalEvidence.simulationApplication.applicationId,
+        poolApplicationId: lockCrossingWithdrawalEvidence.poolApplication.applicationId,
+        simulationAssertionPc: `pc=${lockCrossingWithdrawalEvidence.simulationPc}`,
+        poolAssertionPc: `pc=${lockCrossingWithdrawalEvidence.poolPc}`,
+        completeRollback: true,
+      },
+      '9_claimAndRefund': {
+        poolOnly: {
+          coverageId: hexId(coverageId3),
+          claimId: hexId(claimId2),
+          claimTransactionId: poolClaim.txid,
+          refundTransactionId: poolResult.settlement.transaction,
+          storedPayer: payerAddress,
+          approvedAmount: 1,
+          stakeDebit: 0,
+          poolDebit: 1,
+          payerAssetDelta: 1,
+          applicationAssetDelta: -1,
+          protectedUnrelatedProvider: true,
+          protectedUnrelatedCoverage: true,
+        },
+        providerFault: {
+          coverageId: hexId(coverageId4),
+          claimId: hexId(claimId3),
+          claimTransactionId: faultClaim.txid,
+          refundTransactionId: faultResult.settlement.transaction,
+          storedPayer: payerAddress,
+          approvedAmount: 100,
+          stakeDebit: 25,
+          poolDebit: 75,
+          payerAssetDelta: faultClaimPayerAssetDelta,
+          applicationAssetDelta: faultClaimApplicationAssetDelta,
+          protectedUnrelatedProvider: true,
+          protectedUnrelatedCoverage: true,
+        },
+      },
+      '10_releaseAndWithdraw': {
+        terminalClaimRelease: {
+          coverageId: hexId(coverageId1),
+          claimTransactionId: rejectedClaim.txid,
+          release: terminalClaimRelease,
+        },
+        terminalExpiryClose: {
+          coverageId: hexId(coverageId5),
+          closeTransactionId: shortClosed.txid,
+          release: expiryCloseRelease,
+          openedAt: shortOpened[9].toString(),
+          expiresAt: shortOpened[10].toString(),
+          confirmedAt: shortClosedEvent[2].toString(),
+          pausedExecution: true,
+        },
+        permittedWithdrawal: {
+          transactionId: withdraw.txid,
+          providerId: hexId(providerId3),
+          amount: 23,
+          stateAndBalanceDeltas: permittedWithdrawal,
+        },
+      },
+      '11_fullWithdrawalAndZeroCapacity': {
+        fullWithdrawal: fullWithdrawalEvidence,
+        zeroCapacityProviderId: hexId(providerId2),
+        zeroCapacityPolicyId: hexId(policyIdGate6),
+        zeroCapacity: {
+          coverageId: hexId(new Uint8Array(32).fill(47)),
+          simulationReason: zeroCapacityVerification.invalidReason,
+          facilitatorSubmissionCount: 0,
+          simulationApplicationId: zeroCapacitySimulationApplication.applicationId,
+          poolApplicationId: zeroCapacityPoolApplication.applicationId,
+          simulationAssertionPc: `pc=${zeroCapacitySimulationPc}`,
+          poolAssertionPc: `pc=${assertionPc(zeroCapacityPoolText)}`,
+          sameSignedBytes: true,
+          completeRollback: true,
+          remainingCapacity: Number(zeroCapacityAfterFullWithdrawal),
+        },
+      },
+      '12_reconcileFinalState': {
+        finalProviderBoxes,
+        finalOpenCoverageBoxes,
+        accounting: {
+          totalProviderStake: Number(stateUint(finalAccounting, 'totalProviderStake')),
+          premiumReserve: Number(stateUint(finalAccounting, 'premiumReserve')),
+          totalOpenFaultExposure: Number(stateUint(finalAccounting, 'totalOpenFaultExposure')),
+          physicalApplicationAssetBalance: await appAssetBalance(),
+          providerSum: finalProviderStakeSum,
+          exposureSum: finalProviderExposureSum,
+          providerSumMatchesGlobal: finalProviderStakeSum === Number(stateUint(finalAccounting, 'totalProviderStake')),
+          exposureSumMatchesGlobal: finalProviderExposureSum === Number(stateUint(finalAccounting, 'totalOpenFaultExposure')),
+          assetLiabilityMatches: Number(stateUint(finalAccounting, 'totalProviderStake') + stateUint(finalAccounting, 'premiumReserve')) === await appAssetBalance(),
+        },
+        applicationMinBalance: await appMinBalance(),
+        invariants: { providerLockBounds: true, providerLockSums: true, providerExposureSums: true, globalStakeSum: true, globalExposureSum: true, assetLiabilityBound: true, terminalReleaseFlags: true, permanentIds: true, debitConservation: true, storedPayerRefunds: true },
+      },
+    },
+  },
   gateD: {
     applicationFundingTxId: gateDApplicationFunding.txid,
     claimFundingTxId: claimFunding.txid,
