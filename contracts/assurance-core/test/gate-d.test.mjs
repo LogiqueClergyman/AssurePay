@@ -123,7 +123,9 @@ class LifecycleModel {
       if (fee < 2n) throw new Error('outer fee must pool inner fee')
       const provider = this.providers.get(providerId)
       if (!provider || provider.owner !== owner) throw new Error('provider owner only')
-      if (amount <= 0n || provider.stakeTotal < amount || provider.stakeTotal - amount < provider.stakeLocked) throw new Error('unsafe withdrawal')
+      if (amount <= 0n) throw new Error('withdrawal amount must be positive')
+      if (provider.stakeTotal < amount) throw new Error('insufficient provider stake')
+      if (provider.stakeTotal - amount < provider.stakeLocked) throw new Error('stake is locked')
       if (this.totalStake < amount || this.actual < amount) throw new Error('balance underflow')
       const nextTotal = this.totalStake - amount
       if (nextTotal + this.reserve > this.actual - amount) throw new Error('tracked stake exceeds balance')
@@ -214,7 +216,7 @@ test('lifecycle model proves rollback, waterfall, tombstones, stored payer, paus
   model.invariant()
 
   const beforeFailedWithdrawal = model.snapshot()
-  assert.throws(() => model.withdraw('p1', 'owner-1', 161n), /unsafe withdrawal/)
+  assert.throws(() => model.withdraw('p1', 'owner-1', 161n), /stake is locked/)
   assert.deepEqual(structuredClone(model), beforeFailedWithdrawal)
   assert.throws(() => model.withdraw('p1', 'wrong-owner', 1n), /owner/)
   model.paused = true
@@ -264,10 +266,85 @@ test('lifecycle model proves rollback, waterfall, tombstones, stored payer, paus
   model.invariant()
 })
 
+test('lifecycle model proves stake-only provider-fault waterfall and exact physical accounting', () => {
+  const model = new LifecycleModel()
+  model.addProvider('p1', 'owner-1', 100n)
+  model.open('stake-only', 'p1', 'payer-stake-only', 40n, 1n, 20n, 100n)
+  model.open('protected', 'p1', 'payer-protected', 10n, 1n, 50n, 100n)
+  const reserveBefore = model.reserve
+  const stakeBefore = model.totalStake
+  const actualBefore = model.actual
+  const claim = model.finalize('claim-stake-only', 'stake-only', true, 20n, true, 7n)
+  assert.deepEqual([claim.stakeDebit, claim.poolDebit], [20n, 0n])
+  assert.equal(model.reserve, reserveBefore)
+  assert.equal(model.totalStake, stakeBefore - 20n)
+  assert.equal(model.actual, actualBefore - 20n)
+  assert.equal(model.balance('payer-stake-only'), 20n)
+  assert.equal(model.balance('payer-protected'), 0n)
+  assert.equal(model.coverages.get('protected').status, OPEN)
+  assert.equal(model.providers.get('p1').stakeLocked, 50n)
+  assert.equal(model.providers.get('p1').exposure, 10n)
+  assert.deepEqual(model.claims.get('claim-stake-only'), {
+    coverageId: 'stake-only', approved: true, approvedAmount: 20n, providerFault: true,
+    resolutionCode: 7n, stakeDebit: 20n, poolDebit: 0n, resolvedAt: 0n,
+  })
+  model.invariant()
+})
+
+test('withdrawal model covers every bound with full rollback and inactive success', () => {
+  const model = new LifecycleModel()
+  model.addProvider('p1', 'owner-1', 10n)
+  const defensiveAttempt = (action, message) => {
+    const before = model.snapshot()
+    assert.throws(action, message)
+    assert.deepEqual(model.snapshot(), before, 'defensive withdrawal restored complete injected state')
+  }
+  defensiveAttempt(() => model.withdraw('p1', 'owner-1', 1n, 1n), /outer fee/)
+  model.actual = 0n
+  defensiveAttempt(() => model.withdraw('p1', 'owner-1', 1n), /balance underflow/)
+  model.actual = 10n
+  model.totalStake = 0n
+  defensiveAttempt(() => model.withdraw('p1', 'owner-1', 1n), /balance underflow/)
+  model.totalStake = 10n
+  model.reserve = 5n
+  model.actual = 14n
+  defensiveAttempt(() => model.withdraw('p1', 'owner-1', 1n), /tracked stake exceeds balance/)
+
+  const boundary = new LifecycleModel()
+  boundary.addProvider('max-provider', 'max-owner', max)
+  assert.equal(boundary.withdraw('max-provider', 'max-owner', max), max)
+  boundary.invariant()
+
+  const inactive = new LifecycleModel()
+  inactive.addProvider('inactive-provider', 'inactive-owner', 9n, false)
+  const inactiveBefore = inactive.snapshot()
+  assert.equal(inactive.withdraw('inactive-provider', 'inactive-owner', 9n), 9n)
+  assert.equal(inactive.providers.get('inactive-provider').active, false)
+  assert.equal(inactive.totalStake, 0n)
+  assert.equal(inactive.actual, 0n)
+  assert.notDeepEqual(inactive.snapshot(), inactiveBefore)
+  inactive.invariant()
+
+  const ordinary = new LifecycleModel()
+  ordinary.addProvider('ordinary', 'ordinary-owner', 20n)
+  ordinary.providers.get('ordinary').stakeLocked = 5n
+  ordinary.providers.get('ordinary').exposure = 1n
+  ordinary.coverages.set('ordinary-open', { providerId: 'ordinary', payer: 'payer', gross: 1n, premium: 0n, locked: 5n, expiresAt: 10n, status: OPEN, released: false })
+  const ordinaryAttempt = (action, message) => {
+    const before = ordinary.snapshot()
+    assert.throws(action, message)
+    assert.deepEqual(ordinary.snapshot(), before, 'ordinary withdrawal restored complete state')
+  }
+  ordinaryAttempt(() => ordinary.withdraw('ordinary', 'ordinary-owner', 0n), /positive/)
+  ordinaryAttempt(() => ordinary.withdraw('ordinary', 'ordinary-owner', 21n), /stake/)
+  ordinaryAttempt(() => ordinary.withdraw('ordinary', 'ordinary-owner', 16n), /locked/)
+})
+
 test('seeded lifecycle state machine checks rollback and invariants across every required category', () => {
   const model = new LifecycleModel()
   model.addProvider('p1', 'owner-1', 500n)
   model.addProvider('p2', 'owner-2', 350n)
+  let scheduledSteps = 0
   const counts = {
     deposits: { success: 0, failure: 0 },
     mixedPolicyOpens: { success: 0, failure: 0 },
@@ -279,7 +356,8 @@ test('seeded lifecycle state machine checks rollback and invariants across every
     approvedFaultClaims: { success: 0, failure: 0 },
     zeroCapacity: { success: 0, failure: 0 },
   }
-  const attempt = (category, action) => {
+  const attempt = (category, action, countAsStep = true) => {
+    if (countAsStep) scheduledSteps += 1
     const before = model.snapshot()
     try {
       const result = action()
@@ -356,41 +434,46 @@ test('seeded lifecycle state machine checks rollback and invariants across every
   let nextCoverage = 10
   let nextClaim = 10
   const openIds = () => [...model.coverages.entries()].filter(([, coverage]) => coverage.status === OPEN && !coverage.released)
-  for (let step = 0; step < 250 - 37; step += 1) {
+  const seededStepCount = 250 - scheduledSteps
+  assert.ok(seededStepCount > 0)
+  const scheduledAttempt = (category, action) => attempt(category, action, false)
+  for (let step = 0; step < seededStepCount; step += 1) {
+    scheduledSteps += 1
     const roll = next() % 100
     const open = openIds()
     if (roll < 15) {
       const providerId = next() % 2 === 0 ? 'p1' : 'p2'
       const provider = model.providers.get(providerId)
-      attempt('deposits', () => model.deposit(providerId, provider.owner, BigInt(1 + (next() % 8))))
+      scheduledAttempt('deposits', () => model.deposit(providerId, provider.owner, BigInt(1 + (next() % 8))))
     } else if (roll < 35) {
       const providerId = next() % 2 === 0 ? 'p1' : 'p2'
       const gross = BigInt(5 + (next() % 35))
       const locked = BigInt(1 + (next() % Number(gross)))
       const premium = BigInt(1 + (next() % 4))
-      attempt('mixedPolicyOpens', () => model.open(`s${nextCoverage++}`, providerId, `payer-${next() % 4}`, gross, premium, locked, model.now + BigInt(1 + (next() % 5))))
+      scheduledAttempt('mixedPolicyOpens', () => model.open(`s${nextCoverage++}`, providerId, `payer-${next() % 4}`, gross, premium, locked, model.now + BigInt(1 + (next() % 5))))
     } else if (roll < 50) {
       const providerId = next() % 2 === 0 ? 'p1' : 'p2'
       const provider = model.providers.get(providerId)
-      attempt('partialWithdrawals', () => model.withdraw(providerId, provider.owner, BigInt(1 + (next() % 8))))
+      scheduledAttempt('partialWithdrawals', () => model.withdraw(providerId, provider.owner, BigInt(1 + (next() % 8))))
     } else if (roll < 63 && open.length) {
       model.now += BigInt(next() % 6)
       const [id] = open[next() % open.length]
-      attempt('expiryCloses', () => model.close(id))
+      scheduledAttempt('expiryCloses', () => model.close(id))
     } else if (roll < 78 && open.length) {
       const [id, coverage] = open[next() % open.length]
-      attempt('rejectedClaims', () => model.finalize(`sclaim${nextClaim++}`, id, false, 0n, false, 1n + BigInt(next() % 4)))
+      scheduledAttempt('rejectedClaims', () => model.finalize(`sclaim${nextClaim++}`, id, false, 0n, false, 1n + BigInt(next() % 4)))
       assert.equal(coverage.status !== OPEN, true)
     } else if (open.length) {
       const [id, coverage] = open[next() % open.length]
       const amount = BigInt(1 + (next() % Number(coverage.gross)))
       const providerFault = next() % 2 === 0
-      attempt(providerFault ? 'approvedFaultClaims' : 'approvedPoolClaims', () => model.finalize(`sclaim${nextClaim++}`, id, true, amount, providerFault, 1n + BigInt(next() % 4)))
+      scheduledAttempt(providerFault ? 'approvedFaultClaims' : 'approvedPoolClaims', () => model.finalize(`sclaim${nextClaim++}`, id, true, amount, providerFault, 1n + BigInt(next() % 4)))
     } else {
       model.now += 1n
     }
     model.invariant()
   }
+  assert.equal(scheduledSteps, 250, 'seeded schedule executes exactly 250 steps')
   for (const category of Object.keys(counts)) {
     assert.ok(counts[category].success + counts[category].failure > 0, `${category} was attempted`)
   }

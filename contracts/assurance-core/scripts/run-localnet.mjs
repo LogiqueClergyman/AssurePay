@@ -948,6 +948,21 @@ const lifecycleTxn = async (sender, signature, values, refs, foreignAssets = [],
   suggestedParams: await params(fee),
 })
 const errorText = (error) => JSON.stringify(error, Object.getOwnPropertyNames(error))
+const compactFailureMessage = (text) => {
+  const marker = text.search(/logic eval error: /i)
+  if (marker < 0) return text.slice(0, 160)
+  return text.slice(marker).replace(/^logic eval error: /i, '').split(/\\n\s+at |\n\s+at |","response"/)[0]
+}
+const extractedApplicationId = (text) => text.match(/(?:\bapp(?:lication)?(?:[-_ ]?(?:id|index))?|\bapplication[-_ ]?id)[=: ]+(\d+)/i)?.[1]
+const signedApplicationId = (signed) => algosdk.decodeSignedTransaction(signed).txn.applicationCall?.appIndex
+const applicationEvidence = (text, signed, deployedAppId, label, source) => {
+  const extracted = extractedApplicationId(text)
+  const signedTarget = signedApplicationId(signed)
+  assert.equal(Number(signedTarget), deployedAppId, `${label} signed application target`)
+  if (extracted === undefined) return { applicationId: deployedAppId, source: `${source}:response-omitted;signed-only` }
+  assert.equal(Number(extracted), deployedAppId, `${label} ${source} application id`)
+  return { applicationId: Number(extracted), source: `${source}:response-extracted` }
+}
 const simulationText = (response) => {
   const group = response['txn-groups']?.[0] ?? response.txnGroups?.[0] ?? {}
   const results = group['txn-results'] ?? group.txnResults ?? []
@@ -985,7 +1000,9 @@ const rejectedLifecycle = async (sender, signature, values, refs, label, foreign
     assert.match(poolText, expected, `${label} pool classification`)
     const poolPc = assertionPc(poolText)
     assert.equal(poolPc, pc, `${label} simulation and pool assertion PC`)
-    gateDRejectionEvidence.push({ label, classification: 'application-assertion', applicationId: appId, simulationPc: Number(pc), poolPc: Number(poolPc) })
+    const simulationApplication = applicationEvidence(simulation.text, signed, appId, label, 'simulation')
+    const poolApplication = applicationEvidence(poolText, signed, appId, label, 'pool')
+    gateDRejectionEvidence.push({ label, classification: 'application-assertion', simulationPc: Number(pc), poolPc: Number(poolPc), simulationApplication, poolApplication })
   } else {
     assert.match(simulation.text, expected, `${label} simulation pre-application classification`)
     const poolError = await (async () => {
@@ -998,7 +1015,12 @@ const rejectedLifecycle = async (sender, signature, values, refs, label, foreign
     assert.ok(poolError, `${label} unexpectedly entered the pool`)
     const poolText = errorText(poolError)
     assert.match(poolText, expected, `${label} pool pre-application classification`)
-    gateDRejectionEvidence.push({ label, classification, simulationMessage: simulation.text, poolMessage: poolText })
+    const simulationApplication = applicationEvidence(simulation.text, signed, appId, label, 'simulation')
+    const poolApplication = applicationEvidence(poolText, signed, appId, label, 'pool')
+    const simulationPc = assertionPc(simulation.text)
+    const poolPc = assertionPc(poolText)
+    if (simulationPc && poolPc) assert.equal(poolPc, simulationPc, `${label} simulation and pool resource PC`)
+    gateDRejectionEvidence.push({ label, classification, simulationMessage: compactFailureMessage(simulation.text), poolMessage: compactFailureMessage(poolText), simulationApplication, poolApplication, simulationPc, poolPc })
   }
   rejectedCount += 1
   gateDRejectionCases.push(label)
@@ -1051,6 +1073,8 @@ const recordClaimMbr = async (before) => {
 
 await rejectedLifecycle(payer, withdrawSignature, [providerId3, 124], boxes(providerBox3), 'withdraw over total', [assetId], undefined, undefined, [], [providerBox3])
 await rejectedLifecycle(payer, withdrawSignature, [providerId3, 39], boxes(providerBox3), 'withdraw across locked stake', [assetId], undefined, undefined, [], [providerBox3])
+await rejectedLifecycle(payer, withdrawSignature, [providerId3, 23], [], 'withdraw missing provider box', [assetId], 2_000, undefined, [], [providerBox3], 'resource', /invalid Box reference/i)
+await rejectedLifecycle(payer, withdrawSignature, [providerId3, 23], boxes(providerBox3), 'withdraw missing accepted asset', [], 2_000, undefined, [], [providerBox3], 'resource', /unavailable Asset \d+/i)
 await rejectedLifecycle(payer, withdrawSignature, [providerId3, 23], boxes(providerBox3), 'withdraw below protocol fee', [assetId], 0, undefined, [], [providerBox3], 'application', /assert failed/i)
 await rejectedLifecycle(other, withdrawSignature, [providerId3, 1], boxes(providerBox3), 'withdraw wrong owner', [assetId], undefined, undefined, [], [providerBox3])
 await rejectedLifecycle(payer, withdrawSignature, [new Uint8Array(32), 1], boxes(boxKey('p', new Uint8Array(32))), 'withdraw zero provider id', [assetId], undefined, undefined, [], [boxKey('p', new Uint8Array(32))])
@@ -1218,7 +1242,8 @@ assert.equal(zeroCapacityVerification.isValid, false)
 assert.equal(zeroCapacityVerification.invalidReason, 'simulation')
 const zeroCapacitySimulationPc = assertionPc(zeroCapacityVerification.invalidMessage)
 assert.ok(zeroCapacitySimulationPc, 'zero-capacity simulation assertion PC')
-assert.equal(Number(zeroCapacityCoverage.group[2].applicationCall.appIndex), appId, 'zero-capacity simulation app binding')
+const zeroCapacitySignedApplication = signedApplicationId(zeroCapacityCoverage.signed[2])
+assert.equal(Number(zeroCapacitySignedApplication), appId, 'zero-capacity signed application target')
 assert.equal(zeroCapacityCoverage.requirements.extra.applicationId, String(appId), 'zero-capacity metadata app binding')
 const zeroCapacityBefore = await gateDStateSnapshot([boxKey('c', zeroCapacityCoverage.requirements.extra.coverageId)])
 let zeroCapacityPoolError
@@ -1228,6 +1253,8 @@ rejectedCount += 1
 const zeroCapacityPoolText = errorText(zeroCapacityPoolError)
 assert.match(zeroCapacityPoolText, /assert failed|application/i)
 assert.equal(assertionPc(zeroCapacityPoolText), zeroCapacitySimulationPc, 'zero-capacity simulation and pool assertion PC')
+const zeroCapacitySimulationApplication = applicationEvidence(zeroCapacityVerification.invalidMessage, zeroCapacityCoverage.signed[2], appId, 'zero-capacity', 'simulation')
+const zeroCapacityPoolApplication = applicationEvidence(zeroCapacityPoolText, zeroCapacityCoverage.signed[2], appId, 'zero-capacity', 'pool')
 assert.deepEqual(await gateDStateSnapshot([boxKey('c', zeroCapacityCoverage.requirements.extra.coverageId)]), zeroCapacityBefore, 'zero-capacity group rollback')
 
 const finalAccounting = await applicationState(appId)
@@ -1314,11 +1341,11 @@ console.log(JSON.stringify({
     closeTimestamp: shortClosedEvent[2].toString(),
     expiry: { openedAt: shortOpened[9].toString(), expiresAt: shortOpened[10].toString(), boundedAdvancement: true, pausedClose: true, duplicateRejected: true },
     fullWithdrawalTxId: fullWithdrawal.txid,
-    zeroCapacity: { providerId: Buffer.from(providerId2).toString('hex'), applicationId: appId, fullWithdrawal: 10, remainingCapacity: 0, simulationReason: zeroCapacityVerification.invalidReason, simulationAssertionPc: `pc=${zeroCapacitySimulationPc}`, poolAssertionPc: `pc=${assertionPc(zeroCapacityPoolText)}`, actualPoolRollback: true },
+    zeroCapacity: { providerId: Buffer.from(providerId2).toString('hex'), simulationApplication: zeroCapacitySimulationApplication, poolApplication: zeroCapacityPoolApplication, fullWithdrawal: 10, remainingCapacity: 0, simulationReason: zeroCapacityVerification.invalidReason, simulationAssertionPc: `pc=${zeroCapacitySimulationPc}`, poolAssertionPc: `pc=${assertionPc(zeroCapacityPoolText)}`, actualPoolRollback: true },
     rejectionCases: gateDRejectionCases,
     rejectionClassification: {
-      applicationAssertion: { count: gateDRejectionEvidence.filter((item) => item.classification === 'application-assertion').length, applicationId: appId, assertionPcs: [...new Set(gateDRejectionEvidence.filter((item) => item.classification === 'application-assertion').map((item) => item.simulationPc))] },
-      preApplication: gateDRejectionEvidence.filter((item) => item.classification !== 'application-assertion').map(({ label, classification, simulationMessage, poolMessage }) => ({ label, classification, simulationMessage, poolMessage })),
+      applicationAssertion: { count: gateDRejectionEvidence.filter((item) => item.classification === 'application-assertion').length, simulationApplicationIds: [...new Set(gateDRejectionEvidence.filter((item) => item.classification === 'application-assertion').map((item) => item.simulationApplication.applicationId))], poolApplicationIds: [...new Set(gateDRejectionEvidence.filter((item) => item.classification === 'application-assertion').map((item) => item.poolApplication.applicationId))], applicationEvidenceSources: [...new Set(gateDRejectionEvidence.filter((item) => item.classification === 'application-assertion').flatMap((item) => [item.simulationApplication.source, item.poolApplication.source]))], assertionPcs: [...new Set(gateDRejectionEvidence.filter((item) => item.classification === 'application-assertion').map((item) => item.simulationPc))] },
+      preApplication: gateDRejectionEvidence.filter((item) => item.classification !== 'application-assertion').map(({ label, classification, simulationMessage, poolMessage, simulationApplication, poolApplication, simulationPc, poolPc }) => ({ label, classification, simulationMessage, poolMessage, simulationApplication, poolApplication, simulationPc: simulationPc === undefined ? undefined : Number(simulationPc), poolPc: poolPc === undefined ? undefined : Number(poolPc) })),
     },
     finalAccounting: { totalProviderStake: 198, premiumReserve: 29, totalOpenFaultExposure: 100, actualApplicationAsset: await appAssetBalance() },
     invariants: { providerLockBounds: true, providerLockSums: true, providerExposureSums: true, globalStakeSum: true, globalExposureSum: true, assetLiabilityBound: true, terminalReleaseFlags: true, permanentIds: true, debitConservation: true, storedPayerRefunds: true },
