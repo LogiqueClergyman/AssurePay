@@ -11,7 +11,8 @@
     "test:p1": "node --test contracts/assurance-core/test/*.test.mjs",
     "typecheck:p1": "puya-ts contracts/assurance-core/contract/assurance-core.algo.ts --dry-run",
     "build:contract:p1": "puya-ts contracts/assurance-core/contract/assurance-core.algo.ts --out-dir \"$PWD/contracts/assurance-core/artifacts\" --output-client --target-avm-version 13",
-    "localnet:p1": "node contracts/assurance-core/scripts/run-localnet.mjs"
+    "localnet:p1": "node contracts/assurance-core/scripts/run-localnet.mjs",
+    "testnet:p1": "node contracts/assurance-core/scripts/run-testnet.mjs"
   },
   "devDependencies": {
     "@algorandfoundation/algorand-typescript": "1.3.0",

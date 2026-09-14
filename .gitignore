@@ -1,3 +1,4 @@
 node_modules/
 spikes/p0-atomic/artifacts/
 spikes/p0-atomic/.env
+contracts/assurance-core/.env
