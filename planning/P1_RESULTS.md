@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gates A–E ACCEPTED; Gate F READY
+Status: IN_PROGRESS — Gates A–E ACCEPTED; Gate F BLOCKED
 
 ## Baseline
 
@@ -138,15 +138,16 @@ Status: ACCEPTED
 
 ## Gate F — TestNet acceptance
 
-Status: READY
+Status: BLOCKED — the non-mutating preflight completed safely but user-controlled P1 TestNet configuration is absent. No mutating command was run and no TestNet evidence was produced.
 
-- Preflight:
-- Network/ASA/application:
-- Public transaction/group IDs:
-- Balance and state deltas:
-- Intended rejection evidence:
-- Read-only evidence verification:
-- Command:
+- Preflight: `npm run testnet:p1 -- --preflight` returned compact JSON with `ok: false`, `phase: configuration`, approval `3517` bytes, `extraPages: 1`, application/box funding budget `450400`, ephemeral-account funding budget `202000`, fee budget `19000`, conservative margin `100000`, total conservative required spendable `1242400` microAlgos, and required ASA holding `110` atomic units.
+- Missing prerequisites reported: `TESTNET_PAYER_HD_MNEMONIC`, `TESTNET_PAYER_ADDRESS`, `TESTNET_ASA_ID`, and `TESTNET_ALGOD_SERVER`. The runner did not access the network, derive a mutation signer, or submit a transaction on this branch.
+- Network/ASA/application: not produced; preflight stopped at configuration before endpoint inspection.
+- Public transaction/group IDs: none; no TestNet transactions, groups, app, or ephemeral accounts were created.
+- Balance and state deltas: none; no TestNet state was mutated.
+- Intended rejection evidence: not produced; requires one successful mutating acceptance lifecycle after preflight passes.
+- Read-only evidence verification: not run because the acceptance evidence file does not exist. The verifier is implemented and requires endpoint configuration plus checked-in public evidence only.
+- Command: after the user supplies the four missing variables through process environment or ignored `contracts/assurance-core/.env`, rerun `npm run testnet:p1 -- --preflight`; only if it passes, run `npm run testnet:p1` once, then `npm run testnet:p1 -- --verify-evidence` once. Do not run the mutating command twice.
 
 ## Decisions and deviations
 
@@ -160,4 +161,4 @@ Status: READY
 
 ## Remaining work or blockers
 
-- None. Gates A through E are accepted. Gate F is ready from `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md`; its mutating path depends on the user's ignored P1 TestNet configuration and sufficient existing TestNet funds/ASA holding.
+- Gate F is blocked only by the missing user-controlled P1 TestNet configuration listed above. After configuration is supplied, the preflight must also confirm endpoint TestNet identity, existing ASA metadata/opt-in, sufficient spendable microAlgos, and sufficient ASA holding before any mutation.
