@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gates A–C ACCEPTED; Gate D REVIEW; Gates E–F remain NOT_STARTED
+Status: IN_PROGRESS — Gates A–D ACCEPTED; Gate E READY; Gate F remains NOT_STARTED
 
 ## Baseline
 
@@ -93,7 +93,7 @@ Status: ACCEPTED
 
 ## Gate D — Withdrawal, close, claims, and refunds
 
-Status: REVIEW
+Status: ACCEPTED
 
 - ABI/events: Preserved the exact four Gate D methods, frozen records, statuses (`OPEN=1`, `REFUNDED=2`, `CLOSED=3`), event signatures, `assurance-core-v1` profile, and permanent coverage/claim tombstones. Refund and withdrawal destinations remain storage-derived.
 - Implementation: Owner-only withdrawals are pause-blocked, inactive-provider-safe, explicitly pooled-fee checked, protected by lock/global/physical-ASA/post-transfer liability bounds, and emit one configured-ASA inner transfer. Permissionless expiry close accepts equality and paused execution, shares one release operation with claims, and cannot release twice. Claims remain adjudicator-only; rejected claims close with zero debits/transfers, pool-only claims debit reserve, and provider-fault claims preserve other open locks with exact stake/pool waterfall.
@@ -105,10 +105,11 @@ Status: REVIEW
 - Rejection evidence: **95** total runner rejections, including **27** Gate D application-assertion cases. For those cases, extracted simulation and pool application IDs were both **5244**; the exact final application-assertion PC set was `{2344, 2346, 2366, 2375, 2386, 2404, 2527, 2552, 2575, 2717, 2983, 3515}` and each simulation/pool pair matched. The two same-signed-transaction withdrawal resource negatives were `withdraw missing provider box` (`invalid Box reference`, app `5244`, simulation/pool `pc=2352`) and `withdraw missing accepted asset` (`unavailable Asset 5243`, app `5244`, simulation/pool `pc=2412`); both had complete balance/box/global-state rollback. Zero-capacity assured-exact simulation and real pool evidence extracted app **5244**, matched `pc=2036`, and preserved complete rollback with facilitator submissions `0`. No signed bytes were changed between simulation and pool submission.
 - Rollback/state proof: Failed transitions compared payer/provider/other ALGO+ASA balances, application ALGO+ASA and MBR, all relevant boxes, records, and global accounting before/after. Successful events and reads decoded; pool-only logs were exactly `ClaimFinalized` + `RefundPaid`, and no `CoverageClosed` was emitted for refunded claims. Other-provider state stayed byte-for-byte unchanged through the fault waterfall. All ten final invariant flags were true.
 - Commands: `npm run typecheck:p1` passed; `npm run build:contract:p1` passed; `npm run test:p1` passed (**26/26**); `npm run localnet:p1` passed. No TestNet, Gate E, P2, backend, UI, governance, or infrastructure work was started.
+- Orchestrator acceptance: accepted at commit `1a4260a` after inspecting both final remediation commits and independently reproducing typecheck, build, all **26/26** tests, and a fresh real LocalNet run at round **3781** with ASA **5350** and app **5351**. The fresh run reproduced 95 intended rejections, extracted matching simulation/pool application identity, matched zero-capacity `pc=2036`, all three exact claim-box MBR deltas, the `25/75` provider-fault waterfall, stored-payer refund, final stake/reserve/exposure/physical-ASA accounting `198/29/100/227`, and all ten invariant flags. Generated artifacts and the worktree remained clean. Assertion PCs are treated as current-build evidence rather than permanent constants.
 
 ## Gate E — LocalNet lifecycle
 
-Status: NOT_STARTED
+Status: READY
 
 - Network/genesis:
 - ASA/application IDs:
@@ -142,4 +143,4 @@ Status: NOT_STARTED
 
 ## Remaining work or blockers
 
-- None. Gates A through C are accepted. Gate D is ready from `planning/P1_GATE_D_LIFECYCLE.md`.
+- None. Gates A through D are accepted. Gate E is ready from `planning/P1_GATE_E_LOCALNET_LIFECYCLE.md`.
