@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gates A–D ACCEPTED; Gate E READY; Gate F remains NOT_STARTED
+Status: IN_PROGRESS — Gates A–D ACCEPTED; Gate E REVIEW; Gate F remains NOT_STARTED
 
 ## Baseline
 
@@ -109,15 +109,29 @@ Status: ACCEPTED
 
 ## Gate E — LocalNet lifecycle
 
-Status: READY
+Status: REVIEW
 
-- Network/genesis:
-- ASA/application IDs:
-- Public transaction/group IDs:
-- Balance and state deltas:
-- Intended rejection evidence:
-- Accounting reconciliation:
-- Command:
+- Scope: evidence consolidation only. The accepted contract, adapter, ABI/storage/events, generated artifacts, and `assurance-core-v1` three-member group profile were unchanged.
+- Required commands: `npm run typecheck:p1` passed; `npm run build:contract:p1` passed with generated-artifact diff empty; `npm run test:p1` passed **26/26**; two consecutive `npm run localnet:p1` executions passed against the same running LocalNet without reset or deletion.
+- Consecutive run identities (real chain evidence):
+  - Run one: genesis `dockernet-v1`, final round **3925**, ASA **5509**, application **5510**, application address `HU4XYCHF2E7FJ3IC4NXNVJ4BV7JU64DGVOBKSXO2SV3EJ3P5HHDBUP4A3Y`, **95** rejected cases.
+  - Run two/final: genesis `dockernet-v1`, final round **4024**, ASA **5627**, application **5628**, application address `GO5MWPM6BZXV34ZFKAUICHLNDTNNZFT57TE7DIXBHVSWMMGLMIVCPJW3Q4`, **95** rejected cases. Fresh IDs prove the second run did not depend on the first run's IDs, rounds, boxes, timestamps, or balances.
+- Final run Gate E object and ordered lifecycle (real LocalNet evidence):
+  1. Created application tx `3FXMD5LHPBUTEOMEMTGMCINLLEFUHWJQQO7N6WAEOANNMYNVXRZA` with configured development adjudicator; accepted ASA **5627**.
+  2. Funded application with tx `CN4FAPAIVGB77UEWQOX6IBMS7SH6AKIHVPKMIYUSPK2FWA74JRVQ`; pooled ASA opt-in tx `CUPEES2OEIYOLTUDYSG4AGWGBK64K6B5NAW6BX7YJWCLHKCP3P4Q`; application ASA balance after opt-in **0**.
+  3. Registered primary provider `0c`×32 with tx `6IKIJWAULSONIIFMYIHGBPF5OWCX4G7D757O4WHRRFZQS77RSX4A`; created policies `0b`×32, `0d`×32, `0e`×32, and zero-capacity provider policy `0f`×32 with txs `GYD6ZJ4FCQ3FQH7IIXYQ7C6VSXJQPAR7V4E2NH272ZSKEAHGGM3A`, `P2QWSF6B3K5FSWJJBNWTE7ATF3QVAT2Z4N6T3HPFZGUQ25K3HMBQ`, `FG3GWII3HY74YY3NSAOSP3TC5DIDQ3QNDMVKVYF53RPQTAALQ72Q`, `U4YLNJTHKWUUDC2G777UKP2BYEN6PJ3UPYMK7KSCUBDHZIPP3WDQ`.
+  4. Deposited **123** stake through the real two-member atomic group; member txs `CXVZ4BQVR7NXACU5BIC4RGVBNZURUITZFIX7MKQPHQ2TAGJKTK3Q` and `XJ64R2DF4VGO4JPELLQOWATIRWPZYOY6GZEXVU52H4EEETOUMK7A`.
+  5. Recorded primary provider stake/lock/exposure **123/0/0** and policy capacity **492** before coverage.
+  6. Successful `assured-exact` coverage `15`×32 used group `2MnFkNNPa36Yeg24zct739IoyMm4eVmrDXBbuFL/oJo=`; member txs `K4GPXXLX3OEFPMMN5E4VETM7AX56XINDEDONANSOZJK2OHIJUMDA`, `2C2WE34E2Q2UURKTRNY5M5YE24EC3OM4TX3AHPDPTQ6FY3ZC5RLQ`, `W7MU3GL227JGMVVLEVP25QMW46BCK7JNLFLSSXJ6VNZUCQHDAF6Q`, confirmed round **3963**. Exact ASA deltas payer/provider/application **−40/+39/+1**; provider stake/lock/exposure deltas **0/+10/+40**; global stake/reserve/exposure deltas **0/+1/+40**. Capacity after coverage was **152**.
+  7. Insufficient-capacity coverage `17`×32 failed x402 simulation with reason `simulation`, facilitator submissions **0**, and matching simulation/pool application **5628** and assertion **pc=2036**. The identical signed bytes were sent to the real pool; the pool rejected them, the coverage box remained absent, and the complete ALGO/ASA/MBR/box/global snapshot was unchanged.
+  8. Lock-crossing withdrawal of **39** from provider `0c`×32 was classified `application-assertion`; simulation/pool application **5628**, matching **pc=2386**, and complete rollback.
+  9. Pool-only claim `3434`×32: claim tx `L53NUJJKOMXESV7PY266IYY2SPK663DZYXNT6AVRRNVRVCICPWVA`, refund settlement tx `BSRDMVGBUOCY3FJ6AKFMKLLSJNECLWEGBUI63W2UIHM2WUBAFQOQ`, stored payer refunded **1**, waterfall **0 stake / 1 pool**, payer/application ASA **+1/−1**. Provider-fault claim `3535`×32: claim tx `2BIBN64S2EA5AMUUTSUJOPIGOK2KJSAVNK63CZQAI44SZH6HHZWA`, refund settlement tx `Z5AN53RDVPY3DSJ4BPDDV25TQEULUKROE5MZE5FQIDDGHDG5UUEA`, stored payer refunded **100**, waterfall **25 stake / 75 pool**, payer/application ASA **+100/−100**; unrelated provider and open coverage remained protected.
+  10. Terminal rejected-claim release tx `67UTM6VK53AZEK3S2FTYNH633OCVW4WNFSWA54AMSNZBY6OXJE5A` released provider lock/exposure **−10/−40** and global exposure **−40** with no ASA delta. Paused expiry close tx `DH5GVZLJE5XCK7274QIRKBZZAVQWDMHVDDXZ2E6WOKHWD3L5SS6Q` released provider lock/exposure **−10/−10** and global exposure **−10**. Permitted provider withdrawal tx `GLJWPD6AL44ICGT7QFEVOCKISY3M4AVXCYL2AFQWAVAG6HMRXP7A` withdrew **23**, provider stake **−23**, payer/application ASA **+23/−23**.
+  11. Full withdrawal tx `5R43EKTO3MQUHW3VHSWCHEORNKP2HMX5W5EC74JUZNSIKTNPYYXQ` reduced provider `08`×32 stake to zero and payer/application ASA **+10/−10**. The later valid zero-capacity group for policy `0f`×32 again failed in simulation and pool with application **5628**, matching **pc=2036**, facilitator submissions **0**, identical signed bytes, complete rollback, and remaining capacity **0**.
+  12. Final provider boxes were `07`×32 = **123/0/0**, `08`×32 = **0/0/0**, and `0c`×32 = **75/75/100** for stake total/lock/exposure. The only open coverage box was `16`×32 with gross/providerNet/premium/lock **100/98/2/75**. Final global `totalProviderStake=198`, `premiumReserve=29`, `totalOpenFaultExposure=100`; physical application ASA **227**; provider sum **198** and exposure sum **100** both matched global state; `198+29=227`.
+- Final invariant flags 1–10 were all true: provider lock bounds, provider lock sums, provider exposure sums, global stake sum, global exposure sum, asset-liability bound, terminal release flags, permanent IDs, debit conservation, and stored-payer refunds.
+- Deterministic/model evidence remains the accepted **26/26** Gate A–D suite; it is distinct from the two real-chain lifecycle runs above.
+- Deviations/blockers: none. Gate F/TestNet, P2, backend, UI, governance, and infrastructure work were not started.
 
 ## Gate F — TestNet acceptance
 
