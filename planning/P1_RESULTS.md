@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gates A–E ACCEPTED; Gate F BLOCKED
+Status: IN_PROGRESS — Gates A–E ACCEPTED; Gate F remediation required before TestNet mutation
 
 ## Baseline
 
@@ -138,7 +138,7 @@ Status: ACCEPTED
 
 ## Gate F — TestNet acceptance
 
-Status: BLOCKED — the non-mutating preflight completed safely but user-controlled P1 TestNet configuration is absent. No mutating command was run and no TestNet evidence was produced.
+Status: IN_PROGRESS — the non-mutating preflight stopped safely with absent user configuration, but orchestrator review found Gate F runner/evidence defects that must be remediated before any TestNet mutation. No mutating command was run and no TestNet evidence was produced.
 
 - Preflight: `npm run testnet:p1 -- --preflight` returned compact JSON with `ok: false`, `phase: configuration`, approval `3517` bytes, `extraPages: 1`, application/box funding budget `450400`, ephemeral-account funding budget `202000`, fee budget `19000`, conservative margin `100000`, total conservative required spendable `1242400` microAlgos, and required ASA holding `110` atomic units.
 - Missing prerequisites reported: `TESTNET_PAYER_HD_MNEMONIC`, `TESTNET_PAYER_ADDRESS`, `TESTNET_ASA_ID`, and `TESTNET_ALGOD_SERVER`. The runner did not access the network, derive a mutation signer, or submit a transaction on this branch.
@@ -147,7 +147,8 @@ Status: BLOCKED — the non-mutating preflight completed safely but user-control
 - Balance and state deltas: none; no TestNet state was mutated.
 - Intended rejection evidence: not produced; requires one successful mutating acceptance lifecycle after preflight passes.
 - Read-only evidence verification: not run because the acceptance evidence file does not exist. The verifier is implemented and requires endpoint configuration plus checked-in public evidence only.
-- Command: after the user supplies the four missing variables through process environment or ignored `contracts/assurance-core/.env`, rerun `npm run testnet:p1 -- --preflight`; only if it passes, run `npm run testnet:p1` once, then `npm run testnet:p1 -- --verify-evidence` once. Do not run the mutating command twice.
+- Orchestrator audit at `05542f9`: typecheck/build passed with unchanged artifacts, all **36/36** tests passed, the configuration-only preflight stopped safely, and a fresh accepted LocalNet lifecycle passed at ASA **6566**, app **6567**, round **4816**, with **95** intended rejections and all ten accepted LocalNet invariants. Review nevertheless found Gate F-only defects: required ASA omitted stake; application funding double-counted coverage/claim MBR; the authorization-negative actor could fail minimum-balance validation before authorization; rejection matching allowed undefined/non-assertion PCs and incomplete rollback snapshots; no genuine unrelated-collateral fixture existed; invariant flags were hard-coded; the public verifier did not bind exact rounds/group membership or verify the full terminal evidence; and the deterministic Gate F matrix was incomplete. These are implementation defects, not user-configuration blockers.
+- Command: implement `planning/P1_GATE_F_REMEDIATION.md` and stop after corrected non-mutating preflight plus offline/LocalNet verification. Do not run the mutating TestNet command until the orchestrator reviews the remediation checkpoint.
 
 ## Decisions and deviations
 
@@ -161,4 +162,4 @@ Status: BLOCKED — the non-mutating preflight completed safely but user-control
 
 ## Remaining work or blockers
 
-- Gate F is blocked only by the missing user-controlled P1 TestNet configuration listed above. After configuration is supplied, the preflight must also confirm endpoint TestNet identity, existing ASA metadata/opt-in, sufficient spendable microAlgos, and sufficient ASA holding before any mutation.
+- Gate F first requires the remediation packet above. User-controlled P1 TestNet configuration remains an external prerequisite after the corrected runner passes review.
