@@ -5,20 +5,22 @@
 - Phase: P1 — On-chain Assurance Core
 - State: IN_PROGRESS — Gates A through D ACCEPTED; Gate E REVIEW; Gate F NOT_STARTED
 - Branch: `main`
-- Starting checkpoint: `1a4260a` (clean accepted Gate D checkpoint)
+- Starting checkpoint: `e324bba` (accepted Gate E evidence checkpoint)
 - Active packet: `planning/P1_GATE_E_LOCALNET_LIFECYCLE.md`
 - Results: `planning/P1_RESULTS.md`
 
 P0 remains complete. Do not modify or import from `spikes/p0-atomic/**`.
 
-## Gate E result
+## Gate E correction result
 
-The accepted LocalNet runner now emits one public top-level `gateE` object that maps the complete twelve-step lifecycle. It reuses the accepted contract, adapter, artifacts, and `assurance-core-v1` three-member profile without changes. The final evidence run used genesis `dockernet-v1`, ASA `5627`, application `5628`, final round `4024`, and passed 95 intended rejections, matching simulation/pool application evidence, final accounting `198/29/100/227`, and all ten invariant flags.
+The accepted LocalNet runner still emits one public top-level `gateE` object and now maps approved refunds to confirmed pending-response inner ASA transfers. Each approved claim asserts exactly one matching inner transfer with index, ASA, application sender, stored-payer receiver, amount, and zero fee. LocalNet exposes no stable inner transaction ID, so the evidence reports `transactionId: null` and explicitly states that no independent outer refund transaction exists.
+
+The same object reports all five application ALGO funding payments and reconciles `600,000 + 300,000 + 92,900 + 300,000 + 135,900 = 1,428,800` final application ALGO with no other ALGO flow. It identifies providers `07`, `08`, and `0c`, every successful deposit/withdrawal/claim stake debit, all policy/provider/creation transaction pairings, and proves final stake `123 + 0 + 75 = 198`.
 
 Two consecutive `npm run localnet:p1` executions passed against the same running LocalNet without reset or deletion:
 
-- Run one: ASA `5509`, application `5510`, final round `3925`.
-- Run two/final: ASA `5627`, application `5628`, final round `4024`.
+- Run one: genesis `dockernet-v1`, ASA `5979`, application `5980`, final round `4321`.
+- Run two/final: genesis `dockernet-v1`, ASA `6096`, application `6097`, final round `4420`.
 
 Required typecheck, contract build, generated-artifact cleanliness, and all 26 deterministic tests passed. No TestNet, Gate F, P2, backend, UI, governance, or infrastructure work was started.
 
