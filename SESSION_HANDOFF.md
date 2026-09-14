@@ -3,7 +3,7 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: IN_PROGRESS — Gates A through C ACCEPTED; Gate D READY; Gates E–F NOT_STARTED
+- State: IN_PROGRESS — Gates A through C ACCEPTED; Gate D REVIEW; Gates E–F NOT_STARTED
 - Branch: `main`
 - Starting checkpoint: `911b0af`
 - Active packet: `planning/P1_GATE_D_LIFECYCLE.md`
@@ -19,10 +19,10 @@ Fresh review evidence: `dockernet-v1` round `979`, ASA `2070`, app `2071`; 21/21
 
 ## Gate D assignment
 
-Implement only `planning/P1_GATE_D_LIFECYCLE.md`. Add safe owner withdrawals, permissionless expiry close, adjudicator-only finalization, stored-payer refunds, provider-fault stake/pool waterfall, permanent claim tombstones, and the deterministic plus real LocalNet invariant proofs specified there.
+Implemented only `planning/P1_GATE_D_LIFECYCLE.md`: safe owner withdrawals, permissionless expiry close, adjudicator-only finalization, stored-payer refunds, provider-fault stake/pool waterfall, permanent claim tombstones, and the deterministic plus real LocalNet invariant proofs specified there. Gate D is left in `REVIEW` pending orchestrator review.
 
 Do not start Gate E consolidation, TestNet, P2, backend, UI, governance, or infrastructure. Do not change frozen records, statuses, events, or the `assurance-core-v1` group profile.
 
 ## Exact next action
 
-Start a fresh Luna/high implementation session. Read only the active packet's permitted context, confirm clean `main` at the committed orchestration successor to `911b0af`, implement every Gate D requirement, run all four required P1 commands, update the authorized records, create focused commits as explicitly requested, and stop with Gate D in `REVIEW`.
+Await orchestrator review/acceptance of Gate D at the final clean `main` checkpoint. Do not start Gate E, TestNet, P2, backend, UI, governance, or infrastructure work.

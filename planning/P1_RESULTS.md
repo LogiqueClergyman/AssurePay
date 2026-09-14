@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: IN_PROGRESS — Gates A–C ACCEPTED; Gate D READY; Gates E–F remain NOT_STARTED
+Status: IN_PROGRESS — Gates A–C ACCEPTED; Gate D REVIEW; Gates E–F remain NOT_STARTED
 
 ## Baseline
 
@@ -93,14 +93,17 @@ Status: ACCEPTED
 
 ## Gate D — Withdrawal, close, claims, and refunds
 
-Status: READY
+Status: REVIEW
 
-- Withdrawal safety:
-- Exposure release:
-- Claim authority and loss waterfall:
-- Accounting reconciliation:
-- Property/state-machine checks:
-- Verification:
+- ABI/events: Added exactly `withdrawStake(byte[32],uint64)void`, `closeCoverage(byte[32])void`, `finalizeClaim(byte[32],byte[32],bool,uint64,bool,uint64)void`, and read-only `getClaim(byte[32])(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)`. Preserved the four frozen Gate D event signatures and version `1`; refund receivers are derived from stored owner/payer records. Coverage statuses remain `OPEN=1`, `REFUNDED=2`, `CLOSED=3`; coverage and claim boxes remain permanent tombstones.
+- Withdrawal safety: Owner-only, inactive-provider-safe withdrawals validate positive amount, provider/global stake availability, `stakeLocked` protection, actual ASA holding, complete post-transfer `totalProviderStake + premiumReserve` bound, zero inner fee, and pooled outer fee. One exact configured-ASA transfer goes to the stored owner and emits `StakeWithdrawn`.
+- Exposure release and closure: A single internal box-backed release operation is shared by expiry closure and claim finalization. It requires open/unreleased coverage and all provider/global lock/exposure balances, then releases each quantity exactly once. `closeCoverage` is permissionless, accepts expiry equality, works while paused, changes no reserve/stake total, and emits `CoverageClosed(...,expired=true)`.
+- Claims/refunds: Only the configured adjudicator can finalize. Rejected claims write a zero-debit tombstone, release exposure, close coverage, and transfer nothing. Approved non-fault claims use pool-only debit. Approved provider-fault claims compute available stake after preserving other open locks, then use the exact stake/pool waterfall; refunds use the stored payer and one zero-fee inner ASA transfer. Approved claims require the pooled fee and complete post-refund physical-balance bound.
+- Accounting reconciliation: Final real state had provider stakes `123 + 0 + 75 = 198`, premium reserve `29`, open exposure `100`, and application ASA `227`; `198 + 29 <= 227`. The fault case was `approvedAmount=100`, `stakeDebit=25`, `poolDebit=75`, while the other mixed-policy coverage remained open with provider lock/exposure `75/100`. The other provider record remained byte-for-byte unchanged.
+- MBR and compiled program: Approval program is **3,508 bytes**, requiring `extraPages=1` (unchanged accepted D-021 page allocation). Three finalized claim boxes each added exactly **45,300 microAlgos**; final app minimum balance was **1,271,700 microAlgos**. Gate D explicitly funded claim boxes with payment `Y2EXTLW3B42R6FNYPJHVEZAATVFCP2CGWWXUTP6SDL7XQH7RKQ2Q`.
+- Deterministic verification: `npm run test:p1` — **24 passed, 0 failed**. The added suite verifies exact ABI/event/artifact projections, claim layout/read behavior, rollback on failed transitions, stored-destination semantics, pause behavior, rejected/pool-only/stake-plus-pool outcomes, mixed collateral, and a seeded 250-step lifecycle state machine asserting invariants 1–10 after every successful transition.
+- Real LocalNet verification: `npm run localnet:p1` — passed on `dockernet-v1`, round **2377**, ASA **3682**, app **3683**, app address `EY7ATIL3VGCHEWBQNB55Q3SRBZVBSJXDYHPNFJQ6QUNY2DK3LNFHQDLGUM`. The run counted **80** rejected cases and proved Gate C’s two real x402 settlements plus Gate D owner withdrawal, paused permissionless expiry close, rejected claim, pool-only refund, genuine `25/75` fault waterfall, other-provider isolation, insufficient actual/reserve/fee/resource/rekey/outcome rollback, claim reads/events, full post-release withdrawal, and zero-capacity x402 simulation/pool rollback. Gate D public transaction IDs include rejected claim `T44AF7BQDVUTGNW4U2PSYUNV33EBZOK7BQJTJJ4KAGFONTN5SACA`, pool claim `QQHOXMHPGPJO5LHDI4R336IKLGFQO4ITDSPHGHOI7X45IBKT2NZA`, fault claim `MFIYVJPZUH66ZSYXBDOS26MWABTFWUBVPAZV5FHLQQL4NLBXQFRA`, withdrawal `JCY3WGQ3HVHUQQN26JR7BJ25MXQYV3AHZGZFL7V7CYECV5Y5WEMQ`, paused expiry close `7FZ7WW6AR7PBAVV7T4NYXXUUUD3U67LRNN6KA27HVI5UO344WCVA`, and full withdrawal `ASRWQMMIPXKIXEVWHBUTRSYGHWPYMXSCT6TNMHFRLNACCQQEA4GA`. Stored refund destination was payer `GVEZG4GCSVYZUR2BKAK32EAPTPDR7ZE24DEZO7DDS4DO53GN6ETYIVAW6I`; expiry advancement was bounded from `1788229750` to stored expiry `1788229780`, with close confirmed at `1788229825`; zero-capacity simulation/pool assertion matched `pc=2036`.
+- Commands: `npm run typecheck:p1` passed; `npm run build:contract:p1` passed; `npm run test:p1` passed (**24/24**); `npm run localnet:p1` passed. No TestNet, Gate E, P2, backend, UI, governance, or infrastructure work was started.
 
 ## Gate E — LocalNet lifecycle
 
