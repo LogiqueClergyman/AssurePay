@@ -40,6 +40,17 @@ export class CoverageRecord extends arc4.Struct<{
   exposureReleased: arc4.Bool
 }> {}
 
+export class FinalizedClaimRecord extends arc4.Struct<{
+  coverageId: arc4.StaticArray<arc4.Byte, 32>
+  approved: arc4.Bool
+  approvedAmount: arc4.Uint<64>
+  providerFault: arc4.Bool
+  resolutionCode: arc4.Uint<64>
+  stakeDebit: arc4.Uint<64>
+  poolDebit: arc4.Uint<64>
+  resolvedAt: arc4.Uint<64>
+}> {}
+
 export class AssuranceConfig extends arc4.Struct<{
   admin: arc4.Address
   adjudicator: arc4.Address
@@ -160,6 +171,36 @@ export abstract class AssuranceCore extends Contract {
 
   @abimethod({ readonly: true })
   getCoverage(coverageId: arc4.StaticArray<arc4.Byte, 32>): CoverageRecord {
+    err('stub only')
+  }
+
+  @abimethod()
+  withdrawStake(
+    providerId: arc4.StaticArray<arc4.Byte, 32>,
+    amount: arc4.Uint<64>,
+  ): void {
+    err('stub only')
+  }
+
+  @abimethod()
+  closeCoverage(coverageId: arc4.StaticArray<arc4.Byte, 32>): void {
+    err('stub only')
+  }
+
+  @abimethod()
+  finalizeClaim(
+    claimId: arc4.StaticArray<arc4.Byte, 32>,
+    coverageId: arc4.StaticArray<arc4.Byte, 32>,
+    approved: arc4.Bool,
+    approvedAmount: arc4.Uint<64>,
+    providerFault: arc4.Bool,
+    resolutionCode: arc4.Uint<64>,
+  ): void {
+    err('stub only')
+  }
+
+  @abimethod({ readonly: true })
+  getClaim(claimId: arc4.StaticArray<arc4.Byte, 32>): FinalizedClaimRecord {
     err('stub only')
   }
 

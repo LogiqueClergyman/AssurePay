@@ -421,6 +421,196 @@ export class AssuranceCore extends Contract {
     return coverage.value
   }
 
+  @abimethod({ allowActions: 'NoOp' })
+  withdrawStake(providerId: arc4.StaticBytes<32>, amount: uint64): void {
+    this.requireUnpaused()
+    assert(this.assetOptedIn.value === 1, 'asset not opted in')
+    assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    assert(!this.isZeroId(providerId), 'provider id must be non-zero')
+    assert(amount > 0, 'withdrawal amount must be positive')
+
+    const provider = this.providers(providerId)
+    assert(provider.exists, 'provider missing')
+    assert(provider.value.ownerAddress.bytes === Txn.sender.bytes, 'provider owner only')
+    assert(provider.value.stakeTotal.asUint64() >= amount, 'insufficient provider stake')
+    assert(provider.value.stakeTotal.asUint64() - amount >= provider.value.stakeLocked.asUint64(), 'stake is locked')
+    assert(this.totalProviderStake.value >= amount, 'insufficient global stake')
+
+    const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
+    assert(applicationHolding >= amount, 'insufficient application asset balance')
+    const maxUint64 = new arc4.Uint64(18446744073709551615n).asUint64()
+    const newProviderStake: uint64 = provider.value.stakeTotal.asUint64() - amount
+    const newTotalProviderStake: uint64 = this.totalProviderStake.value - amount
+    assert(newTotalProviderStake <= maxUint64 - this.premiumReserve.value, 'tracked stake overflow')
+    const newTrackedAssetBalance: uint64 = newTotalProviderStake + this.premiumReserve.value
+    const postWithdrawalHolding: uint64 = applicationHolding - amount
+    assert(newTrackedAssetBalance <= postWithdrawalHolding, 'tracked stake exceeds balance')
+
+    provider.value.stakeTotal = new arc4.Uint64(newProviderStake)
+    this.totalProviderStake.value = newTotalProviderStake
+    itxn.assetTransfer({
+      sender: Global.currentApplicationAddress,
+      xferAsset: this.acceptedAssetId.value,
+      assetAmount: amount,
+      assetReceiver: Account(provider.value.ownerAddress.bytes),
+      fee: 0,
+    }).submit()
+    emit(
+      'StakeWithdrawn',
+      new arc4.Uint64(1),
+      providerId,
+      new arc4.Uint64(amount),
+      new arc4.Uint64(newProviderStake),
+    )
+  }
+
+  @abimethod({ allowActions: 'NoOp' })
+  closeCoverage(coverageId: arc4.StaticBytes<32>): void {
+    assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    assert(!this.isZeroId(coverageId), 'coverage id must be non-zero')
+    const coverage = this.coverages(coverageId)
+    assert(coverage.exists, 'coverage missing')
+    assert(coverage.value.status.asUint64() === COVERAGE_STATUS_OPEN, 'coverage is terminal')
+    assert(!coverage.value.exposureReleased.native, 'coverage exposure already released')
+    assert(Global.latestTimestamp >= coverage.value.expiresAt.asUint64(), 'coverage has not expired')
+
+    const provider = this.providers(coverage.value.providerId)
+    assert(provider.exists, 'provider missing')
+    this.releaseExposure(coverageId, coverage.value.providerId)
+    coverage.value.status = new arc4.Uint64(COVERAGE_STATUS_CLOSED)
+    const closedAt = Global.latestTimestamp
+    emit('CoverageClosed', new arc4.Uint64(1), coverageId, new arc4.Uint64(closedAt), new arc4.Bool(true))
+  }
+
+  @abimethod({ allowActions: 'NoOp' })
+  finalizeClaim(
+    claimId: arc4.StaticBytes<32>,
+    coverageId: arc4.StaticBytes<32>,
+    approved: boolean,
+    approvedAmount: uint64,
+    providerFault: boolean,
+    resolutionCode: uint64,
+  ): void {
+    assert(Txn.sender.bytes === this.adjudicator.value.bytes, 'adjudicator only')
+    assert(Txn.rekeyTo.bytes === Global.zeroAddress.bytes, 'unsafe rekey')
+    assert(!this.isZeroId(claimId), 'claim id must be non-zero')
+    assert(!this.isZeroId(coverageId), 'coverage id must be non-zero')
+    const claim = this.claims(claimId)
+    assert(!claim.exists, 'claim already finalized')
+    const coverage = this.coverages(coverageId)
+    assert(coverage.exists, 'coverage missing')
+    assert(coverage.value.status.asUint64() === COVERAGE_STATUS_OPEN, 'coverage is terminal')
+    assert(!coverage.value.exposureReleased.native, 'coverage exposure already released')
+    const provider = this.providers(coverage.value.providerId)
+    assert(provider.exists, 'provider missing')
+    assert(resolutionCode > 0, 'resolution code must be positive')
+    assert(approvedAmount <= coverage.value.grossAmount.asUint64(), 'claim exceeds gross amount')
+    if (!approved) {
+      assert(approvedAmount === 0, 'rejected claim amount must be zero')
+      assert(!providerFault, 'rejected claim cannot have provider fault')
+    } else {
+      assert(approvedAmount > 0, 'approved claim amount must be positive')
+    }
+    if (approved) assert(Txn.fee >= Global.minTxnFee * 2, 'outer fee must pool inner fee')
+
+    let stakeDebit: uint64 = 0
+    let poolDebit: uint64 = 0
+    if (approved && providerFault) {
+      assert(provider.value.stakeTotal.asUint64() >= provider.value.stakeLocked.asUint64(), 'invalid stake state')
+      assert(provider.value.stakeLocked.asUint64() >= coverage.value.lockedStakeAmount.asUint64(), 'locked stake underflow')
+      const remainingLockedStake: uint64 = provider.value.stakeLocked.asUint64() - coverage.value.lockedStakeAmount.asUint64()
+      assert(provider.value.stakeTotal.asUint64() >= remainingLockedStake, 'stake total underflow')
+      const stakeAvailable: uint64 = provider.value.stakeTotal.asUint64() - remainingLockedStake
+      stakeDebit = approvedAmount <= stakeAvailable ? approvedAmount : stakeAvailable
+      poolDebit = approvedAmount - stakeDebit
+    } else if (approved) {
+      poolDebit = approvedAmount
+    }
+
+    assert(this.totalProviderStake.value >= stakeDebit, 'global stake underflow')
+    assert(this.premiumReserve.value >= poolDebit, 'insufficient premium reserve')
+    const maxUint64 = new arc4.Uint64(18446744073709551615n).asUint64()
+    assert(stakeDebit <= maxUint64 - poolDebit, 'claim debit overflow')
+    assert(stakeDebit + poolDebit === approvedAmount, 'claim debit mismatch')
+    if (approved) {
+      const applicationHolding = Asset(this.acceptedAssetId.value).balance(Global.currentApplicationAddress)
+      assert(applicationHolding >= approvedAmount, 'insufficient application asset balance')
+      const newTotalProviderStake: uint64 = this.totalProviderStake.value - stakeDebit
+      const newPremiumReserve: uint64 = this.premiumReserve.value - poolDebit
+      assert(newTotalProviderStake <= maxUint64 - newPremiumReserve, 'tracked stake overflow')
+      const newTrackedAssetBalance: uint64 = newTotalProviderStake + newPremiumReserve
+      const postRefundHolding: uint64 = applicationHolding - approvedAmount
+      assert(newTrackedAssetBalance <= postRefundHolding, 'tracked stake exceeds balance')
+    }
+
+    this.releaseExposure(coverageId, coverage.value.providerId)
+    if (approved) {
+      provider.value.stakeTotal = new arc4.Uint64(provider.value.stakeTotal.asUint64() - stakeDebit)
+      this.totalProviderStake.value -= stakeDebit
+      this.premiumReserve.value -= poolDebit
+      coverage.value.status = new arc4.Uint64(COVERAGE_STATUS_REFUNDED)
+    } else {
+      coverage.value.status = new arc4.Uint64(COVERAGE_STATUS_CLOSED)
+    }
+    const resolvedAt = Global.latestTimestamp
+    claim.value = new FinalizedClaimRecord({
+      coverageId,
+      approved: new arc4.Bool(approved),
+      approvedAmount: new arc4.Uint64(approvedAmount),
+      providerFault: new arc4.Bool(providerFault),
+      resolutionCode: new arc4.Uint64(resolutionCode),
+      stakeDebit: new arc4.Uint64(stakeDebit),
+      poolDebit: new arc4.Uint64(poolDebit),
+      resolvedAt: new arc4.Uint64(resolvedAt),
+    })
+    emit(
+      'ClaimFinalized',
+      new arc4.Uint64(1),
+      claimId,
+      coverageId,
+      new arc4.Bool(approved),
+      new arc4.Uint64(approvedAmount),
+      new arc4.Bool(providerFault),
+      new arc4.Uint64(resolutionCode),
+      new arc4.Uint64(resolvedAt),
+    )
+    if (approved) {
+      itxn.assetTransfer({
+        sender: Global.currentApplicationAddress,
+        xferAsset: this.acceptedAssetId.value,
+        assetAmount: approvedAmount,
+        assetReceiver: Account(coverage.value.payerAddress.bytes),
+        fee: 0,
+      }).submit()
+      emit('RefundPaid', new arc4.Uint64(1), claimId, coverageId, new arc4.Address(coverage.value.payerAddress.bytes), new arc4.Uint64(approvedAmount))
+    } else {
+      emit('CoverageClosed', new arc4.Uint64(1), coverageId, new arc4.Uint64(resolvedAt), new arc4.Bool(false))
+    }
+  }
+
+  @abimethod({ readonly: true })
+  getClaim(claimId: arc4.StaticBytes<32>): FinalizedClaimRecord {
+    const claim = this.claims(claimId)
+    assert(claim.exists, 'claim missing')
+    return claim.value
+  }
+
+  private releaseExposure(coverageId: arc4.StaticBytes<32>, providerId: arc4.StaticBytes<32>): void {
+    const coverage = this.coverages(coverageId)
+    const provider = this.providers(providerId)
+    assert(coverage.exists, 'coverage missing')
+    assert(provider.exists, 'provider missing')
+    assert(coverage.value.status.asUint64() === COVERAGE_STATUS_OPEN, 'coverage is not open')
+    assert(!coverage.value.exposureReleased.native, 'coverage exposure already released')
+    assert(provider.value.stakeLocked.asUint64() >= coverage.value.lockedStakeAmount.asUint64(), 'locked stake underflow')
+    assert(provider.value.openFaultExposure.asUint64() >= coverage.value.grossAmount.asUint64(), 'provider exposure underflow')
+    assert(this.totalOpenFaultExposure.value >= coverage.value.grossAmount.asUint64(), 'global exposure underflow')
+    provider.value.stakeLocked = new arc4.Uint64(provider.value.stakeLocked.asUint64() - coverage.value.lockedStakeAmount.asUint64())
+    provider.value.openFaultExposure = new arc4.Uint64(provider.value.openFaultExposure.asUint64() - coverage.value.grossAmount.asUint64())
+    this.totalOpenFaultExposure.value -= coverage.value.grossAmount.asUint64()
+    coverage.value.exposureReleased = new arc4.Bool(true)
+  }
+
   private requireUnpaused(): void {
     assert(this.paused.value === 0, 'protocol paused')
   }
