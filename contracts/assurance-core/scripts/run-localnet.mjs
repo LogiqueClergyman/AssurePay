@@ -148,6 +148,8 @@ const create = algosdk.makeApplicationCreateTxnFromObject({
 const created = await send(create, payer)
 const appId = Number(pendingField(created.pending, 'application-index', 'applicationIndex'))
 const appAddress = algosdk.getApplicationAddress(appId).toString()
+const applicationBalanceAtCreation = Number((await algod.accountInformation(appAddress).do()).amount)
+assert.equal(applicationBalanceAtCreation, 0, 'application starts with no ALGO balance')
 checkEvent(created.pending, 'ProtocolCreated(uint64,address,address,uint64)', '(uint64,address,address,uint64)', [1n, payerAddress, adjudicator, BigInt(assetId)])
 const initial = await applicationState(appId)
 assert.equal(algosdk.encodeAddress(new Uint8Array(Buffer.from(initial.get('admin').bytes, 'base64'))), payerAddress)
@@ -648,7 +650,7 @@ const claimBox1 = boxKey('f', claimId1)
 const claimBox2 = boxKey('f', claimId2)
 const claimBox3 = boxKey('f', claimId3)
 
-await send(algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+const providerPolicyFunding = await send(algosdk.makePaymentTxnWithSuggestedParamsFromObject({
   sender: payerAddress,
   receiver: appAddress,
   amount: 300_000,
@@ -773,6 +775,34 @@ const applicationEvidence = (text, signed, deployedAppId, label, source) => {
   if (extracted === undefined) return { applicationId: deployedAppId, source: `${source}:response-omitted;signed-only` }
   assert.equal(Number(extracted), deployedAppId, `${label} ${source} application id`)
   return { applicationId: Number(extracted), source: `${source}:response-extracted` }
+}
+const innerPendingTransactions = (pending) => pending.innerTxns ?? pending['inner-txns'] ?? []
+const publicAddress = (value) => value?.toString?.() ?? value
+const refundInnerTransferEvidence = (pending, parentClaimTransactionId, storedPayer, approvedAmount, label) => {
+  const innerTransactions = innerPendingTransactions(pending)
+  const matching = innerTransactions.flatMap((entry, innerIndex) => {
+    const transaction = entry.txn?.txn ?? entry.txn ?? entry
+    const transfer = transaction.assetTransfer
+    if (transaction.type !== 'axfer' || transfer === undefined) return []
+    return [{ entry, innerIndex, transaction, transfer }]
+  }).filter(({ transaction, transfer }) => publicAddress(transfer.receiver) === storedPayer && Number(transfer.amount) === approvedAmount && Number(transfer.assetIndex) === assetId && publicAddress(transaction.sender) === appAddress && Number(transaction.fee) === 0)
+  assert.equal(matching.length, 1, `${label} has exactly one matching refund inner transfer`)
+  const [{ entry, innerIndex, transaction, transfer }] = matching
+  const transactionId = entry.txid ?? entry.txID ?? entry.id ?? entry.txn?.txid ?? entry.txn?.id ?? null
+  const evidence = {
+    parentClaimTransactionId,
+    innerIndex,
+    transactionId,
+    assetId: Number(transfer.assetIndex),
+    sender: publicAddress(transaction.sender),
+    receiver: publicAddress(transfer.receiver),
+    amount: Number(transfer.amount),
+    fee: Number(transaction.fee),
+    noIndependentOuterTransaction: true,
+  }
+  assert.equal(evidence.receiver, storedPayer, `${label} refund receiver is stored payer`)
+  assert.equal(evidence.amount, approvedAmount, `${label} refund amount is approved amount`)
+  return evidence
 }
 const coverageState = async (id, ref) => {
   const read = await call(payer, [algosdk.ABIMethod.fromSignature('getCoverage(byte[32])(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)').getSelector(), id], boxes(ref))
@@ -1201,6 +1231,7 @@ assert.equal(poolClaim.pending.logs.length, 2, 'pool-only claim emits only final
 const poolClaimEvent = decodeEvent(poolClaim.pending, 'ClaimFinalized(uint64,byte[32],byte[32],bool,uint64,bool,uint64,uint64)', '(uint64,byte[32],byte[32],bool,uint64,bool,uint64,uint64)')
 assert.deepEqual(poolClaimEvent.slice(0, 7), [1n, decodedBytes(claimId2), decodedBytes(coverageId3), true, 1n, false, 2n])
 checkEvent(poolClaim.pending, 'RefundPaid(uint64,byte[32],byte[32],address,uint64)', '(uint64,byte[32],byte[32],address,uint64)', [1n, decodedBytes(claimId2), decodedBytes(coverageId3), payerAddress, 1n], 1)
+const poolRefundInnerTransfer = refundInnerTransferEvidence(poolClaim.pending, poolClaim.txid, payerAddress, 1, 'pool-only claim')
 assert.equal(await asaBalance(payerAddress), poolPayerAssetBefore + 1, 'pool-only refund pays stored payer exactly')
 assert.equal(await appAssetBalance(), poolApplicationAssetBefore - 1, 'pool-only debit changes application ASA exactly')
 const poolProviderAfter = await call(payer, [algosdk.ABIMethod.fromSignature(providerSignature).getSelector(), providerId3], boxes(providerBox3))
@@ -1250,6 +1281,7 @@ const faultClaim = await call(
 const faultClaimEvent = decodeEvent(faultClaim.pending, 'ClaimFinalized(uint64,byte[32],byte[32],bool,uint64,bool,uint64,uint64)', '(uint64,byte[32],byte[32],bool,uint64,bool,uint64,uint64)')
 assert.deepEqual(faultClaimEvent.slice(0, 7), [1n, decodedBytes(claimId3), decodedBytes(coverageId4), true, 100n, true, 3n])
 checkEvent(faultClaim.pending, 'RefundPaid(uint64,byte[32],byte[32],address,uint64)', '(uint64,byte[32],byte[32],address,uint64)', [1n, decodedBytes(claimId3), decodedBytes(coverageId4), payerAddress, 100n], 1)
+const faultRefundInnerTransfer = refundInnerTransferEvidence(faultClaim.pending, faultClaim.txid, payerAddress, 100, 'provider-fault claim')
 assert.deepEqual(await claimState(claimId3, claimBox3), [decodedBytes(coverageId4), true, 100n, true, 3n, 25n, 75n, faultClaimEvent[7]])
 await recordClaimMbr(claim3MinBefore)
 const faultClaimPayerAssetDelta = (await asaBalance(payerAddress)) - faultClaimPayerAssetBefore
@@ -1406,10 +1438,65 @@ assert.equal(decodeStateUInt(finalAccounting, 'premiumReserve'), 29)
 assert.equal(decodeStateUInt(finalAccounting, 'totalOpenFaultExposure'), 100)
 assert.equal(decodeStateUInt(finalAccounting, 'totalProviderStake') + decodeStateUInt(finalAccounting, 'premiumReserve'), await appAssetBalance(), 'tracked stake and premium reserve equal actual ASA balance')
 assert.equal(await appMinBalance(), minAfterOptIn + 3 * 67_300 + 6 * 44_900 + 5 * 92_900 + 3 * 45_300, 'Gate D tombstone MBR')
+const applicationFundingPayments = [
+  { transactionId: applicationFunding.txid, amount: 600_000, purpose: 'initial application and ASA opt-in funding' },
+  { transactionId: providerPolicyFunding.txid, amount: 300_000, purpose: 'provider and policy box funding' },
+  { transactionId: coverageMbrFunding.txid, amount: 92_900, purpose: 'coverage-box funding' },
+  { transactionId: gateDApplicationFunding.txid, amount: 300_000, purpose: 'Gate D application funding' },
+  { transactionId: claimFunding.txid, amount: claimFundingAmount, purpose: 'claim-box funding' },
+]
+const reportedApplicationFunding = applicationFundingPayments.reduce((total, payment) => total + payment.amount, 0)
+const finalApplicationAlgo = await appBalance()
+const applicationAlgoFlow = { initialBalance: applicationBalanceAtCreation, reportedInflows: reportedApplicationFunding, otherInflows: 0, outflows: 0, finalBalance: finalApplicationAlgo }
+assert.equal(applicationBalanceAtCreation + reportedApplicationFunding + applicationAlgoFlow.otherInflows - applicationAlgoFlow.outflows, finalApplicationAlgo, 'application ALGO funding reconciliation')
 const lockCrossingWithdrawalEvidence = gateDRejectionEvidence.find((item) => item.label === 'withdraw across locked stake')
 assert.ok(lockCrossingWithdrawalEvidence, 'lock-crossing withdrawal evidence')
 const finalProviderStakeSum = Number(finalProvider1[4] + finalProvider2[4] + finalProvider3[4])
 const finalProviderExposureSum = Number(finalProvider1[6] + finalProvider2[6] + finalProvider3[6])
+const canonicalProviderEvidence = [
+  {
+    providerId: hexId(providerId),
+    role: 'unrelated provider retained through the primary lifecycle',
+    registrationTransactionId: registered.txid,
+    deposits: [{ memberTransactionIds: depositGroup.map((txn) => txn.txID()), amount: depositAmount }],
+    withdrawals: [],
+    claimStakeDebits: [],
+    final: providerPublicRecord(finalProvider1),
+    reconciliation: { deposits: 123, withdrawals: 0, claimStakeDebits: 0, result: 123 },
+  },
+  {
+    providerId: hexId(providerId2),
+    role: 'released provider used for expiry close, full withdrawal, and zero-capacity proof',
+    registrationTransactionId: registered2.txid,
+    deposits: [{ memberTransactionIds: deposit5.map((txn) => txn.txID()), amount: 10 }],
+    withdrawals: [{ transactionId: fullWithdrawal.txid, amount: 10 }],
+    claimStakeDebits: [],
+    final: providerPublicRecord(finalProvider2),
+    reconciliation: { deposits: 10, withdrawals: 10, claimStakeDebits: 0, result: 0 },
+  },
+  {
+    providerId: hexId(providerId3),
+    role: 'primary provider for assured coverage and provider-fault waterfall',
+    registrationTransactionId: registered3.txid,
+    deposits: [{ memberTransactionIds: deposit3.map((txn) => txn.txID()), amount: 123 }],
+    withdrawals: [{ transactionId: withdraw.txid, amount: 23 }],
+    claimStakeDebits: [{ claimId: hexId(claimId2), amount: 0 }, { claimId: hexId(claimId3), amount: 25 }],
+    final: providerPublicRecord(finalProvider3),
+    reconciliation: { deposits: 123, withdrawals: 23, claimStakeDebits: 25, result: 75 },
+  },
+]
+assert.equal(canonicalProviderEvidence[0].reconciliation.deposits - canonicalProviderEvidence[0].reconciliation.withdrawals - canonicalProviderEvidence[0].reconciliation.claimStakeDebits, Number(finalProvider1[4]), 'provider 07 stake reconciliation')
+assert.equal(canonicalProviderEvidence[1].reconciliation.deposits - canonicalProviderEvidence[1].reconciliation.withdrawals - canonicalProviderEvidence[1].reconciliation.claimStakeDebits, Number(finalProvider2[4]), 'provider 08 stake reconciliation')
+assert.equal(canonicalProviderEvidence[2].reconciliation.deposits - canonicalProviderEvidence[2].reconciliation.withdrawals - canonicalProviderEvidence[2].reconciliation.claimStakeDebits, Number(finalProvider3[4]), 'provider 0c stake reconciliation')
+assert.equal(canonicalProviderEvidence.reduce((total, provider) => total + provider.reconciliation.result, 0), Number(stateUint(finalAccounting, 'totalProviderStake')), 'provider stake total reconciliation')
+const canonicalPolicyEvidence = [
+  { policyId: hexId(policyId1), providerId: hexId(providerId), creationTransactionId: policy1Created.txid },
+  { policyId: hexId(policyId2), providerId: hexId(providerId), creationTransactionId: policy2Created.txid },
+  { policyId: hexId(policyIdGate3), providerId: hexId(providerId3), creationTransactionId: policyGate3Created.txid },
+  { policyId: hexId(policyIdGate4), providerId: hexId(providerId3), creationTransactionId: policyGate4Created.txid },
+  { policyId: hexId(policyIdGate5), providerId: hexId(providerId3), creationTransactionId: policyGate5Created.txid },
+  { policyId: hexId(policyIdGate6), providerId: hexId(providerId2), creationTransactionId: policyGate6Created.txid },
+]
 const finalProviderBoxes = [
   { providerId: hexId(providerId), box: hexId(providerBox), record: providerPublicRecord(finalProvider1) },
   { providerId: hexId(providerId2), box: hexId(providerBox2), record: providerPublicRecord(finalProvider2) },
@@ -1469,6 +1556,7 @@ console.log(JSON.stringify({
     actors: {
       primaryProviderId: hexId(providerId3),
       zeroCapacityProviderId: hexId(providerId2),
+      providerIds: [hexId(providerId), hexId(providerId2), hexId(providerId3)],
       primaryPolicyIds: [hexId(policyIdGate3), hexId(policyIdGate4)],
       waterfallPolicyId: hexId(policyIdGate5),
       zeroCapacityPolicyId: hexId(policyIdGate6),
@@ -1478,12 +1566,10 @@ console.log(JSON.stringify({
     },
     steps: {
       '1_createApplication': { transactionId: created.txid, adjudicator, acceptedAssetId: assetId },
-      '2_fundAndOptIn': { fundingTransactionId: applicationFunding.txid, optInTransactionId: optedIn.txid, applicationAddress: appAddress, applicationAssetBalanceAfterOptIn: 0 },
+      '2_fundAndOptIn': { initialFundingTransactionId: applicationFunding.txid, optInTransactionId: optedIn.txid, applicationAddress: appAddress, applicationAssetBalanceAfterOptIn: 0 },
       '3_registerAndCreatePolicies': {
-        providerRegistrationTransactionId: registered3.txid,
-        policyCreationTransactionIds: [policyGate3Created.txid, policyGate4Created.txid, policyGate5Created.txid, policyGate6Created.txid],
-        providerIds: [hexId(providerId3), hexId(providerId2)],
-        policyIds: [hexId(policyIdGate3), hexId(policyIdGate4), hexId(policyIdGate5), hexId(policyIdGate6)],
+        providerRegistrationTransactionIds: [registered.txid, registered2.txid, registered3.txid],
+        policyEvidence: canonicalPolicyEvidence,
       },
       '4_depositStake': {
         providerId: hexId(providerId3),
@@ -1537,7 +1623,7 @@ console.log(JSON.stringify({
           coverageId: hexId(coverageId3),
           claimId: hexId(claimId2),
           claimTransactionId: poolClaim.txid,
-          refundTransactionId: poolResult.settlement.transaction,
+          refundInnerTransfer: poolRefundInnerTransfer,
           storedPayer: payerAddress,
           approvedAmount: 1,
           stakeDebit: 0,
@@ -1551,7 +1637,7 @@ console.log(JSON.stringify({
           coverageId: hexId(coverageId4),
           claimId: hexId(claimId3),
           claimTransactionId: faultClaim.txid,
-          refundTransactionId: faultResult.settlement.transaction,
+          refundInnerTransfer: faultRefundInnerTransfer,
           storedPayer: payerAddress,
           approvedAmount: 100,
           stakeDebit: 25,
@@ -1604,6 +1690,8 @@ console.log(JSON.stringify({
       '12_reconcileFinalState': {
         finalProviderBoxes,
         finalOpenCoverageBoxes,
+        applicationAlgoFunding: { payments: applicationFundingPayments, reconciliation: applicationAlgoFlow },
+        providerStakeFlows: { providers: canonicalProviderEvidence, globalTotal: Number(stateUint(finalAccounting, 'totalProviderStake')), sum: finalProviderStakeSum, matchesGlobal: finalProviderStakeSum === Number(stateUint(finalAccounting, 'totalProviderStake')) },
         accounting: {
           totalProviderStake: Number(stateUint(finalAccounting, 'totalProviderStake')),
           premiumReserve: Number(stateUint(finalAccounting, 'premiumReserve')),
