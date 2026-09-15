@@ -163,12 +163,16 @@ test('P1 public evidence rejects secret, signed, pending, and simulation materia
   assert.equal(publicEvidenceSafe({ ordinaryField: 'A'.repeat(160) }), false)
   assert.equal(publicEvidenceSafe({ txId: 'PUBLIC', round: 10n, delta: -3 }), true)
   assert.equal(publicEvidenceSafe({ simulationReason: 'simulation', simulationResponsesNotRecorded: true }), true)
+  assert.equal(publicEvidenceSafe({ sameSignedBytes: true }), true)
+  assert.equal(publicEvidenceSafe({ sameSignedBytes: 'true' }), false)
   assert.equal(publicEvidenceSafe({ ordinaryField: 'runtime-token' }, ['runtime-token']), false)
   assert.equal(publicEvidenceSafe({ ordinaryField: mnemonic }, [mnemonic]), false)
 })
 
 function representativeEvidence() {
   const application = algosdk.getApplicationAddress(42).toString()
+  const failure = { applicationId: 42, assertionPc: 123, kind: 'application-assertion' }
+  const rejection = (extra = {}) => ({ simulation: { ...failure }, pool: { ...failure }, sameSignedBytes: true, completeRollback: true, ...extra })
   return {
     schema: 'assurepay-p1-testnet-evidence-v1',
     network: { caip2: ALGORAND_TESTNET_CAIP2, genesisId: 'testnet-v1', label: 'TestNet' },
@@ -176,7 +180,15 @@ function representativeEvidence() {
     application: { id: 42, address: application, approvalProgramBytes: 4, extraPages: 1, approvalProgramHash: 'hash', globalStateSchema: { numUint: 6, numByteSlice: 2 } },
     actors: { payer: payerAddress, application },
     funding: { payments: [], applicationMbr: { total: 0 }, reconciliation: { actualApplicationFunding: 0, plannedApplicationFunding: 0 } },
-    steps: { createApplication: { transactionId: 'CREATE', confirmedRound: 7 }, successfulCoverage: { groupId: 'GROUP', memberTransactionIds: ['A', 'B', 'C'], confirmedRound: 7, applicationId: 42 }, providerFaultClaim: { transactionId: 'CLAIM', confirmedRound: 7, waterfall: { approvedAmount: 100 } } },
+    steps: {
+      createApplication: { transactionId: 'CREATE', confirmedRound: 7 },
+      successfulCoverage: { groupId: 'GROUP', memberTransactionIds: ['A', 'B', 'C'], confirmedRound: 7, applicationId: 42 },
+      insufficientCapacity: rejection({ simulationReason: 'simulation', facilitatorSubmissionCount: 0, coverageBoxRemainsAbsent: true }),
+      rejectedWithdrawal: rejection({ classification: 'application-assertion', label: 'over/lock-crossing withdrawal' }),
+      authorizationNegative: rejection({ classification: 'authorization' }),
+      providerFaultClaim: { transactionId: 'CLAIM', confirmedRound: 7, waterfall: { approvedAmount: 100 } },
+      zeroCapacity: rejection({ simulationReason: 'simulation', facilitatorSubmissionCount: 0, remainingCapacity: 0 }),
+    },
     final: { providers: [{ providerId: '01'.repeat(32), record: {} }, { providerId: '02'.repeat(32), record: {} }], tombstones: [{ prefix: 'c', id: '03'.repeat(32), type: 'coverage', status: 2 }, { prefix: 'f', id: '04'.repeat(32), type: 'claim', status: true }], accounting: {}, applicationMinimumBalance: 0, invariants: {} },
     acceptanceNotes: { simulationResponsesNotRecorded: true, rejectedTransactionBytesNotRecorded: true },
   }
@@ -192,6 +204,8 @@ test('P1 complete evidence-write seam validates a representative result before i
   assert.equal(call.options.mode, 0o644)
   assert.equal(call.containsMnemonic, false)
   await assert.rejects(writePublicEvidence({ ...evidence, pendingResponse: { secret: true } }, { writeFile: async () => { throw new Error('writer must not be called') } }), (error) => error.publicCode === 'PUBLIC_EVIDENCE_UNSAFE')
+  const signedMutation = { ...evidence, steps: { ...evidence.steps, zeroCapacity: { ...evidence.steps.zeroCapacity, signedBytes: ['AA=='] } } }
+  await assert.rejects(writePublicEvidence(signedMutation, { writeFile: async () => { throw new Error('writer must not be called') } }), (error) => error.publicCode === 'PUBLIC_EVIDENCE_UNSAFE')
 })
 
 test('P1 POC monetary and terminal predicates fail closed for each observed checkpoint', () => {

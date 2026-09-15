@@ -703,7 +703,8 @@ export function publicEvidenceSafe(value, sensitiveValues = []) {
   const visit = (node, key = '') => {
     const sanitizedFailure = (key === 'simulation' || key === 'pool') && node && typeof node === 'object' && !Array.isArray(node) && Object.keys(node).every((field) => ['applicationId', 'assertionPc', 'kind'].includes(field)) && Object.prototype.hasOwnProperty.call(node, 'kind')
     const safeCompactField = safeSimulationFields.has(key) && (key === 'simulationResponsesNotRecorded' ? typeof node === 'boolean' : typeof node === 'string' && node.length <= 160)
-    if (forbiddenKey.test(key) && !sanitizedFailure && !safeCompactField) return false
+    const safeSignedComparison = key === 'sameSignedBytes' && typeof node === 'boolean'
+    if (forbiddenKey.test(key) && !sanitizedFailure && !safeCompactField && !safeSignedComparison) return false
     if (node === null || node === undefined || typeof node === 'boolean' || typeof node === 'number' || typeof node === 'bigint') return true
     if (typeof node === 'string') return !sensitive.includes(node) && !phrase.test(node.trim()) && !(longBase64.test(node) && node.length >= 128)
     if (node instanceof Uint8Array || Buffer.isBuffer(node)) return false
