@@ -186,6 +186,11 @@ test('P1 execution failures expose only allowlisted stages and confirmed public 
     assert.equal('pendingResponse' in failure, false)
   }
   assert.throws(() => createExecutionDiagnostics().setStage('capacity-read.signed-bytes'), /invalid execution diagnostic stage/)
+  const invalidGroupDiagnostics = createExecutionDiagnostics()
+  invalidGroupDiagnostics.recordConfirmed({ transactionId, confirmedRound: 67328937, groupId: 'secret-marker' })
+  const invalidGroupFailure = executionFailureResult(new Error(secret), invalidGroupDiagnostics)
+  assert.equal(JSON.stringify(invalidGroupFailure).includes('secret-marker'), false)
+  assert.deepEqual(invalidGroupFailure.confirmedPublicTransactions, [{ transactionId, confirmedRound: 67328937 }])
   const untrustedCode = Object.assign(new Error(secret), { publicCode: 'TESTNET_EXECUTION_FAILED' })
   assert.equal(executionFailureResult(untrustedCode).message.includes(secret), false)
 })

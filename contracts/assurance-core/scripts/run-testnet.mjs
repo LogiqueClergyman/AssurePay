@@ -73,6 +73,11 @@ export const EXECUTION_STAGES = Object.freeze([
 const executionStageSet = new Set(EXECUTION_STAGES)
 const GENERIC_EXECUTION_FAILURE_MESSAGE = 'TestNet execution failed; inspect public endpoint, account funds, ASA holding, and network state without exposing credentials.'
 const transactionIdPattern = /^[A-Z2-7]{52}$/
+const canonicalGroupId = (value) => {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9+/]{43}=$/.test(value)) return false
+  const decoded = Buffer.from(value, 'base64')
+  return decoded.length === 32 && decoded.toString('base64') === value
+}
 
 export function createExecutionDiagnostics() {
   let stage = EXECUTION_STAGES[0]
@@ -86,7 +91,7 @@ export function createExecutionDiagnostics() {
       const round = Number(confirmedRound)
       if (!transactionIdPattern.test(transactionId ?? '') || !Number.isSafeInteger(round) || round <= 0) return
       const publicTransaction = { transactionId, confirmedRound: round }
-      if (typeof groupId === 'string' && groupId.length <= 128) publicTransaction.groupId = groupId
+      if (canonicalGroupId(groupId)) publicTransaction.groupId = groupId
       confirmedPublicTransactions.push(publicTransaction)
     },
     snapshot() {
