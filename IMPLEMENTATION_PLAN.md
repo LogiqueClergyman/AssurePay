@@ -19,7 +19,7 @@ Later phases may be prepared conceptually, but their code must not begin until t
 | Phase | State | Active packet | Gate |
 |---|---|---|---|
 | P0 Atomic group spike | COMPLETE | `planning/P0_TESTNET_ACCEPTANCE.md` | TestNet accepted: assured-exact three-member settlement and actual atomic pool rejection proved |
-| P1 Assurance Core | IN_PROGRESS | `planning/P1_GATE_F_POC_READINESS.md` | Gate F TestNet mutation failed after preflight; no evidence produced; Gates A–E remain accepted |
+| P1 Assurance Core | IN_PROGRESS | `planning/P1_GATE_F_POC_READINESS.md` | Gate F TestNet mutation failed after preflight; no evidence produced; failure sub-stage and confirmation status unknown; Gates A–E remain accepted |
 | P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
 | P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |
 | P4 Demo hardening | BLOCKED_BY_P3 | Not created | Pending |
