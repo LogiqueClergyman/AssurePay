@@ -3,9 +3,9 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: REVIEW — Gates A through E ACCEPTED; Gate F evidence-schema blocker corrected, pending orchestrator review before TestNet mutation
+- State: IN_PROGRESS — Gates A through E ACCEPTED; the single authorized Gate F TestNet mutation failed during execution with sanitized `TESTNET_EXECUTION_FAILED`
 - Branch: `main`
-- Reviewed readiness checkpoint: current focused evidence-schema correction
+- Reviewed readiness checkpoint: current focused evidence-schema correction; readiness checks and TestNet preflight passed, but acceptance did not complete
 - Active packet: `planning/P1_GATE_F_POC_READINESS.md`
 - Parent packet: `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md`
 - Results: `planning/P1_RESULTS.md`
@@ -25,18 +25,21 @@ P0 remains complete. Do not modify or import from `spikes/p0-atomic/**`.
 - Reproduced typecheck/build with unchanged artifacts, all `47/47` tests, a fresh real LocalNet lifecycle at round `5311` with 95 rejections, and configuration-only preflight. No TestNet mutation, evidence file, populated environment inspection, or later-phase work occurred.
 - Applied only the focused correction: the public-safety validator allows the exact boolean `sameSignedBytes` while continuing to reject signatures and signed blobs. The representative full evidence-write fixture now includes every intended-rejection record and proves the complete writer path; a signed-material mutation is rejected before write.
 - Reproduced typecheck, build, **47/47** tests, fresh LocalNet, and configuration-only preflight with no TestNet mutation and no evidence file.
+- Sequential Gate F verification on 2026-09-15: typecheck, contract build, **47/47** tests, fresh real LocalNet, generated-artifact diff, and `git diff --check` all passed. The first sandboxed TestNet preflight was endpoint-blocked; the identical non-mutating preflight with network access passed for TestNet genesis `testnet-v1.0`, existing ASA **10458941** (`USDC`, 6 decimals), expected/derived payer `G5V2CFA6OELV6YN6RRABZUAJJAFRLUNG6VC3UHPKP2S3UVPHT64OV3BYYU`, **8,284,000** spendable microAlgos, and **19,999,900** payer ASA atomic units. The explicitly authorized mutating command `npm run testnet:p1` ran exactly once and returned only sanitized `phase=execution`, `code=TESTNET_EXECUTION_FAILED`; no public TestNet IDs were emitted and no `contracts/assurance-core/testnet-evidence.json` was created. The read-only verifier was not run because the mutation failed and incomplete evidence must not be verified. No retry is authorized without fresh user authorization.
 
 ## Exact next action
 
-Review the focused evidence-schema correction and its commit. If accepted, the
-orchestrator may provide/authorize the one mutating TestNet run. Do not run the
-default mutating TestNet command or evidence verifier in this session, and do
-not create `contracts/assurance-core/testnet-evidence.json`.
+Review the failed Gate F acceptance attempt and the sanitized execution result.
+The one authorized mutating run has been consumed; do not retry and do not run
+the evidence verifier. The orchestrator must determine the next action and
+provide fresh explicit authorization before any further TestNet mutation or
+read-only investigation. Do not create `contracts/assurance-core/testnet-evidence.json` manually.
 
 Do not start P2 or later work. Never access `/docs` or manually read a populated
 `.env`.
 
 ## External prerequisites after remediation
 
-- The P1 TestNet mnemonic, expected derived Pera address, existing ASA ID, and reachable TestNet Algod endpoint must be available to the corrected preflight through the process environment or ignored P1 `.env`.
-- A mutating TestNet acceptance run and evidence verification remain unauthorized until the orchestrator accepts this readiness checkpoint.
+- The TestNet configuration and funding preflight passed for ASA **10458941** and the expected/derived public payer address; no configuration deficit was identified.
+- The mutation failed during execution with no surfaced sub-step or public confirmed IDs. Gate F evidence is unavailable; verifier execution is intentionally pending and any further TestNet action requires fresh user authorization.
+- Do not start P2 or later work. Never access `/docs` or manually read a populated `.env`.
