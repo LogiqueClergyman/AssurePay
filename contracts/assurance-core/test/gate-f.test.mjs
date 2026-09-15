@@ -5,7 +5,7 @@ import { ed25519Verifier } from '@algorandfoundation/algokit-utils/crypto'
 import { ALGORAND_TESTNET_CAIP2 } from '@x402/avm'
 import { buildAssuredExactPayloadWithSigner } from '../src/assured-exact.mjs'
 import { createPeraHdSigner, validatePeraHdMnemonic } from '../src/pera-hd-signer.mjs'
-import { applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
+import { EXECUTION_STAGES, applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, createExecutionDiagnostics, executionFailureResult, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
 
 const mnemonic = 'salon zoo engage submit smile frost later decide wing sight chaos renew lizard rely canal coral scene hobby scare step bus leaf tobacco slice'
 const params = { fee: 1_000, minFee: 1_000, firstValid: 1, lastValid: 1_000, genesisHash: new Uint8Array(32), genesisID: 'v1', flatFee: true }
@@ -167,6 +167,27 @@ test('P1 public evidence rejects secret, signed, pending, and simulation materia
   assert.equal(publicEvidenceSafe({ sameSignedBytes: 'true' }), false)
   assert.equal(publicEvidenceSafe({ ordinaryField: 'runtime-token' }, ['runtime-token']), false)
   assert.equal(publicEvidenceSafe({ ordinaryField: mnemonic }, [mnemonic]), false)
+})
+
+test('P1 execution failures expose only allowlisted stages and confirmed public progress', () => {
+  const secret = 'mnemonic token signed-bytes pending-response'
+  const transactionId = 'A'.repeat(52)
+  const groupId = Buffer.alloc(32, 1).toString('base64')
+  for (const stage of EXECUTION_STAGES) {
+    const diagnostics = createExecutionDiagnostics()
+    diagnostics.setStage(stage)
+    diagnostics.recordConfirmed({ transactionId, confirmedRound: 67328937, groupId, pendingResponse: { secret }, signedBytes: [secret] })
+    const failure = executionFailureResult(new Error(secret), diagnostics)
+    assert.equal(failure.stage, stage)
+    assert.equal(failure.code, 'TESTNET_EXECUTION_FAILED')
+    assert.equal(failure.message.includes(secret), false)
+    assert.deepEqual(failure.confirmedPublicTransactions, [{ transactionId, confirmedRound: 67328937, groupId }])
+    assert.equal(JSON.stringify(failure).includes(secret), false)
+    assert.equal('pendingResponse' in failure, false)
+  }
+  assert.throws(() => createExecutionDiagnostics().setStage('capacity-read.signed-bytes'), /invalid execution diagnostic stage/)
+  const untrustedCode = Object.assign(new Error(secret), { publicCode: 'TESTNET_EXECUTION_FAILED' })
+  assert.equal(executionFailureResult(untrustedCode).message.includes(secret), false)
 })
 
 function representativeEvidence() {

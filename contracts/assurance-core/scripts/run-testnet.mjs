@@ -53,7 +53,60 @@ const hex = (value) => Buffer.from(value ?? []).toString('hex')
 const bytes = (value) => value instanceof Uint8Array ? value : Buffer.from(value, 'base64')
 const boxKey = (prefix, id) => new Uint8Array(Buffer.concat([Buffer.from(prefix), Buffer.from(id)]))
 const id = (fill) => new Uint8Array(32).fill(fill)
-const publicError = (code, message) => Object.assign(new Error(message), { publicCode: code })
+const publicError = (code, message) => Object.assign(new Error(message), { publicCode: code, publicSafeMessage: true })
+
+export const EXECUTION_STAGES = Object.freeze([
+  'initialization',
+  'setup',
+  'capacity-read.parameter-retrieval',
+  'capacity-read.construction-signing',
+  'capacity-read.submission',
+  'capacity-read.confirmation',
+  'capacity-read.return-decoding',
+  'coverage',
+  'rejection',
+  'claim',
+  'withdrawal',
+  'finalization',
+  'evidence-write',
+])
+const executionStageSet = new Set(EXECUTION_STAGES)
+const GENERIC_EXECUTION_FAILURE_MESSAGE = 'TestNet execution failed; inspect public endpoint, account funds, ASA holding, and network state without exposing credentials.'
+const transactionIdPattern = /^[A-Z2-7]{52}$/
+
+export function createExecutionDiagnostics() {
+  let stage = EXECUTION_STAGES[0]
+  const confirmedPublicTransactions = []
+  return {
+    setStage(nextStage) {
+      if (!executionStageSet.has(nextStage)) throw new TypeError('invalid execution diagnostic stage')
+      stage = nextStage
+    },
+    recordConfirmed({ transactionId, confirmedRound, groupId } = {}) {
+      const round = Number(confirmedRound)
+      if (!transactionIdPattern.test(transactionId ?? '') || !Number.isSafeInteger(round) || round <= 0) return
+      const publicTransaction = { transactionId, confirmedRound: round }
+      if (typeof groupId === 'string' && groupId.length <= 128) publicTransaction.groupId = groupId
+      confirmedPublicTransactions.push(publicTransaction)
+    },
+    snapshot() {
+      return { stage, confirmedPublicTransactions: confirmedPublicTransactions.map((item) => ({ ...item })) }
+    },
+  }
+}
+
+export function executionFailureResult(error, diagnostics = createExecutionDiagnostics()) {
+  const snapshot = diagnostics.snapshot()
+  const hasSafePublicError = error?.publicSafeMessage === true && typeof error.publicCode === 'string'
+  return {
+    ok: false,
+    phase: 'execution',
+    code: hasSafePublicError ? error.publicCode : 'TESTNET_EXECUTION_FAILED',
+    stage: snapshot.stage,
+    ...(snapshot.confirmedPublicTransactions.length > 0 ? { confirmedPublicTransactions: snapshot.confirmedPublicTransactions } : {}),
+    message: hasSafePublicError ? error.message : GENERIC_EXECUTION_FAILURE_MESSAGE,
+  }
+}
 
 export function loadDotEnv(text, target = process.env) {
   for (const line of text.split(/\r?\n/)) {
@@ -336,15 +389,23 @@ function signedGroupId(signed) {
 }
 function publicPending(pending) { return { transactionId: pending.transactionId, confirmedRound: pending.confirmedRound, ...(pending.groupId ? { groupId: pending.groupId } : {}) } }
 
-async function submitRaw(algod, signed) {
+function transactionStage(options, suffix) {
+  if (options?.stagePrefix && options?.diagnostics) options.diagnostics.setStage(`${options.stagePrefix}.${suffix}`)
+}
+
+async function submitRaw(algod, signed, options = {}) {
+  transactionStage(options, 'submission')
   const response = await algod.sendRawTransaction(signed).do()
   const txId = transactionId(response) ?? algosdk.decodeSignedTransaction(signed[0]).txn.txID()
+  transactionStage(options, 'confirmation')
   const pending = await algosdk.waitForConfirmation(algod, txId, 20)
+  options.onConfirmed?.({ transactionId: txId, confirmedRound: confirmedRound(pending) })
   return { transactionId: txId, confirmedRound: confirmedRound(pending), groupId: signedGroupId(signed), pending }
 }
 
-async function submitPayer(algod, payer, txn) {
-  return submitRaw(algod, [await payer.signTransaction(txn)])
+async function submitPayer(algod, payer, txn, options = {}) {
+  transactionStage(options, 'construction-signing')
+  return submitRaw(algod, [await payer.signTransaction(txn)], options)
 }
 
 async function algodParams(algod, fee) { return paramsWithFee(await algod.getTransactionParams().do(), fee) }
@@ -379,9 +440,12 @@ function appFailureText(response) {
 }
 function appAddress(appId) { return algosdk.getApplicationAddress(Number(appId)).toString() }
 
-async function callPayer(algod, payer, appId, method, values, boxes = [], foreignAssets = [], fee = undefined, accounts = []) {
-  const txn = algosdk.makeApplicationNoOpTxnFromObject({ sender: payer.address, appIndex: Number(appId), appArgs: methodArgs(method, values), boxes, foreignAssets, accounts, suggestedParams: await algodParams(algod, fee) })
-  return submitPayer(algod, payer, txn)
+async function callPayer(algod, payer, appId, method, values, boxes = [], foreignAssets = [], fee = undefined, accounts = [], options = {}) {
+  transactionStage(options, 'parameter-retrieval')
+  const suggestedParams = await algodParams(algod, fee)
+  transactionStage(options, 'construction-signing')
+  const txn = algosdk.makeApplicationNoOpTxnFromObject({ sender: payer.address, appIndex: Number(appId), appArgs: methodArgs(method, values), boxes, foreignAssets, accounts, suggestedParams })
+  return submitPayer(algod, payer, txn, options)
 }
 async function rejectPool(algod, signed) {
   try { await algod.sendRawTransaction(signed).do() } catch (error) {
@@ -434,7 +498,7 @@ async function makeCoverage({ algod, payer, appId, appAddress: application, prov
   return buildAssuredExactPayloadWithSigner({ payer: payer.address, signTransaction: (txn) => payer.signTransaction(txn), provider, application, assetId, providerNet, premium, applicationId: appId, coverageId, providerId, policyId, requestCommitment: id(90), params })
 }
 
-async function successfulCoverage(algod, payer, appId, application, provider, providerId, policyId, coverageId, assetId, genesisId, genesisHash, fixture) {
+async function successfulCoverage(algod, payer, appId, application, provider, providerId, policyId, coverageId, assetId, genesisId, genesisHash, fixture, options = {}) {
   let submissions = 0
   const scheme = createAssuredExactFacilitator({ algod, network: ALGORAND_TESTNET_CAIP2, genesisId, genesisHash, applicationId: appId, applicationAddress: application, acceptedAssetId: assetId, submit: async (signedBytes) => { submissions += 1; return algod.sendRawTransaction(signedBytes).do() } })
   const core = new x402Facilitator().register(ALGORAND_TESTNET_CAIP2, scheme)
@@ -445,7 +509,9 @@ async function successfulCoverage(algod, payer, appId, application, provider, pr
   if (!settlement.success) throw new Error('TestNet assured-exact settlement failed')
   const memberIds = fixture.group.map((txn) => txn.txID())
   const pending = await algod.pendingTransactionInformation(settlement.transaction).do()
-  return { settlement, verification, submissions, groupId: fixture.groupId, memberTransactionIds: memberIds, confirmedRound: confirmedRound(pending) }
+  const round = confirmedRound(pending)
+  for (const transactionId of memberIds) options.onConfirmed?.({ transactionId, confirmedRound: round, groupId: fixture.groupId })
+  return { settlement, verification, submissions, groupId: fixture.groupId, memberTransactionIds: memberIds, confirmedRound: round }
 }
 
 async function rejectedCoverage(algod, appId, application, assetId, genesisId, genesisHash, fixture, payer, providerId, providerBox, snapshot = {}) {
@@ -541,7 +607,8 @@ export function assertPocLifecycleObservations(observed) {
   return true
 }
 
-async function run(settings, readiness) {
+async function run(settings, readiness, diagnostics = createExecutionDiagnostics()) {
+  diagnostics.setStage('initialization')
   const algod = client(settings)
   const payer = settings.payer
   const network = readiness.network
@@ -560,50 +627,54 @@ async function run(settings, readiness) {
   const budget = calculateTestnetBudget({ approvalProgramBytes: artifact.approvalProgramBytes, extraPages: artifact.extraPages })
   const funding = []
   const ephemeralFunding = []
+  const progress = { onConfirmed: diagnostics.recordConfirmed }
   const applicationPayment = async (amount, purpose) => {
-    const result = await submitPayer(algod, payer, algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: actors.application, amount: Number(amount), suggestedParams: await algodParams(algod) }))
+    const result = await submitPayer(algod, payer, algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: actors.application, amount: Number(amount), suggestedParams: await algodParams(algod) }), progress)
     const item = { ...publicPending(result), amount: BigInt(amount), purpose }
     funding.push(item)
     return result
   }
   try {
+    diagnostics.setStage('setup')
     const create = algosdk.makeApplicationCreateTxnFromObject({ sender: payer.address, onComplete: algosdk.OnApplicationComplete.NoOpOC, approvalProgram: artifact.approval, clearProgram: artifact.clear, numGlobalInts: 6, numGlobalByteSlices: 2, numLocalInts: 0, numLocalByteSlices: 0, extraPages: 1, appArgs: methodArgs(METHOD.create, [assetId, payer.address]), suggestedParams: await algodParams(algod) })
-    const created = await submitPayer(algod, payer, create)
+    const created = await submitPayer(algod, payer, create, progress)
     const createPending = await algod.pendingTransactionInformation(created.transactionId).do()
     const appId = Number(createPending.applicationIndex ?? createPending['application-index'])
     if (!appId) throw new Error('TestNet application creation returned no app ID')
     const application = appAddress(appId)
     actors.application = application
     const appFunding = await applicationPayment(200_000n, 'application base plus accepted-ASA holding')
-    const providerFunding = await submitPayer(algod, payer, algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: provider.addr, amount: Number(budget.ephemeralFundingLines.primaryProvider), suggestedParams: await algodParams(algod) }))
+    const providerFunding = await submitPayer(algod, payer, algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: provider.addr, amount: Number(budget.ephemeralFundingLines.primaryProvider), suggestedParams: await algodParams(algod) }), progress)
     ephemeralFunding.push({ ...publicPending(providerFunding), amount: budget.ephemeralFundingLines.primaryProvider, purpose: 'primary provider retained minimum, ASA opt-in, and exact opt-in fee' })
     const providerOptInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({ sender: provider.addr, receiver: provider.addr, assetIndex: assetId, amount: 0, suggestedParams: await algodParams(algod) })
-    const providerOptIn = await submitRaw(algod, [providerOptInTxn.signTxn(provider.sk)])
-    const negativeFunding = await submitPayer(algod, payer, algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: negative.addr, amount: Number(budget.ephemeralFundingLines.authorizationNegative), suggestedParams: await algodParams(algod) }))
+    const providerOptIn = await submitRaw(algod, [providerOptInTxn.signTxn(provider.sk)], progress)
+    const negativeFunding = await submitPayer(algod, payer, algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: negative.addr, amount: Number(budget.ephemeralFundingLines.authorizationNegative), suggestedParams: await algodParams(algod) }), progress)
     ephemeralFunding.push({ ...publicPending(negativeFunding), amount: budget.ephemeralFundingLines.authorizationNegative, purpose: 'authorization-negative retained 100,000 minimum plus exact 2,000 application fee' })
-    const appOptIn = await callPayer(algod, payer, appId, METHOD.optIn, [assetId], [], [assetId], 2_000)
+    const appOptIn = await callPayer(algod, payer, appId, METHOD.optIn, [assetId], [], [assetId], 2_000, [], progress)
     await applicationPayment(BOX_MBR.provider, 'primary provider record box MBR before registration')
-    const providerRegistration = await callPayer(algod, payer, appId, METHOD.register, [providerId, provider.addr.toString(), id(8)], [{ appIndex: 0, name: providerBox }])
+    const providerRegistration = await callPayer(algod, payer, appId, METHOD.register, [providerId, provider.addr.toString(), id(8)], [{ appIndex: 0, name: providerBox }], [], undefined, [], progress)
     await applicationPayment(BOX_MBR.provider, 'unrelated provider record box MBR before registration')
-    const unrelatedRegistration = await callPayer(algod, payer, appId, METHOD.register, [unrelatedProviderId, payer.address, id(9)], [{ appIndex: 0, name: unrelatedProviderBox }])
+    const unrelatedRegistration = await callPayer(algod, payer, appId, METHOD.register, [unrelatedProviderId, payer.address, id(9)], [{ appIndex: 0, name: unrelatedProviderBox }], [], undefined, [], progress)
     await applicationPayment(BOX_MBR.policy, 'primary policy record box MBR before policy creation')
-    const policyCreation = await callPayer(algod, payer, appId, METHOD.policy, [policyId, providerId, 5_000, SCENARIO.collateralRatioBps, 1_000_000, 3_600], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }])
+    const policyCreation = await callPayer(algod, payer, appId, METHOD.policy, [policyId, providerId, 5_000, SCENARIO.collateralRatioBps, 1_000_000, 3_600], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }], [], undefined, [], progress)
     const depositTransfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: application, assetIndex: assetId, amount: Number(SCENARIO.stake), suggestedParams: await algodParams(algod) })
     const depositCall = algosdk.makeApplicationNoOpTxnFromObject({ sender: payer.address, appIndex: appId, appArgs: [METHOD.deposit.getSelector(), providerId], boxes: [{ appIndex: 0, name: providerBox }], foreignAssets: [assetId], suggestedParams: await algodParams(algod) })
     algosdk.assignGroupID([depositTransfer, depositCall])
-    const deposit = await submitRaw(algod, [await payer.signTransaction(depositTransfer), await payer.signTransaction(depositCall)])
+    const deposit = await submitRaw(algod, [await payer.signTransaction(depositTransfer), await payer.signTransaction(depositCall)], progress)
     const unrelatedDepositTransfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: application, assetIndex: assetId, amount: Number(SCENARIO.unrelatedStake), suggestedParams: await algodParams(algod) })
     const unrelatedDepositCall = algosdk.makeApplicationNoOpTxnFromObject({ sender: payer.address, appIndex: appId, appArgs: [METHOD.deposit.getSelector(), unrelatedProviderId], boxes: [{ appIndex: 0, name: unrelatedProviderBox }], foreignAssets: [assetId], suggestedParams: await algodParams(algod) })
     algosdk.assignGroupID([unrelatedDepositTransfer, unrelatedDepositCall])
-    const unrelatedDeposit = await submitRaw(algod, [await payer.signTransaction(unrelatedDepositTransfer), await payer.signTransaction(unrelatedDepositCall)])
-    const capacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }])
+    const unrelatedDeposit = await submitRaw(algod, [await payer.signTransaction(unrelatedDepositTransfer), await payer.signTransaction(unrelatedDepositCall)], progress)
+    const capacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }], [], undefined, [], { ...progress, diagnostics, stagePrefix: 'capacity-read' })
+    diagnostics.setStage('capacity-read.return-decoding')
     const capacityAfterDeposit = decodeReturn(capacityRead.pending, '(uint64)')[0]
+    diagnostics.setStage('coverage')
     await applicationPayment(BOX_MBR.coverage, 'successful coverage tombstone box MBR before coverage creation')
     const beforeCoverage = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, { actors, boxes: [{ name: unrelatedProviderBox, type: RECORD.provider }, { name: policyBox, type: '(byte[32],bool,uint64,uint64,uint64,uint64,uint64)' }, { name: coverageBox, type: RECORD.coverage }, { name: rejectedCoverageBox, type: RECORD.coverage }, { name: zeroCoverageBox, type: RECORD.coverage }, { name: claimBox, type: '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)' }] })
     const beforeProvider = beforeCoverage.provider
     const beforeAccounting = new Map(beforeCoverage.accounting)
     const successfulFixture = await makeCoverage({ algod, payer, appId, appAddress: application, provider: provider.addr.toString(), providerId, policyId, coverageId, assetId, params: await algodParams(algod) })
-    const successful = await successfulCoverage(algod, payer, appId, application, provider.addr.toString(), providerId, policyId, coverageId, assetId, genesisId, genesisHash, successfulFixture)
+    const successful = await successfulCoverage(algod, payer, appId, application, provider.addr.toString(), providerId, policyId, coverageId, assetId, genesisId, genesisHash, successfulFixture, progress)
     const afterCoverage = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, { actors, boxes: [{ name: unrelatedProviderBox, type: RECORD.provider }, { name: policyBox, type: '(byte[32],bool,uint64,uint64,uint64,uint64,uint64)' }, { name: coverageBox, type: RECORD.coverage }, { name: rejectedCoverageBox, type: RECORD.coverage }, { name: zeroCoverageBox, type: RECORD.coverage }, { name: claimBox, type: '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)' }] })
     const afterProvider = afterCoverage.provider
     const afterAccounting = new Map(afterCoverage.accounting)
@@ -615,14 +686,16 @@ async function run(settings, readiness) {
     if (successfulState.provider.stakeLocked !== 75n || successfulState.provider.openFaultExposure !== 100n || successfulState.global.premiumReserve !== 50n || successfulState.global.totalOpenFaultExposure !== 100n) throw publicError('TESTNET_SUCCESS_STATE_DELTA_MISMATCH', 'successful coverage lock, exposure, or reserve deltas did not match the POC profile')
     const openCoverage = coverageRecordPublic(afterCoverage.boxes[hex(coverageBox)])
     if (openCoverage.providerId !== hex(providerId) || openCoverage.policyId !== hex(policyId) || openCoverage.payer !== payer.address || openCoverage.grossAmount !== 100n || openCoverage.providerNetAmount !== 50n || openCoverage.premiumAmount !== 50n || openCoverage.lockedStakeAmount !== 75n || openCoverage.status !== 1 || openCoverage.exposureReleased !== false) throw publicError('TESTNET_OPEN_COVERAGE_MISMATCH', 'successful coverage record did not match the configured POC values')
+    diagnostics.setStage('rejection')
     const insufficientFixture = await makeCoverage({ algod, payer, appId, appAddress: application, provider: provider.addr.toString(), providerId, policyId, coverageId: rejectedCoverageId, assetId, params: await algodParams(algod) })
     const rejectionSnapshot = { actors, boxes: [{ name: unrelatedProviderBox, type: RECORD.provider }, { name: policyBox, type: '(byte[32],bool,uint64,uint64,uint64,uint64,uint64)' }, { name: coverageBox, type: RECORD.coverage }, { name: rejectedCoverageBox, type: RECORD.coverage }, { name: zeroCoverageBox, type: RECORD.coverage }, { name: claimBox, type: '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)' }] }
     const insufficient = await rejectedCoverage(algod, appId, application, assetId, genesisId, genesisHash, insufficientFixture, payer, providerId, providerBox, rejectionSnapshot)
     const lockCrossing = await rejectedApplication(algod, payer, appId, METHOD.withdraw, [providerId, 76], [{ appIndex: 0, name: providerBox }], [assetId], { fee: 2_000, assetId, providerId, providerBox, snapshot: rejectionSnapshot })
     const negativeResult = await rejectedApplication(algod, negativeSigner, appId, METHOD.withdraw, [providerId, 1], [{ appIndex: 0, name: providerBox }], [assetId], { fee: 2_000, assetId, providerId, providerBox, snapshot: rejectionSnapshot })
+    diagnostics.setStage('claim')
     await applicationPayment(BOX_MBR.claim, 'claim tombstone box MBR before claim finalization')
     const claimBefore = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, rejectionSnapshot)
-    const claim = await callPayer(algod, payer, appId, METHOD.claim, [claimId, coverageId, true, SCENARIO.claimAmount, true, 4], [{ appIndex: 0, name: claimBox }, { appIndex: 0, name: coverageBox }, { appIndex: 0, name: providerBox }], [assetId], 2_000, [payer.address])
+    const claim = await callPayer(algod, payer, appId, METHOD.claim, [claimId, coverageId, true, SCENARIO.claimAmount, true, 4], [{ appIndex: 0, name: claimBox }, { appIndex: 0, name: coverageBox }, { appIndex: 0, name: providerBox }], [assetId], 2_000, [payer.address], progress)
     const claimPending = await algod.pendingTransactionInformation(claim.transactionId).do()
     const refund = refundEvidence({ ...claim.pending, ...claimPending }, claim.transactionId, payer.address, application, SCENARIO.claimAmount, assetId)
     const claimAfter = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, rejectionSnapshot)
@@ -633,11 +706,13 @@ async function run(settings, readiness) {
     const unrelatedAfterClaimPublic = providerRecordPublic(unrelatedAfterClaim)
     if (!samePublic(claimBefore.boxes[hex(unrelatedProviderBox)], unrelatedAfterClaim) || unrelatedAfterClaimPublic.stakeTotal !== 10n || unrelatedAfterClaimPublic.stakeLocked !== 0n || unrelatedAfterClaimPublic.openFaultExposure !== 0n) throw publicError('TESTNET_UNRELATED_COLLATERAL_CHANGED', 'unrelated provider collateral changed during the primary provider-fault claim')
     if (claimDeltas.provider.stakeTotal !== -SCENARIO.expectedStakeDebit || claimDeltas.provider.stakeLocked !== -SCENARIO.expectedStakeDebit || claimDeltas.provider.openFaultExposure !== -SCENARIO.claimAmount || claimDeltas.global.totalProviderStake !== -SCENARIO.expectedStakeDebit || claimDeltas.global.premiumReserve !== -SCENARIO.expectedPoolDebit || claimDeltas.global.totalOpenFaultExposure !== -SCENARIO.claimAmount || claimDeltas.physicalApplicationAsset !== -SCENARIO.claimAmount) throw publicError('TESTNET_CLAIM_WATERFALL_MISMATCH', 'observed provider-fault claim waterfall did not match the configured-ASA deltas')
-    const withdrawal = await callPayer(algod, payer, appId, METHOD.withdraw, [providerId, SCENARIO.stake - SCENARIO.expectedStakeDebit], [{ appIndex: 0, name: providerBox }], [assetId], 2_000)
+    diagnostics.setStage('withdrawal')
+    const withdrawal = await callPayer(algod, payer, appId, METHOD.withdraw, [providerId, SCENARIO.stake - SCENARIO.expectedStakeDebit], [{ appIndex: 0, name: providerBox }], [assetId], 2_000, [], progress)
     const afterWithdrawal = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, rejectionSnapshot)
     const zeroFixture = await makeCoverage({ algod, payer, appId, appAddress: application, provider: provider.addr.toString(), providerId, policyId, coverageId: zeroCoverageId, assetId, params: await algodParams(algod) })
     const zeroCapacity = await rejectedCoverage(algod, appId, application, assetId, genesisId, genesisHash, zeroFixture, payer, providerId, providerBox, rejectionSnapshot)
-    const finalCapacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }])
+    const finalCapacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }], [], undefined, [], progress)
+    diagnostics.setStage('finalization')
     const finalCapacity = decodeReturn(finalCapacityRead.pending, '(uint64)')[0]
     const finalAccountingState = await applicationState(algod, appId)
     const finalProvider = await boxValue(algod, appId, providerBox, RECORD.provider)
@@ -685,6 +760,7 @@ async function run(settings, readiness) {
       },
       acceptanceNotes: { rejectedTransactionBytesNotRecorded: true, simulationResponsesNotRecorded: true, acceptanceTimePoolRejectionsAreLedgerUnreconstructable: true },
     }
+    diagnostics.setStage('evidence-write')
     await writePublicEvidence(evidence, { sensitiveValues: [settings.token] })
     return evidence
   } finally {
@@ -911,12 +987,13 @@ async function main() {
     return
   }
   const settings = await testnetConfig()
+  const diagnostics = createExecutionDiagnostics()
   try {
     const readiness = await preflight(settings)
     if (runnerMode(process.argv) === 'preflight' || !readiness.ok) { console.log(asJson(readiness)); process.exitCode = readiness.ok ? 0 : 2; return }
-    console.log(asJson(await run(settings, readiness)))
+    console.log(asJson(await run(settings, readiness, diagnostics)))
   } catch (error) {
-    console.error(asJson({ ok: false, phase: 'execution', code: error.publicCode ?? 'TESTNET_EXECUTION_FAILED', message: error.publicCode ? error.message : 'TestNet execution failed; inspect public endpoint, account funds, ASA holding, and network state without exposing credentials.' }))
+    console.error(asJson(executionFailureResult(error, diagnostics)))
     process.exitCode = 1
   } finally { settings.payer?.dispose() }
 }
