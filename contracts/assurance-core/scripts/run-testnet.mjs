@@ -16,6 +16,7 @@ const evidencePath = path.join(root, 'testnet-evidence.json')
 const MAX_UINT64 = 18_446_744_073_709_551_615n
 const MIN_TX_FEE = 1_000n
 const BOX_MBR = Object.freeze({ provider: 67_300n, policy: 44_900n, coverage: 92_900n, claim: 45_300n })
+export const TESTNET_CAPACITY_METHOD_SIGNATURE = 'getAvailableCapacity(byte[32],byte[32])uint64'
 export const SCENARIO = Object.freeze({
   gross: 100n,
   providerNet: 50n,
@@ -35,10 +36,11 @@ const METHOD = Object.freeze({
   register: algosdk.ABIMethod.fromSignature('registerProvider(byte[32],address,byte[32])void'),
   policy: algosdk.ABIMethod.fromSignature('createPolicy(byte[32],byte[32],uint64,uint64,uint64,uint64)void'),
   deposit: algosdk.ABIMethod.fromSignature('depositStake(byte[32],axfer)void'),
-  capacity: algosdk.ABIMethod.fromSignature('getAvailableCapacity(byte[32],byte[32])(uint64)'),
+  capacity: algosdk.ABIMethod.fromSignature(TESTNET_CAPACITY_METHOD_SIGNATURE),
   withdraw: algosdk.ABIMethod.fromSignature('withdrawStake(byte[32],uint64)void'),
   claim: algosdk.ABIMethod.fromSignature('finalizeClaim(byte[32],byte[32],bool,uint64,bool,uint64)void'),
 })
+export const TESTNET_CAPACITY_SELECTOR = METHOD.capacity.getSelector()
 const RECORD = Object.freeze({
   provider: '(address,address,byte[32],bool,uint64,uint64,uint64,uint64)',
   coverage: '(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)',
@@ -672,7 +674,7 @@ async function run(settings, readiness, diagnostics = createExecutionDiagnostics
     const unrelatedDeposit = await submitRaw(algod, [await payer.signTransaction(unrelatedDepositTransfer), await payer.signTransaction(unrelatedDepositCall)], progress)
     const capacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }], [], undefined, [], { ...progress, diagnostics, stagePrefix: 'capacity-read' })
     diagnostics.setStage('capacity-read.return-decoding')
-    const capacityAfterDeposit = decodeReturn(capacityRead.pending, '(uint64)')[0]
+    const capacityAfterDeposit = decodeReturn(capacityRead.pending, 'uint64')
     diagnostics.setStage('coverage')
     await applicationPayment(BOX_MBR.coverage, 'successful coverage tombstone box MBR before coverage creation')
     const beforeCoverage = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, { actors, boxes: [{ name: unrelatedProviderBox, type: RECORD.provider }, { name: policyBox, type: '(byte[32],bool,uint64,uint64,uint64,uint64,uint64)' }, { name: coverageBox, type: RECORD.coverage }, { name: rejectedCoverageBox, type: RECORD.coverage }, { name: zeroCoverageBox, type: RECORD.coverage }, { name: claimBox, type: '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)' }] })
@@ -718,7 +720,7 @@ async function run(settings, readiness, diagnostics = createExecutionDiagnostics
     const zeroCapacity = await rejectedCoverage(algod, appId, application, assetId, genesisId, genesisHash, zeroFixture, payer, providerId, providerBox, rejectionSnapshot)
     const finalCapacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }], [], undefined, [], progress)
     diagnostics.setStage('finalization')
-    const finalCapacity = decodeReturn(finalCapacityRead.pending, '(uint64)')[0]
+    const finalCapacity = decodeReturn(finalCapacityRead.pending, 'uint64')
     const finalAccountingState = await applicationState(algod, appId)
     const finalProvider = await boxValue(algod, appId, providerBox, RECORD.provider)
     const finalUnrelatedProvider = await boxValue(algod, appId, unrelatedProviderBox, RECORD.provider)

@@ -1,15 +1,25 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import test from 'node:test'
 import algosdk from 'algosdk'
 import { ed25519Verifier } from '@algorandfoundation/algokit-utils/crypto'
 import { ALGORAND_TESTNET_CAIP2 } from '@x402/avm'
 import { buildAssuredExactPayloadWithSigner } from '../src/assured-exact.mjs'
 import { createPeraHdSigner, validatePeraHdMnemonic } from '../src/pera-hd-signer.mjs'
-import { EXECUTION_STAGES, applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, createExecutionDiagnostics, executionFailureResult, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
+import { EXECUTION_STAGES, TESTNET_CAPACITY_METHOD_SIGNATURE, TESTNET_CAPACITY_SELECTOR, applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, createExecutionDiagnostics, executionFailureResult, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
 
 const mnemonic = 'salon zoo engage submit smile frost later decide wing sight chaos renew lizard rely canal coral scene hobby scare step bus leaf tobacco slice'
 const params = { fee: 1_000, minFee: 1_000, firstValid: 1, lastValid: 1_000, genesisHash: new Uint8Array(32), genesisID: 'v1', flatFee: true }
 const payerAddress = 'PPNHVQJGE6ZMEWPR35UHLUYMCCZV6VNTHLJMZDVCONXKUPV47K4WGQJWGI'
+
+test('P1 TestNet capacity selector matches committed ARC-56 scalar ABI', () => {
+  const arc56 = JSON.parse(fs.readFileSync(new URL('../artifacts/AssuranceCore.arc56.json', import.meta.url), 'utf8'))
+  const method = arc56.methods.find(({ name }) => name === 'getAvailableCapacity')
+  const committedSignature = `${method.name}(${method.args.map(({ type }) => type).join(',')})${method.returns.type}`
+  assert.equal(TESTNET_CAPACITY_METHOD_SIGNATURE, committedSignature)
+  assert.deepEqual(TESTNET_CAPACITY_SELECTOR, algosdk.ABIMethod.fromSignature(committedSignature).getSelector())
+  assert.notDeepEqual(TESTNET_CAPACITY_SELECTOR, algosdk.ABIMethod.fromSignature('getAvailableCapacity(byte[32],byte[32])(uint64)').getSelector())
+})
 
 test('P1 Pera signer derives Peikert addresses and exposes no private material', async () => {
   assert.equal(validatePeraHdMnemonic(mnemonic), true)

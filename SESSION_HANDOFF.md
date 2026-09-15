@@ -3,9 +3,9 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: IN_PROGRESS — Gates A through E ACCEPTED; the single authorized Gate F TestNet mutation was attempted and failed; the bounded 2026-09-16 capacity-read diagnostic used one Algod simulation and returned deployed app `771803281` assertion `pc=334`; Gate F remains unaccepted and the earlier run’s exact failure/unconfirmed submission status remain unknown
+- State: IN_PROGRESS — Gates A through E ACCEPTED; the single authorized Gate F TestNet mutation was attempted and failed; the bounded 2026-09-16 capacity-read diagnostic’s deployed app `771803281` assertion `pc=334` was explained by a runner/ARC-56 selector mismatch, which is now corrected offline; Gate F remains unaccepted and the earlier run’s exact execution stage/unconfirmed submission status remain unknown
 - Branch: `main`
-- Reviewed readiness checkpoint: current focused execution-stage diagnostic; readiness checks and TestNet preflight passed, but acceptance did not complete
+- Reviewed readiness checkpoint: current focused capacity ABI correction; readiness checks and TestNet preflight passed, but acceptance did not complete
 - Active packet: `planning/P1_GATE_F_POC_READINESS.md`
 - Parent packet: `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md`
 - Results: `planning/P1_RESULTS.md`
@@ -29,15 +29,17 @@ P0 remains complete. Do not modify or import from `spikes/p0-atomic/**`.
 - Read-only ledger confirmation for the failed attempt: application creation produced app **771803281** at round **67328911** through public transaction `6WJW4UEM46QTYTE7DXGZSLRJT75Y77M5U7FETTGUXLQ4KFZDTOBQ`. The last confirmed payer-signed action was the unrelated deposit group at round **67328937**, application-call ID `F5ZKDLUVE6X6BFCQJ7TXNBM3AUBE4HQ6ZKRPPKDH6BSX7X2GVM4A` and ASA-transfer ID `WRKJA6ABSYUH4IPEVNPNKI6JW6HZCIRL5CUIBEKSBQCSM3R4E63Q`, group `o6WHRD/odyowK43SWKZvsDe71+J/i6HSAsCCxPz7SUI=`. No later confirmed payer-sent transaction was found. The next runner operation was the capacity read; its exact parameter/construction/signing/submission/confirmation/decoding failure point and any unconfirmed submission remain unknown.
 - Implemented focused diagnostic checkpoint: the runner reports allowlisted stages `capacity-read.parameter-retrieval`, `capacity-read.construction-signing`, `capacity-read.submission`, `capacity-read.confirmation`, and `capacity-read.return-decoding`; unknown exceptions remain generic and partial failure may include only validated public transaction IDs/rounds/groups. Offline tests pass **48/48**; typecheck, contract build, real LocalNet at round **5905** with **95** rejected cases, generated-artifact diff, and `git diff --check` all pass. No TestNet command, endpoint query, preflight, verifier, evidence file, retry, or P2 work occurred in this session. This is diagnostic instrumentation only, not a functional fix.
 - Sequential capacity-read diagnostic on **2026-09-16**: public Algod state for app **771803281** showed accepted ASA **10458941**, globals `totalProviderStake=133`, `premiumReserve=0`, `totalOpenFaultExposure=0`, policy ID `02`×32, and provider IDs `01`×32 and `07`×32. Primary provider stake/lock/exposure was **123/0/0**; unrelated provider collateral was **10/0/0**. Using the existing `getAvailableCapacity(byte[32],byte[32])` call construction, provider box `p||01`×32, policy box `l||02`×32, current TestNet suggested parameters, and the opaque signer through normal runtime configuration loading, exactly one Algod simulation was made. A local guard blocked submission and confirmation operations before the request. The sanitized result was a deployed-app assertion for `applicationId=771803281`, `assertionPc=334`; no capacity was decoded. It was not an endpoint/resource error. No transaction was submitted, confirmed, or recorded; no evidence/verifier/retry ran. This result is bounded to today’s call and does not prove the exact cause or stage of the earlier failed Gate F run; an earlier unconfirmed submission remains unknown. The temporary diagnostic code was removed, so implementation paths are unchanged.
+- Capacity ABI correction on **2026-09-16**: the committed ARC-56 method returns scalar `uint64`; the runner had used the tuple-return signature `getAvailableCapacity(byte[32],byte[32])(uint64)` and tuple decoding. The runner now uses `getAvailableCapacity(byte[32],byte[32])uint64` and scalar decoding at both capacity reads. One targeted offline test compares the runner selector to the committed ARC-56 selector and proves the old tuple selector differs. This explains the diagnostic `pc=334` dispatch failure, but does not prove the exact execution stage of the 2026-09-15 acceptance run. Typecheck, contract build, `npm run test:p1` (**49/49**), real LocalNet, generated-artifact diff, and `git diff --check` passed. No TestNet command, endpoint query, simulation, retry, evidence file, verifier, or P2 work occurred.
 
 ## Exact next action
 
-Review the focused diagnostic checkpoint and the recorded public result. The
-one authorized mutating run and the one authorized simulation are consumed; do
-not retry, simulate again, run the TestNet preflight, query further endpoints,
-or run the evidence verifier. The orchestrator must determine the next action
-and provide fresh explicit authorization before any further TestNet activity.
-Do not create `contracts/assurance-core/testnet-evidence.json` manually.
+Review the focused capacity ABI correction and the recorded diagnostic result.
+The one authorized mutating run and the one authorized simulation are
+consumed; do not retry, simulate again, run the TestNet preflight, query further
+endpoints, or run the evidence verifier. The orchestrator must determine the
+next action and provide fresh explicit authorization before any further TestNet
+activity. Do not create `contracts/assurance-core/testnet-evidence.json`
+manually.
 
 Do not start P2 or later work. Never access `/docs` or manually read a populated
 `.env`.
