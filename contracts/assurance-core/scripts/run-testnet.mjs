@@ -200,6 +200,7 @@ export function plannedTransactionTable() {
     appCall('successful-coverage', 'successful coverage application call'),
     appCall('provider-fault-claim', 'provider-fault claim application call', 2_000),
     appCall('released-provider-withdrawal', 'released primary provider withdrawal', 2_000),
+    appCall('read-capacity-after-withdrawal', 'fresh zero-capacity read after full released withdrawal'),
     appCall('rejected-lock-crossing-withdrawal', 'rejected lock-crossing application call', 2_000, false),
   ]
 }
@@ -410,11 +411,11 @@ export async function rejectedApplication(algod, signer, appId, method, values, 
   const pool = await rejectPool(algod, signed)
   const after = await applicationSnapshot(algod, appId, signer.address, expected.assetId, expected.providerId, expected.providerBox, expected.snapshot)
   if (!matchApplicationAssertionFailures(simulation, pool, appId)) throw publicError('TESTNET_REJECTION_ASSERTION_MISMATCH', 'simulation and pool rejection did not match the deployed application assertion')
-  if (!samePublic(before, after)) throw publicError('TESTNET_REJECTION_ROLLBACK_MISMATCH', 'rejected application state was not fully rolled back')
+  assertCompleteRollback(before, after)
   return { classification: 'application-assertion', simulation, pool, sameSignedBytes: true, completeRollback: true, before, after }
 }
 
-async function applicationSnapshot(algod, appId, payerAddress, assetId, providerId, providerBox, options = {}) {
+export async function applicationSnapshot(algod, appId, payerAddress, assetId, providerId, providerBox, options = {}) {
   const actors = { payer: payerAddress, application: appAddress(appId), ...(options.actors ?? {}) }
   const provider = await boxValue(algod, appId, providerBox, RECORD.provider)
   if (provider?.[1] && !actors.provider) actors.provider = provider[1].toString()
@@ -423,6 +424,10 @@ async function applicationSnapshot(algod, appId, payerAddress, assetId, provider
   const balances = await accountBalances(algod, actors, assetId)
   const application = balances.application
   return { balances, boxes: boxState, provider, accounting: [...(await applicationState(algod, appId)).entries()], appAsset: application.asset, applicationMbr: application.minimumBalanceMicroAlgos }
+}
+export function assertCompleteRollback(before, after) {
+  if (!samePublic(before, after)) throw publicError('TESTNET_REJECTION_ROLLBACK_MISMATCH', 'rejected application state was not fully rolled back')
+  return true
 }
 
 async function makeCoverage({ algod, payer, appId, appAddress: application, provider, providerId, policyId, coverageId, assetId, params, providerNet = SCENARIO.providerNet, premium = SCENARIO.premium }) {
@@ -456,7 +461,7 @@ async function rejectedCoverage(algod, appId, application, assetId, genesisId, g
   const after = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, snapshot)
   const simulation = compactFailure(verification.invalidMessage)
   if (!matchApplicationAssertionFailures(simulation, pool, appId)) throw publicError('TESTNET_REJECTION_ASSERTION_MISMATCH', 'capacity rejection application and PC did not match between simulation and pool')
-  if (!samePublic(before, after)) throw publicError('TESTNET_REJECTION_ROLLBACK_MISMATCH', 'insufficient-capacity group did not roll back completely')
+  assertCompleteRollback(before, after)
   return { simulationReason: verification.invalidReason, facilitatorSubmissionCount: submissions, simulation, pool, sameSignedBytes: true, completeRollback: true }
 }
 
@@ -495,10 +500,10 @@ export function computeLifecycleInvariants({ providers, coverages, claims, accou
     globalStakeSum: providerStakeSum === BigInt(accounting.totalProviderStake),
     globalExposureSum: providerExposureSum === BigInt(accounting.totalOpenFaultExposure),
     assetLiabilityBound: BigInt(accounting.totalProviderStake) + BigInt(accounting.premiumReserve) === BigInt(physicalApplicationAsset),
-    terminalReleaseFlags: coverageRecords.every((record) => Number(record.status ?? record[11]) !== 1 || Boolean(record.exposureReleased ?? record[12]) === false) && (claimRecord ? Boolean(claimRecord.finalized ?? claimRecord[1]) : false),
-    permanentIds: coverageRecords.length > 0 && (claims?.length ?? 0) > 0 && rejectedBoxes.every((box) => box === undefined),
+    terminalReleaseFlags: coverageRecords.length > 0 && coverageRecords.every((record) => Number(record.status ?? record[11]) !== 1 && Boolean(record.exposureReleased ?? record[12]) === true) && Boolean(claimRecord?.finalized ?? claimRecord?.[1]),
+    permanentIds: coverageRecords.length > 0 && (claims?.length ?? 0) > 0 && rejectedBoxes.length > 0 && rejectedBoxes.every((box) => box === undefined),
     debitConservation: approved === stakeDebit + poolDebit && physicalDelta === -approved,
-    storedPayerRefunds: Boolean(refund?.receiver) && refund.receiver === (claimDelta?.storedPayer ?? refund.receiver) && BigInt(refund.amount) === approved,
+    storedPayerRefunds: Boolean(claimDelta?.storedPayer) && Boolean(refund?.receiver) && refund.receiver === claimDelta.storedPayer && BigInt(refund.amount) === approved,
   }
   return { flags, observed: { providerStakeSum, providerLockSum, providerExposureSum, openLockSum, openExposureSum, approved, stakeDebit, poolDebit, physicalDelta } }
 }
@@ -507,6 +512,33 @@ export function assertComputedInvariants(observed) {
   const result = computeLifecycleInvariants(observed)
   if (Object.values(result.flags).some((flag) => flag !== true)) throw publicError('TESTNET_INVARIANT_MISMATCH', 'observed TestNet lifecycle accounting did not satisfy every required invariant')
   return result
+}
+
+function requirePoc(condition, message) {
+  if (!condition) throw publicError('TESTNET_POC_ASSERTION_MISMATCH', message)
+}
+function bigintEqual(actual, expected) { try { return BigInt(actual) === BigInt(expected) } catch { return false } }
+
+export function assertPocLifecycleObservations(observed) {
+  requirePoc(bigintEqual(observed.capacityAfterDeposit, 164n), 'pre-coverage capacity was not 164 atomic units')
+  requirePoc(Number(observed.successfulSubmissions) === 1 && Number(observed.successfulConfirmationRound) > 0, 'successful x402 coverage did not have exactly one submission and confirmation')
+  for (const [role, delta] of Object.entries({ payer: -100n, provider: 50n, application: 50n })) requirePoc(bigintEqual(observed.successBalances?.[role]?.assetUnits, delta), `successful ASA delta for ${role} did not match the POC profile`)
+  requirePoc(bigintEqual(observed.successState?.provider?.stakeLocked, 75n) && bigintEqual(observed.successState?.provider?.openFaultExposure, 100n), 'successful provider lock/exposure did not match the POC profile')
+  requirePoc(bigintEqual(observed.successState?.global?.premiumReserve, 50n) && bigintEqual(observed.successState?.global?.totalOpenFaultExposure, 100n), 'successful reserve/exposure did not match the POC profile')
+  const open = observed.openCoverage
+  requirePoc(open && open.providerId === observed.providerId && open.policyId === observed.policyId && open.payer === observed.payer && bigintEqual(open.grossAmount, 100n) && bigintEqual(open.providerNetAmount, 50n) && bigintEqual(open.premiumAmount, 50n) && bigintEqual(open.lockedStakeAmount, 75n) && Number(open.status) === 1 && Boolean(open.exposureReleased) === false, 'open coverage record did not match the configured IDs, payer, amounts, lock, and status')
+  const claim = observed.claimRecord
+  requirePoc(claim && Boolean(claim.finalized) && Boolean(claim.providerFault) && bigintEqual(claim.approvedAmount, 100n) && bigintEqual(claim.stakeDebit, 75n) && bigintEqual(claim.poolDebit, 25n), 'provider-fault claim tombstone did not match the POC waterfall')
+  requirePoc(Number(observed.refundCount) === 1 && observed.refund?.receiver === observed.payer && bigintEqual(observed.refund?.amount, 100n), 'claim did not expose exactly one refund of 100 to the stored payer')
+  requirePoc(bigintEqual(observed.claimDeltas?.provider?.stakeTotal, -75n) && bigintEqual(observed.claimDeltas?.provider?.stakeLocked, -75n) && bigintEqual(observed.claimDeltas?.provider?.openFaultExposure, -100n) && bigintEqual(observed.claimDeltas?.global?.totalProviderStake, -75n) && bigintEqual(observed.claimDeltas?.global?.premiumReserve, -25n) && bigintEqual(observed.claimDeltas?.global?.totalOpenFaultExposure, -100n) && bigintEqual(observed.claimDeltas?.physicalApplicationAsset, -100n), 'provider-fault claim deltas did not match the POC waterfall')
+  const unrelated = observed.unrelatedProvider
+  requirePoc(unrelated && bigintEqual(unrelated.stakeTotal, 10n) && bigintEqual(unrelated.stakeLocked, 0n) && bigintEqual(unrelated.openFaultExposure, 0n), 'unrelated provider collateral changed')
+  requirePoc(observed.finalCoverage && Number(observed.finalCoverage.status) === 2 && Boolean(observed.finalCoverage.exposureReleased), 'refunded coverage was not released and terminal')
+  requirePoc(observed.finalPrimary && bigintEqual(observed.finalPrimary.stakeTotal, 0n) && bigintEqual(observed.finalPrimary.stakeLocked, 0n) && bigintEqual(observed.finalPrimary.openFaultExposure, 0n), 'primary provider did not withdraw to zero')
+  requirePoc(bigintEqual(observed.finalCapacity, 0n), 'fresh post-withdrawal capacity was not zero')
+  requirePoc(bigintEqual(observed.finalAccounting?.totalProviderStake, 10n) && bigintEqual(observed.finalAccounting?.premiumReserve, 25n) && bigintEqual(observed.finalAccounting?.totalOpenFaultExposure, 0n) && bigintEqual(observed.finalAsset, 35n), 'final global accounting or application ASA balance did not match the POC profile')
+  requirePoc(observed.tombstones?.coverage === true && observed.tombstones?.claim === true && observed.tombstones?.rejectedCoverage === false && observed.tombstones?.zeroCoverage === false, 'coverage and claim tombstone presence did not match the POC profile')
+  return true
 }
 
 async function run(settings, readiness) {
@@ -576,6 +608,13 @@ async function run(settings, readiness) {
     const afterProvider = afterCoverage.provider
     const afterAccounting = new Map(afterCoverage.accounting)
     const successfulState = { provider: { stakeTotal: afterProvider[4] - beforeProvider[4], stakeLocked: afterProvider[5] - beforeProvider[5], openFaultExposure: afterProvider[6] - beforeProvider[6] }, global: { totalProviderStake: stateUint(afterAccounting, 'totalProviderStake') - stateUint(beforeAccounting, 'totalProviderStake'), premiumReserve: stateUint(afterAccounting, 'premiumReserve') - stateUint(beforeAccounting, 'premiumReserve'), totalOpenFaultExposure: stateUint(afterAccounting, 'totalOpenFaultExposure') - stateUint(beforeAccounting, 'totalOpenFaultExposure') } }
+    if (capacityAfterDeposit !== 164n) throw publicError('TESTNET_CAPACITY_MISMATCH', 'observed pre-coverage capacity did not match the POC profile')
+    if (successful.submissions !== 1 || successful.confirmedRound <= 0) throw publicError('TESTNET_X402_CONFIRMATION_MISMATCH', 'successful x402 coverage did not have exactly one submission and confirmation')
+    const successfulAssetDeltas = balanceDeltas(beforeCoverage.balances, afterCoverage.balances)
+    if (successfulAssetDeltas.payer.assetUnits !== -100n || successfulAssetDeltas.provider.assetUnits !== 50n || successfulAssetDeltas.application.assetUnits !== 50n) throw publicError('TESTNET_SUCCESS_ASSET_DELTA_MISMATCH', 'successful coverage ASA deltas did not match payer -100, provider +50, application +50')
+    if (successfulState.provider.stakeLocked !== 75n || successfulState.provider.openFaultExposure !== 100n || successfulState.global.premiumReserve !== 50n || successfulState.global.totalOpenFaultExposure !== 100n) throw publicError('TESTNET_SUCCESS_STATE_DELTA_MISMATCH', 'successful coverage lock, exposure, or reserve deltas did not match the POC profile')
+    const openCoverage = coverageRecordPublic(afterCoverage.boxes[hex(coverageBox)])
+    if (openCoverage.providerId !== hex(providerId) || openCoverage.policyId !== hex(policyId) || openCoverage.payer !== payer.address || openCoverage.grossAmount !== 100n || openCoverage.providerNetAmount !== 50n || openCoverage.premiumAmount !== 50n || openCoverage.lockedStakeAmount !== 75n || openCoverage.status !== 1 || openCoverage.exposureReleased !== false) throw publicError('TESTNET_OPEN_COVERAGE_MISMATCH', 'successful coverage record did not match the configured POC values')
     const insufficientFixture = await makeCoverage({ algod, payer, appId, appAddress: application, provider: provider.addr.toString(), providerId, policyId, coverageId: rejectedCoverageId, assetId, params: await algodParams(algod) })
     const rejectionSnapshot = { actors, boxes: [{ name: unrelatedProviderBox, type: RECORD.provider }, { name: policyBox, type: '(byte[32],bool,uint64,uint64,uint64,uint64,uint64)' }, { name: coverageBox, type: RECORD.coverage }, { name: rejectedCoverageBox, type: RECORD.coverage }, { name: zeroCoverageBox, type: RECORD.coverage }, { name: claimBox, type: '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)' }] }
     const insufficient = await rejectedCoverage(algod, appId, application, assetId, genesisId, genesisHash, insufficientFixture, payer, providerId, providerBox, rejectionSnapshot)
@@ -591,12 +630,15 @@ async function run(settings, readiness) {
     const claimAfterAccounting = new Map(claimAfter.accounting)
     const claimDeltas = { provider: { stakeTotal: claimAfterProvider[4] - claimBefore.provider[4], stakeLocked: claimAfterProvider[5] - claimBefore.provider[5], openFaultExposure: claimAfterProvider[6] - claimBefore.provider[6] }, global: { totalProviderStake: stateUint(claimAfterAccounting, 'totalProviderStake') - stateUint(new Map(claimBefore.accounting), 'totalProviderStake'), premiumReserve: stateUint(claimAfterAccounting, 'premiumReserve') - stateUint(new Map(claimBefore.accounting), 'premiumReserve'), totalOpenFaultExposure: stateUint(claimAfterAccounting, 'totalOpenFaultExposure') - stateUint(new Map(claimBefore.accounting), 'totalOpenFaultExposure') }, physicalApplicationAsset: claimAfter.appAsset - claimBefore.appAsset }
     const unrelatedAfterClaim = claimAfter.boxes[hex(unrelatedProviderBox)]
-    if (!samePublic(claimBefore.boxes[hex(unrelatedProviderBox)], unrelatedAfterClaim)) throw publicError('TESTNET_UNRELATED_COLLATERAL_CHANGED', 'unrelated provider collateral changed during the primary provider-fault claim')
+    const unrelatedAfterClaimPublic = providerRecordPublic(unrelatedAfterClaim)
+    if (!samePublic(claimBefore.boxes[hex(unrelatedProviderBox)], unrelatedAfterClaim) || unrelatedAfterClaimPublic.stakeTotal !== 10n || unrelatedAfterClaimPublic.stakeLocked !== 0n || unrelatedAfterClaimPublic.openFaultExposure !== 0n) throw publicError('TESTNET_UNRELATED_COLLATERAL_CHANGED', 'unrelated provider collateral changed during the primary provider-fault claim')
     if (claimDeltas.provider.stakeTotal !== -SCENARIO.expectedStakeDebit || claimDeltas.provider.stakeLocked !== -SCENARIO.expectedStakeDebit || claimDeltas.provider.openFaultExposure !== -SCENARIO.claimAmount || claimDeltas.global.totalProviderStake !== -SCENARIO.expectedStakeDebit || claimDeltas.global.premiumReserve !== -SCENARIO.expectedPoolDebit || claimDeltas.global.totalOpenFaultExposure !== -SCENARIO.claimAmount || claimDeltas.physicalApplicationAsset !== -SCENARIO.claimAmount) throw publicError('TESTNET_CLAIM_WATERFALL_MISMATCH', 'observed provider-fault claim waterfall did not match the configured-ASA deltas')
     const withdrawal = await callPayer(algod, payer, appId, METHOD.withdraw, [providerId, SCENARIO.stake - SCENARIO.expectedStakeDebit], [{ appIndex: 0, name: providerBox }], [assetId], 2_000)
     const afterWithdrawal = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, rejectionSnapshot)
     const zeroFixture = await makeCoverage({ algod, payer, appId, appAddress: application, provider: provider.addr.toString(), providerId, policyId, coverageId: zeroCoverageId, assetId, params: await algodParams(algod) })
     const zeroCapacity = await rejectedCoverage(algod, appId, application, assetId, genesisId, genesisHash, zeroFixture, payer, providerId, providerBox, rejectionSnapshot)
+    const finalCapacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }])
+    const finalCapacity = decodeReturn(finalCapacityRead.pending, '(uint64)')[0]
     const finalAccountingState = await applicationState(algod, appId)
     const finalProvider = await boxValue(algod, appId, providerBox, RECORD.provider)
     const finalUnrelatedProvider = await boxValue(algod, appId, unrelatedProviderBox, RECORD.provider)
@@ -607,6 +649,7 @@ async function run(settings, readiness) {
     const finalProviders = [{ providerId: hex(providerId), record: providerRecordPublic(finalProvider) }, { providerId: hex(unrelatedProviderId), record: providerRecordPublic(finalUnrelatedProvider) }]
     const finalCoveragePublic = coverageRecordPublic(finalCoverage)
     const finalClaimPublic = { claimId: hex(claimId), finalized: claimRecord[1], approvedAmount: claimRecord[2], providerFault: claimRecord[3], stakeDebit: claimRecord[5], poolDebit: claimRecord[6] }
+    assertPocLifecycleObservations({ capacityAfterDeposit, successfulSubmissions: successful.submissions, successfulConfirmationRound: successful.confirmedRound, successBalances: successfulAssetDeltas, successState, providerId: hex(providerId), policyId: hex(policyId), payer: payer.address, openCoverage, claimRecord: finalClaimPublic, refund, refundCount: 1, claimDeltas, unrelatedProvider: unrelatedAfterClaimPublic, finalCoverage: coverageRecordPublic(finalCoverage), finalPrimary: providerRecordPublic(finalProvider), finalCapacity, finalAccounting: { totalProviderStake: stateUint(finalAccountingState, 'totalProviderStake'), premiumReserve: stateUint(finalAccountingState, 'premiumReserve'), totalOpenFaultExposure: stateUint(finalAccountingState, 'totalOpenFaultExposure') }, finalAsset, tombstones: { coverage: finalCoverage !== undefined, claim: claimRecord !== undefined, rejectedCoverage: (await boxValue(algod, appId, rejectedCoverageBox, RECORD.coverage)) !== undefined, zeroCoverage: (await boxValue(algod, appId, zeroCoverageBox, RECORD.coverage)) !== undefined } })
     const invariants = assertComputedInvariants({ providers: finalProviders, coverages: [finalCoveragePublic], claims: [finalClaimPublic], accounting: { totalProviderStake: stateUint(finalAccountingState, 'totalProviderStake'), premiumReserve: stateUint(finalAccountingState, 'premiumReserve'), totalOpenFaultExposure: stateUint(finalAccountingState, 'totalOpenFaultExposure') }, physicalApplicationAsset: finalAsset, rejectedBoxes: [await boxValue(algod, appId, rejectedCoverageBox, RECORD.coverage), await boxValue(algod, appId, zeroCoverageBox, RECORD.coverage)], claimDelta: { ...claimDeltas, approvedAmount: claimRecord[2], stakeDebit: claimRecord[5], poolDebit: claimRecord[6], storedPayer: payer.address }, refund })
     const fundingTotal = funding.reduce((sum, item) => sum + BigInt(item.amount), 0n)
     if (fundingTotal !== budget.applicationFundingTotal) throw publicError('TESTNET_FUNDING_RECONCILIATION_MISMATCH', 'actual application funding payments do not equal the planned MBR schedule')
@@ -624,12 +667,12 @@ async function run(settings, readiness) {
         registerAndPolicy: { provider: publicPending(providerRegistration), unrelatedProvider: publicPending(unrelatedRegistration), policy: publicPending(policyCreation) },
         depositStake: { primary: { ...publicPending(deposit), providerId: hex(providerId), amount: SCENARIO.stake }, unrelated: { ...publicPending(unrelatedDeposit), providerId: hex(unrelatedProviderId), amount: SCENARIO.unrelatedStake } },
         capacityAfterDeposit: { ...publicPending(capacityRead), providerId: hex(providerId), policyId: hex(policyId), capacity: capacityAfterDeposit },
-        successfulCoverage: { groupId: successful.groupId, memberTransactionIds: successful.memberTransactionIds, confirmedRound: BigInt(successful.confirmedRound), requirements: successfulFixture.requirements, assetDeltas: balanceDeltas(beforeCoverage, afterCoverage), stateDeltas: successfulState, facilitatorSubmissions: successful.submissions, coverageId: hex(coverageId) },
+        successfulCoverage: { groupId: successful.groupId, memberTransactionIds: successful.memberTransactionIds, confirmedRound: BigInt(successful.confirmedRound), requirements: successfulFixture.requirements, assetDeltas: successfulAssetDeltas, stateDeltas: successfulState, facilitatorSubmissions: successful.submissions, coverageId: hex(coverageId), applicationId: BigInt(appId) },
         insufficientCapacity: { ...insufficient, coverageId: hex(rejectedCoverageId), sameApplication: true },
         rejectedWithdrawal: { ...lockCrossing, label: 'over/lock-crossing withdrawal', amount: 76n, before: undefined, after: undefined },
         authorizationNegative: { classification: 'authorization', simulation: negativeResult.simulation, pool: negativeResult.pool, sameSignedBytes: negativeResult.sameSignedBytes, completeRollback: negativeResult.completeRollback },
         providerFaultClaim: { ...publicPending(claim), claimId: hex(claimId), coverageId: hex(coverageId), refundInnerTransfer: refund, deltas: { balances: balanceDeltas(claimBefore.balances, claimAfter.balances), ...claimDeltas }, waterfall: { approvedAmount: claimRecord[2], stakeDebit: claimRecord[5], poolDebit: claimRecord[6] }, claimRecord: finalClaimPublic, unrelatedCollateralUnchanged: true },
-        exposureReleaseAndWithdrawal: { ...publicPending(withdrawal), providerId: hex(providerId), amount: SCENARIO.stake - SCENARIO.expectedStakeDebit, postWithdrawal: { provider: providerRecordPublic(afterWithdrawal.provider) } },
+        exposureReleaseAndWithdrawal: { ...publicPending(withdrawal), providerId: hex(providerId), amount: SCENARIO.stake - SCENARIO.expectedStakeDebit, postWithdrawal: { provider: providerRecordPublic(afterWithdrawal.provider) }, freshCapacityRead: { ...publicPending(finalCapacityRead), providerId: hex(providerId), policyId: hex(policyId), capacity: finalCapacity } },
         zeroCapacity: { ...zeroCapacity, coverageId: hex(zeroCoverageId), remainingCapacity: 0n },
       },
       final: {
@@ -642,8 +685,7 @@ async function run(settings, readiness) {
       },
       acceptanceNotes: { rejectedTransactionBytesNotRecorded: true, simulationResponsesNotRecorded: true, acceptanceTimePoolRejectionsAreLedgerUnreconstructable: true },
     }
-    if (!publicEvidenceSafe(evidence)) throw publicError('PUBLIC_EVIDENCE_UNSAFE', 'public evidence failed secret and signed-material safety validation')
-    await fs.writeFile(evidencePath, `${asJson(evidence)}\n`, { encoding: 'utf8', mode: 0o644 })
+    await writePublicEvidence(evidence, { sensitiveValues: [settings.token] })
     return evidence
   } finally {
     if (provider.sk?.fill) provider.sk.fill(0)
@@ -651,16 +693,19 @@ async function run(settings, readiness) {
   }
 }
 
-export function publicEvidenceSafe(value) {
+export function publicEvidenceSafe(value, sensitiveValues = []) {
   const forbiddenKey = /mnemonic|seed|root|private|secret|signature|\bsig\b|signed|rawbytes|signed-?blob|simulation|pending|token|header|environment|secret/i
   const phrase = /^(?:\S+\s+){23}\S+$/
   const longBase64 = /^[A-Za-z0-9+/]+={0,2}$/
+  const safeSimulationFields = new Set(['simulationReason', 'simulationResponsesNotRecorded'])
+  const sensitive = sensitiveValues.filter((item) => typeof item === 'string' && item.length > 0)
   const seen = new Set()
   const visit = (node, key = '') => {
     const sanitizedFailure = (key === 'simulation' || key === 'pool') && node && typeof node === 'object' && !Array.isArray(node) && Object.keys(node).every((field) => ['applicationId', 'assertionPc', 'kind'].includes(field)) && Object.prototype.hasOwnProperty.call(node, 'kind')
-    if (forbiddenKey.test(key) && !sanitizedFailure) return false
+    const safeCompactField = safeSimulationFields.has(key) && (key === 'simulationResponsesNotRecorded' ? typeof node === 'boolean' : typeof node === 'string' && node.length <= 160)
+    if (forbiddenKey.test(key) && !sanitizedFailure && !safeCompactField) return false
     if (node === null || node === undefined || typeof node === 'boolean' || typeof node === 'number' || typeof node === 'bigint') return true
-    if (typeof node === 'string') return !phrase.test(node.trim()) && !(longBase64.test(node) && node.length >= 128)
+    if (typeof node === 'string') return !sensitive.includes(node) && !phrase.test(node.trim()) && !(longBase64.test(node) && node.length >= 128)
     if (node instanceof Uint8Array || Buffer.isBuffer(node)) return false
     if (typeof node !== 'object') return false
     if (seen.has(node)) return false
@@ -669,6 +714,31 @@ export function publicEvidenceSafe(value) {
     return Object.entries(node).every(([childKey, child]) => visit(child, childKey))
   }
   return visit(value)
+}
+
+export function validatePublicEvidence(value, sensitiveValues = []) {
+  if (!publicEvidenceSafe(value, sensitiveValues) || !value || typeof value !== 'object' || Array.isArray(value)) return false
+  const required = ['schema', 'network', 'asset', 'application', 'actors', 'funding', 'steps', 'final', 'acceptanceNotes']
+  if (value.schema !== 'assurepay-p1-testnet-evidence-v1' || required.some((key) => !(key in value))) return false
+  if (!value.network || typeof value.network.caip2 !== 'string' || typeof value.network.genesisId !== 'string') return false
+  if (!value.asset || value.asset.id === undefined || value.asset.name === undefined || value.asset.unitName === undefined || value.asset.decimals === undefined) return false
+  if (!value.application || value.application.id === undefined || !address(value.application.address) || value.application.approvalProgramBytes === undefined || value.application.extraPages === undefined || typeof value.application.approvalProgramHash !== 'string' || !value.application.globalStateSchema) return false
+  if (!value.actors?.payer || !value.actors?.application || !address(value.actors.payer) || !address(value.actors.application)) return false
+  if (!Array.isArray(value.funding?.payments) || !value.funding.applicationMbr || !value.funding.reconciliation) return false
+  if (!value.steps?.createApplication || !value.steps?.successfulCoverage || !value.steps?.providerFaultClaim) return false
+  const successful = value.steps.successfulCoverage
+  const claim = value.steps.providerFaultClaim
+  if (typeof successful.groupId !== 'string' || !Array.isArray(successful.memberTransactionIds) || successful.memberTransactionIds.length !== 3 || Number(successful.confirmedRound) <= 0 || typeof successful.applicationId === 'undefined') return false
+  if (typeof claim.transactionId !== 'string' || Number(claim.confirmedRound) <= 0 || !claim.waterfall || claim.waterfall.approvedAmount === undefined) return false
+  if (!Array.isArray(value.final?.providers) || value.final.providers.length !== 2 || value.final.providers.some((provider) => typeof provider.providerId !== 'string' || !provider.record)) return false
+  if (!Array.isArray(value.final?.tombstones) || !value.final.tombstones.some((tombstone) => tombstone.prefix === 'c' && !tombstone.absent) || !value.final.tombstones.some((tombstone) => tombstone.prefix === 'f' && !tombstone.absent) || !value.final.accounting || value.final.applicationMinimumBalance === undefined || !value.final.invariants) return false
+  return true
+}
+
+export async function writePublicEvidence(evidence, { writeFile = fs.writeFile, sensitiveValues = [] } = {}) {
+  if (!validatePublicEvidence(evidence, sensitiveValues)) throw publicError('PUBLIC_EVIDENCE_UNSAFE', 'public evidence failed compact schema and secret-material validation')
+  await writeFile(evidencePath, `${asJson(evidence)}\n`, { encoding: 'utf8', mode: 0o644 })
+  return evidencePath
 }
 
 function normalizedGroup(txn) {
@@ -763,7 +833,7 @@ function refundMatches(entries, evidence) {
   })
 }
 
-async function verifyClaimRefund(algod, evidence) {
+export async function verifyClaimRefund(algod, evidence) {
   const claim = evidence.steps.providerFaultClaim
   try {
     const pending = await algod.pendingTransactionInformation(claim.transactionId).do()
@@ -774,7 +844,8 @@ async function verifyClaimRefund(algod, evidence) {
     if (error?.publicCode === 'PUBLIC_EVIDENCE_REFUND_MISMATCH') throw error
   }
   let entry
-  try { entry = await historicalTransactionEntry(algod, claim.transactionId, claim.confirmedRound, claim.groupId) } catch {
+  try { entry = await historicalTransactionEntry(algod, claim.transactionId, claim.confirmedRound, claim.groupId) } catch (error) {
+    if (error?.publicCode && !['PUBLIC_EVIDENCE_BLOCK_LOOKUP_UNAVAILABLE', 'PUBLIC_EVIDENCE_BLOCK_TXIDS_UNAVAILABLE'].includes(error.publicCode)) throw error
     throw publicError('PUBLIC_EVIDENCE_REFUND_UNAVAILABLE', 'neither pending data nor the confirmed block can prove the claim refund')
   }
   const matches = refundMatches(innerTransactions(entry), evidence)
@@ -784,11 +855,11 @@ async function verifyClaimRefund(algod, evidence) {
 
 export async function verifyPublicEvidence(settings, dependencies = {}) {
   const evidence = dependencies.evidence ?? await readEvidence()
-  if (!publicEvidenceSafe(evidence) || evidence.schema !== 'assurepay-p1-testnet-evidence-v1') throw publicError('PUBLIC_EVIDENCE_SCHEMA_MISMATCH', 'public evidence schema is invalid or contains forbidden private fields')
+  if (!validatePublicEvidence(evidence)) throw publicError('PUBLIC_EVIDENCE_SCHEMA_MISMATCH', 'public evidence is not the compact secret-free POC schema')
   const algod = dependencies.algod ?? client(settings)
   let version, genesis
   try { version = await algod.versionsCheck().do(); genesis = await algod.genesis().do() } catch { throw publicError('PUBLIC_EVIDENCE_ENDPOINT_UNAVAILABLE', 'public TestNet endpoint is unavailable') }
-  if (!networkIsTestnet(version, genesis) || (evidence.network.genesisId && String(version.genesisId) !== String(evidence.network.genesisId))) throw publicError('PUBLIC_EVIDENCE_NETWORK_MISMATCH', 'public evidence does not match the configured TestNet')
+  if (evidence.network.caip2 !== ALGORAND_TESTNET_CAIP2 || !networkIsTestnet(version, genesis) || (evidence.network.genesisId && String(version.genesisId) !== String(evidence.network.genesisId))) throw publicError('PUBLIC_EVIDENCE_NETWORK_MISMATCH', 'public evidence does not match the configured Algorand TestNet')
   let asset, application
   try { asset = await algod.getAssetByID(Number(evidence.asset.id)).do(); application = await algod.getApplicationByID(Number(evidence.application.id)).do() } catch { throw publicError('PUBLIC_EVIDENCE_PUBLIC_OBJECT_UNAVAILABLE', 'recorded public ASA or application is unavailable') }
   if ((asset.params?.name ?? '') !== evidence.asset.name || (asset.params?.unitName ?? '') !== evidence.asset.unitName || Number(asset.params?.decimals) !== Number(evidence.asset.decimals)) throw publicError('PUBLIC_EVIDENCE_ASA_MISMATCH', 'recorded ASA metadata does not match TestNet')

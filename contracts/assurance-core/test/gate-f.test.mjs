@@ -2,9 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import algosdk from 'algosdk'
 import { ed25519Verifier } from '@algorandfoundation/algokit-utils/crypto'
+import { ALGORAND_TESTNET_CAIP2 } from '@x402/avm'
 import { buildAssuredExactPayloadWithSigner } from '../src/assured-exact.mjs'
 import { createPeraHdSigner, validatePeraHdMnemonic } from '../src/pera-hd-signer.mjs'
-import { assertComputedInvariants, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, verifyPublicEvidence } from '../scripts/run-testnet.mjs'
+import { applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
 
 const mnemonic = 'salon zoo engage submit smile frost later decide wing sight chaos renew lizard rely canal coral scene hobby scare step bus leaf tobacco slice'
 const params = { fee: 1_000, minFee: 1_000, firstValid: 1, lastValid: 1_000, genesisHash: new Uint8Array(32), genesisID: 'v1', flatFee: true }
@@ -89,10 +90,10 @@ test('P1 budget names every ASA and ALGO term without hidden prefunding', () => 
   assert.equal(budget.ephemeralFundingLines.primaryProvider, 201_000n)
   assert.equal(budget.ephemeralFundingLines.authorizationNegative, 102_000n)
   assert.equal(budget.ephemeralAccountFundingBudget, 303_000n)
-  assert.equal(budget.payerPaidTransactionFees, 26_000n)
-  assert.equal(budget.plannedPayerTransactionFees, 28_000n)
-  assert.equal(budget.totalConservativeRequiredSpendableMicroAlgos, 1_417_700n)
-  assert.equal(budget.spendableEquation, '471000 + 517700 + 303000 + 26000 + 100000 = 1417700')
+  assert.equal(budget.payerPaidTransactionFees, 27_000n)
+  assert.equal(budget.plannedPayerTransactionFees, 29_000n)
+  assert.equal(budget.totalConservativeRequiredSpendableMicroAlgos, 1_418_700n)
+  assert.equal(budget.spendableEquation, '471000 + 517700 + 303000 + 27000 + 100000 = 1418700')
   assert.ok(plannedTransactionTable().some((item) => item.name === 'application-asset-opt-in' && item.fee === 2_000n))
   assert.ok(plannedTransactionTable().some((item) => item.name === 'provider-fault-claim' && item.fee === 2_000n))
 })
@@ -161,6 +162,55 @@ test('P1 public evidence rejects secret, signed, pending, and simulation materia
   assert.equal(publicEvidenceSafe({ ordinaryField: Array.from({ length: 128 }, () => 7) }), false)
   assert.equal(publicEvidenceSafe({ ordinaryField: 'A'.repeat(160) }), false)
   assert.equal(publicEvidenceSafe({ txId: 'PUBLIC', round: 10n, delta: -3 }), true)
+  assert.equal(publicEvidenceSafe({ simulationReason: 'simulation', simulationResponsesNotRecorded: true }), true)
+  assert.equal(publicEvidenceSafe({ ordinaryField: 'runtime-token' }, ['runtime-token']), false)
+  assert.equal(publicEvidenceSafe({ ordinaryField: mnemonic }, [mnemonic]), false)
+})
+
+function representativeEvidence() {
+  const application = algosdk.getApplicationAddress(42).toString()
+  return {
+    schema: 'assurepay-p1-testnet-evidence-v1',
+    network: { caip2: ALGORAND_TESTNET_CAIP2, genesisId: 'testnet-v1', label: 'TestNet' },
+    asset: { id: 77, name: 'ASSURE', unitName: 'ASR', decimals: 0 },
+    application: { id: 42, address: application, approvalProgramBytes: 4, extraPages: 1, approvalProgramHash: 'hash', globalStateSchema: { numUint: 6, numByteSlice: 2 } },
+    actors: { payer: payerAddress, application },
+    funding: { payments: [], applicationMbr: { total: 0 }, reconciliation: { actualApplicationFunding: 0, plannedApplicationFunding: 0 } },
+    steps: { createApplication: { transactionId: 'CREATE', confirmedRound: 7 }, successfulCoverage: { groupId: 'GROUP', memberTransactionIds: ['A', 'B', 'C'], confirmedRound: 7, applicationId: 42 }, providerFaultClaim: { transactionId: 'CLAIM', confirmedRound: 7, waterfall: { approvedAmount: 100 } } },
+    final: { providers: [{ providerId: '01'.repeat(32), record: {} }, { providerId: '02'.repeat(32), record: {} }], tombstones: [{ prefix: 'c', id: '03'.repeat(32), type: 'coverage', status: 2 }, { prefix: 'f', id: '04'.repeat(32), type: 'claim', status: true }], accounting: {}, applicationMinimumBalance: 0, invariants: {} },
+    acceptanceNotes: { simulationResponsesNotRecorded: true, rejectedTransactionBytesNotRecorded: true },
+  }
+}
+
+test('P1 complete evidence-write seam validates a representative result before invoking the writer', async () => {
+  const evidence = representativeEvidence()
+  assert.equal(validatePublicEvidence(evidence), true)
+  let call
+  await writePublicEvidence(evidence, { writeFile: async (filePath, serialized, options) => { call = { filePath, length: serialized.length, options, containsMnemonic: serialized.includes(mnemonic) } } })
+  assert.ok(call.filePath.endsWith('contracts/assurance-core/testnet-evidence.json'))
+  assert.ok(call.length > 0)
+  assert.equal(call.options.mode, 0o644)
+  assert.equal(call.containsMnemonic, false)
+  await assert.rejects(writePublicEvidence({ ...evidence, pendingResponse: { secret: true } }, { writeFile: async () => { throw new Error('writer must not be called') } }), (error) => error.publicCode === 'PUBLIC_EVIDENCE_UNSAFE')
+})
+
+test('P1 POC monetary and terminal predicates fail closed for each observed checkpoint', () => {
+  const valid = {
+    capacityAfterDeposit: 164n, successfulSubmissions: 1, successfulConfirmationRound: 7,
+    successBalances: { payer: { assetUnits: -100n }, provider: { assetUnits: 50n }, application: { assetUnits: 50n } },
+    successState: { provider: { stakeLocked: 75n, openFaultExposure: 100n }, global: { premiumReserve: 50n, totalOpenFaultExposure: 100n } },
+    providerId: '01'.repeat(32), policyId: '02'.repeat(32), payer: payerAddress,
+    openCoverage: { providerId: '01'.repeat(32), policyId: '02'.repeat(32), payer: payerAddress, grossAmount: 100n, providerNetAmount: 50n, premiumAmount: 50n, lockedStakeAmount: 75n, status: 1, exposureReleased: false },
+    claimRecord: { finalized: true, providerFault: true, approvedAmount: 100n, stakeDebit: 75n, poolDebit: 25n }, refund: { receiver: payerAddress, amount: 100n }, refundCount: 1,
+    claimDeltas: { provider: { stakeTotal: -75n, stakeLocked: -75n, openFaultExposure: -100n }, global: { totalProviderStake: -75n, premiumReserve: -25n, totalOpenFaultExposure: -100n }, physicalApplicationAsset: -100n },
+    unrelatedProvider: { stakeTotal: 10n, stakeLocked: 0n, openFaultExposure: 0n }, finalCoverage: { status: 2, exposureReleased: true }, finalPrimary: { stakeTotal: 0n, stakeLocked: 0n, openFaultExposure: 0n }, finalCapacity: 0n, finalAccounting: { totalProviderStake: 10n, premiumReserve: 25n, totalOpenFaultExposure: 0n }, finalAsset: 35n, tombstones: { coverage: true, claim: true, rejectedCoverage: false, zeroCoverage: false },
+  }
+  assert.equal(assertPocLifecycleObservations(valid), true)
+  for (const [field, value] of [['capacityAfterDeposit', 163n], ['finalCapacity', 1n], ['finalAsset', 36n]]) assert.throws(() => assertPocLifecycleObservations({ ...valid, [field]: value }), (error) => error.publicCode === 'TESTNET_POC_ASSERTION_MISMATCH')
+  assert.throws(() => assertPocLifecycleObservations({ ...valid, successBalances: { ...valid.successBalances, payer: { assetUnits: -99n } } }), (error) => error.publicCode === 'TESTNET_POC_ASSERTION_MISMATCH')
+  assert.throws(() => assertPocLifecycleObservations({ ...valid, claimRecord: { ...valid.claimRecord, poolDebit: 24n } }), (error) => error.publicCode === 'TESTNET_POC_ASSERTION_MISMATCH')
+  assert.throws(() => assertPocLifecycleObservations({ ...valid, unrelatedProvider: { ...valid.unrelatedProvider, stakeTotal: 11n } }), (error) => error.publicCode === 'TESTNET_POC_ASSERTION_MISMATCH')
+  assert.throws(() => assertPocLifecycleObservations({ ...valid, tombstones: { ...valid.tombstones, rejectedCoverage: true } }), (error) => error.publicCode === 'TESTNET_POC_ASSERTION_MISMATCH')
 })
 
 test('P1 intended application failure matching distinguishes endpoint errors', () => {
@@ -170,6 +220,7 @@ test('P1 intended application failure matching distinguishes endpoint errors', (
   assert.equal(matchApplicationAssertionFailures(compactFailure('assert failed app=42 pc=123'), compactFailure('assert failed app=42 pc=123'), 42), true)
   assert.equal(matchApplicationAssertionFailures(compactFailure('assert failed app=42 pc=123'), compactFailure('assert failed app=42'), 42), false)
   assert.equal(matchApplicationAssertionFailures(compactFailure('timeout'), compactFailure('assert failed app=42 pc=123'), 42), false)
+  assert.equal(matchApplicationAssertionFailures(compactFailure('assert failed app=42'), compactFailure('assert failed app=42 pc=123'), 42), false)
   assert.equal(compactFailure('rate limit app=42 pc=123').kind, 'endpoint-or-resource')
 })
 
@@ -198,6 +249,28 @@ test('P1 byte identity and runner modes keep preflight/verifier non-mutating', (
   assert.equal(runnerMode(['node', 'runner']), 'mutating-acceptance')
 })
 
+test('P1 fake public client rollback snapshot detects changed box, MBR, and balance state', async () => {
+  const app = algosdk.getApplicationAddress(42).toString()
+  const providerId = new Uint8Array(32).fill(1)
+  const providerBox = new Uint8Array(Buffer.concat([Buffer.from('p'), Buffer.from(providerId)]))
+  const providerType = '(address,address,byte[32],bool,uint64,uint64,uint64,uint64)'
+  const encodeProvider = (stake) => algosdk.ABIType.from(providerType).encode([algosdk.decodeAddress(payerAddress).publicKey, algosdk.decodeAddress(payerAddress).publicKey, new Uint8Array(32), true, stake, 0n, 0n, 0n])
+  let version = 0
+  const fake = {
+    accountInformation: (address) => ({ do: async () => ({ amount: address === app ? 1_000 + version : 2_000 + version, minBalance: address === app ? 500 + version : 1_000 }) }),
+    accountAssetInformation: () => ({ do: async () => ({ assetHolding: { amount: 10 } }) }),
+    getApplicationByID: () => ({ do: async () => ({ params: { globalState: [] } }) }),
+    getApplicationBoxByName: () => ({ do: async () => ({ value: Buffer.from(encodeProvider(10n + BigInt(version))).toString('base64') }) }),
+  }
+  const before = await applicationSnapshot(fake, 42, payerAddress, 77n, providerId, providerBox)
+  version = 1
+  const after = await applicationSnapshot(fake, 42, payerAddress, 77n, providerId, providerBox)
+  assert.notDeepEqual(before.boxes, after.boxes)
+  assert.notEqual(before.applicationMbr, after.applicationMbr)
+  assert.notEqual(before.balances.application.totalMicroAlgos, after.balances.application.totalMicroAlgos)
+  assert.throws(() => assertCompleteRollback(before, after), (error) => error.publicCode === 'TESTNET_REJECTION_ROLLBACK_MISMATCH')
+})
+
 test('P1 verifier transaction proof falls back to the historical block without mutation', async () => {
   const groupId = Buffer.alloc(32, 9).toString('base64')
   const fake = {
@@ -221,6 +294,15 @@ test('P1 verifier rejects exact-round mismatch and unrelated same-block groups',
   await assert.rejects(proveTransaction(unrelated, 'TXID', 77, groupId), (error) => error.publicCode === 'PUBLIC_EVIDENCE_BLOCK_GROUP_MISMATCH')
 })
 
+test('P1 verifier distinguishes refund mismatch from pruned refund history', async () => {
+  const evidence = representativeEvidence()
+  evidence.steps.providerFaultClaim = { transactionId: 'CLAIM', confirmedRound: 7, groupId: 'GROUP', waterfall: { approvedAmount: 100 } }
+  const wrongRefund = { pendingTransactionInformation: () => ({ do: async () => ({ confirmedRound: 7, 'inner-txns': [{ txn: { type: 'axfer', sender: evidence.application.address, assetTransfer: { receiver: evidence.actors.payer, assetIndex: 77, amount: 99 }, fee: 0 } }] }) }) }
+  await assert.rejects(verifyClaimRefund(wrongRefund, evidence), (error) => error.publicCode === 'PUBLIC_EVIDENCE_REFUND_MISMATCH')
+  const unavailable = { pendingTransactionInformation: () => ({ do: async () => { throw new Error('pruned') } }), block: () => ({ do: async () => { throw new Error('pruned') } }) }
+  await assert.rejects(verifyClaimRefund(unavailable, evidence), (error) => error.publicCode === 'PUBLIC_EVIDENCE_REFUND_UNAVAILABLE')
+})
+
 test('P1 verifier validates public success evidence and rejects accounting/program/schema/box mismatches', async () => {
   const appId = 42
   const assetId = 77
@@ -229,6 +311,7 @@ test('P1 verifier validates public success evidence and rejects accounting/progr
   const group = Buffer.alloc(32, 9)
   const groupId = group.toString('base64')
   const providerId = '01'.repeat(32)
+  const secondProviderId = '04'.repeat(32)
   const coverageId = '02'.repeat(32)
   const claimId = '03'.repeat(32)
   const providerType = '(address,address,byte[32],bool,uint64,uint64,uint64,uint64)'
@@ -237,6 +320,7 @@ test('P1 verifier validates public success evidence and rejects accounting/progr
   const addressBytes = (value) => algosdk.decodeAddress(value).publicKey
   const boxes = new Map([
     [Buffer.concat([Buffer.from('p'), Buffer.from(providerId, 'hex')]).toString('hex'), algosdk.ABIType.from(providerType).encode([addressBytes(payer), addressBytes(payer), new Uint8Array(32), true, 10n, 0n, 0n, 0n])],
+    [Buffer.concat([Buffer.from('p'), Buffer.from(secondProviderId, 'hex')]).toString('hex'), algosdk.ABIType.from(providerType).encode([addressBytes(payer), addressBytes(payer), new Uint8Array(32), true, 0n, 0n, 0n, 0n])],
     [Buffer.concat([Buffer.from('c'), Buffer.from(coverageId, 'hex')]).toString('hex'), algosdk.ABIType.from(coverageType).encode([new Uint8Array(32).fill(1), new Uint8Array(32).fill(2), addressBytes(payer), 100n, 50n, 50n, 0n, 0n, new Uint8Array(32).fill(4), 0n, 0n, 2n, true])],
     [Buffer.concat([Buffer.from('f'), Buffer.from(claimId, 'hex')]).toString('hex'), algosdk.ABIType.from(claimType).encode([new Uint8Array(32).fill(2), true, 100n, true, 0n, 75n, 25n, 0n])],
   ])
@@ -249,18 +333,20 @@ test('P1 verifier validates public success evidence and rejects accounting/progr
   ].map(([name, uint]) => ({ key: key(name), value: { uint } }))
   const evidence = {
     schema: 'assurepay-p1-testnet-evidence-v1',
-    network: { caip2: 'eip155:1', genesisId: 'testnet-v1', label: 'TestNet' },
+    network: { caip2: ALGORAND_TESTNET_CAIP2, genesisId: 'testnet-v1', label: 'TestNet' },
     asset: { id: assetId, name: 'ASSURE', unitName: 'ASR', decimals: 0 },
     application: { id: appId, address: application, approvalProgramBytes: 4, extraPages: 1, approvalProgramHash: (await import('node:crypto')).createHash('sha256').update(Buffer.from([1, 2, 3, 4])).digest('base64'), globalStateSchema: { numUint: 6, numByteSlice: 2 } },
     actors: { payer, application },
     funding: { payments: [{ amount: 517700 }], applicationMbr: { total: 517700 }, reconciliation: { actualApplicationFunding: 517700, plannedApplicationFunding: 517700 } },
-    steps: { successfulCoverage: { groupId, memberTransactionIds: ['A', 'B', 'C'], confirmedRound: 7 }, providerFaultClaim: { transactionId: 'CLAIM', confirmedRound: 7, waterfall: { approvedAmount: 100 } } },
+    steps: { createApplication: { transactionId: 'CREATE', confirmedRound: 7 }, successfulCoverage: { groupId, memberTransactionIds: ['A', 'B', 'C'], confirmedRound: 7, applicationId: appId }, providerFaultClaim: { transactionId: 'CLAIM', confirmedRound: 7, waterfall: { approvedAmount: 100 } } },
     final: {
-      providers: [{ providerId, record: { owner: payer, payout: payer, active: true, stakeTotal: 10, stakeLocked: 0, openFaultExposure: 0 } }],
+      providers: [{ providerId, record: { owner: payer, payout: payer, active: true, stakeTotal: 10, stakeLocked: 0, openFaultExposure: 0 } }, { providerId: secondProviderId, record: { owner: payer, payout: payer, active: true, stakeTotal: 0, stakeLocked: 0, openFaultExposure: 0 } }],
       tombstones: [{ prefix: 'c', id: coverageId, type: coverageType, statusIndex: 11, status: 2 }, { prefix: 'f', id: claimId, type: claimType, statusIndex: 1, status: true }],
       accounting: { totalProviderStake: 10, premiumReserve: 25, totalOpenFaultExposure: 0, physicalApplicationAssetBalance: 35, providerSum: 10, exposureSum: 0, assetLiabilityMatches: true },
       applicationMinimumBalance: 1_234,
+      invariants: {},
     },
+    acceptanceNotes: { acceptanceTimePoolRejectionsAreLedgerUnreconstructable: true },
   }
   const pending = (transactionId) => ({ confirmedRound: 7, txn: { group }, ...(transactionId === 'CLAIM' ? { 'inner-txns': [{ txn: { type: 'axfer', sender: application, fee: 0, assetTransfer: { receiver: payer, assetIndex: assetId, amount: 100 } } }] } : {}) })
   const fake = {
@@ -279,7 +365,7 @@ test('P1 verifier validates public success evidence and rejects accounting/progr
   await assert.rejects(verifyPublicEvidence({}, { evidence: { ...evidence, final: { ...evidence.final, accounting: { ...evidence.final.accounting, physicalApplicationAssetBalance: 36 } } }, algod: fake }), (error) => error.publicCode === 'PUBLIC_EVIDENCE_ACCOUNTING_MISMATCH')
   await assert.rejects(verifyPublicEvidence({}, { evidence: { ...evidence, application: { ...evidence.application, approvalProgramHash: 'wrong' } }, algod: fake }), (error) => error.publicCode === 'PUBLIC_EVIDENCE_PROGRAM_MISMATCH')
   await assert.rejects(verifyPublicEvidence({}, { evidence: { ...evidence, application: { ...evidence.application, globalStateSchema: { numUint: 5, numByteSlice: 2 } } }, algod: fake }), (error) => error.publicCode === 'PUBLIC_EVIDENCE_SCHEMA_MISMATCH')
-  await assert.rejects(verifyPublicEvidence({}, { evidence: { ...evidence, final: { ...evidence.final, providers: [{ ...evidence.final.providers[0], record: { ...evidence.final.providers[0].record, stakeTotal: 11 } }] } }, algod: fake }), (error) => error.publicCode === 'PUBLIC_EVIDENCE_BOX_STATE_MISMATCH')
+  await assert.rejects(verifyPublicEvidence({}, { evidence: { ...evidence, final: { ...evidence.final, providers: [{ ...evidence.final.providers[0], record: { ...evidence.final.providers[0].record, stakeTotal: 11 } }, evidence.final.providers[1]] } }, algod: fake }), (error) => error.publicCode === 'PUBLIC_EVIDENCE_BOX_STATE_MISMATCH')
 })
 
 test('P1 deterministic tests do not dispatch the mutating TestNet runner', async () => {
