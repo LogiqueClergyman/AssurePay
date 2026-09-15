@@ -1,6 +1,6 @@
 # P1 Results — Assurance Core
 
-Status: REVIEW — Gates A–E ACCEPTED; Gate F POC readiness correction complete, TestNet mutation remains unauthorized
+Status: IN_PROGRESS — Gates A–E ACCEPTED; Gate F needs one compact-evidence schema correction before TestNet mutation
 
 ## Baseline
 
@@ -138,7 +138,7 @@ Status: ACCEPTED
 
 ## Gate F — TestNet acceptance
 
-Status: REVIEW — POC readiness correction complete; real TestNet acceptance and evidence verification remain unauthorized and unrun.
+Status: IN_PROGRESS — POC readiness correction is nearly complete; orchestrator review found one remaining evidence-schema execution blocker. Real TestNet acceptance and evidence verification remain unrun.
 
 - R1/R2: the runner retains the exact POC ASA equation `123 + 10 + 100 + 10 = 243` and explicit application funding `200,000 + 67,300 + 67,300 + 44,900 + 92,900 + 45,300 = 517,700` microAlgos. The added post-withdrawal capacity read is named in the transaction table; payer-paid fees are `27,000`, planned fees including the uncharged lock-crossing rejection are `29,000`, and the conservative spendable equation is `471,000 + 517,700 + 303,000 + 27,000 + 100,000 = 1,418,700` microAlgos.
 - R3/R4: the runner now fails closed on pre-coverage capacity `164`, one successful x402 submission/confirmation, ASA deltas payer/provider/application `−100/+50/+50`, provider lock/exposure `+75/+100`, and reserve/exposure `+50/+100`. It asserts the configured open coverage record, finalized provider-fault claim, exactly one `100` configured-ASA refund to the stored payer, `75/25` stake/pool debits, unchanged unrelated collateral `10/0/0`, primary provider `0/0/0`, fresh capacity `0`, and final globals/application ASA `10/25/0/35`. Refunded coverage release, both accepted tombstones, and both rejected-box absences are required.
@@ -147,6 +147,7 @@ Status: REVIEW — POC readiness correction complete; real TestNet acceptance an
 - Deterministic matrix: `npm run test:p1` passed **47/47** (43 existing tests plus four focused readiness tests), covering the complete evidence-write seam, monetary/terminal predicates, rollback mutations, failure fingerprints, refund mismatch/unavailability, verifier happy/mismatch paths, and non-mutating modes.
 - Required verification: `npm run typecheck:p1` passed; `npm run build:contract:p1` passed; generated artifacts remained unchanged; `npm run localnet:p1` passed against real LocalNet with **95** rejected cases, approval **3,517** bytes, and `extraPages=1`; `git diff --check` passed. The non-mutating `npm run testnet:p1 -- --preflight` stopped at `phase: configuration`, `ok: false`, with missing `TESTNET_PAYER_HD_MNEMONIC`, `TESTNET_PAYER_ADDRESS`, `TESTNET_ASA_ID`, and `TESTNET_ALGOD_SERVER`; no endpoint access, signer mutation, TestNet transaction, or evidence file occurred.
 - Stopping point: do not run `npm run testnet:p1`, `npm run testnet:p1 -- --verify-evidence`, or start P2. The orchestrator must review this focused checkpoint before the one authorized mutating TestNet attempt.
+- Orchestrator audit at `c72195e`: independently reproduced typecheck/build with unchanged artifacts, **47/47** tests, a fresh real LocalNet lifecycle at ASA **7388**, app **7389**, round **5509** with **95** intended rejections, and the configuration-only preflight. Commit scope and records were checked. Direct execution nevertheless proved `publicEvidenceSafe({sameSignedBytes: true}) === false`; the actual runner emits that public boolean in intended-rejection records. Its representative evidence test omits those records, so an otherwise successful TestNet run would still fail before evidence write. Fix only this schema/test gap, then return the checkpoint for review; no TestNet mutation yet.
 
 ## Decisions and deviations
 
