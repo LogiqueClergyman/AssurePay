@@ -3,9 +3,9 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: IN_PROGRESS — Gates A through E ACCEPTED; the single authorized Gate F TestNet mutation was attempted and failed; the corrected-capacity diagnostic accepted one simulation but exposed no return log, so capacity was not decoded; Gate F remains unaccepted and the earlier run’s exact execution stage/unconfirmed submission status remain unknown
+- State: IN_PROGRESS — Gates A through E ACCEPTED; the additional authorized Gate F TestNet acceptance attempt ran once after readiness passed and failed at `stage=coverage` with `TESTNET_OPEN_COVERAGE_MISMATCH`; no compact evidence was produced, and Gate F remains unaccepted
 - Branch: `main`
-- Reviewed readiness checkpoint: current focused corrected-capacity diagnostic; readiness checks and TestNet preflight passed, but acceptance did not complete
+- Reviewed readiness checkpoint: additional acceptance attempt after independent readiness pass; mutation did not complete and no retry is authorized
 - Active packet: `planning/P1_GATE_F_POC_READINESS.md`
 - Parent packet: `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md`
 - Results: `planning/P1_RESULTS.md`
@@ -31,16 +31,16 @@ P0 remains complete. Do not modify or import from `spikes/p0-atomic/**`.
 - Sequential capacity-read diagnostic on **2026-09-16**: public Algod state for app **771803281** showed accepted ASA **10458941**, globals `totalProviderStake=133`, `premiumReserve=0`, `totalOpenFaultExposure=0`, policy ID `02`×32, and provider IDs `01`×32 and `07`×32. Primary provider stake/lock/exposure was **123/0/0**; unrelated provider collateral was **10/0/0**. Using the existing `getAvailableCapacity(byte[32],byte[32])` call construction, provider box `p||01`×32, policy box `l||02`×32, current TestNet suggested parameters, and the opaque signer through normal runtime configuration loading, exactly one Algod simulation was made. A local guard blocked submission and confirmation operations before the request. The sanitized result was a deployed-app assertion for `applicationId=771803281`, `assertionPc=334`; no capacity was decoded. It was not an endpoint/resource error. No transaction was submitted, confirmed, or recorded; no evidence/verifier/retry ran. This result is bounded to today’s call and does not prove the exact cause or stage of the earlier failed Gate F run; an earlier unconfirmed submission remains unknown. The temporary diagnostic code was removed, so implementation paths are unchanged.
 - Capacity ABI correction on **2026-09-16**: the committed ARC-56 method returns scalar `uint64`; the runner had used the tuple-return signature `getAvailableCapacity(byte[32],byte[32])(uint64)` and tuple decoding. The runner now uses `getAvailableCapacity(byte[32],byte[32])uint64` and scalar decoding at both capacity reads. One targeted offline test compares the runner selector to the committed ARC-56 selector and proves the old tuple selector differs. This explains the diagnostic `pc=334` dispatch failure, but does not prove the exact execution stage of the 2026-09-15 acceptance run. Typecheck, contract build, `npm run test:p1` (**49/49**), real LocalNet, generated-artifact diff, and `git diff --check` passed. No TestNet command, endpoint query, simulation, retry, evidence file, verifier, or P2 work occurred.
 - Corrected-capacity diagnostic on **2026-09-16**: public reads confirmed app **771803281**, accepted ASA **10458941**, provider ID `01`×32, policy ID `02`×32, and boxes `p||01`×32 and `l||02`×32. The corrected scalar-selector call used current suggested parameters and the opaque signer through normal runtime configuration. A local guard blocked submission and confirmation methods before the request. Exactly one Algod simulation accepted; no return log was exposed in the sanitized result, so capacity was not decoded and expected **164** was not observed. No transaction was submitted, confirmed, or recorded. No second simulation or further TestNet action was taken. This does not establish the exact execution stage of the 2026-09-15 run or provide Gate F acceptance/evidence.
+- Additional authorized acceptance attempt on **2026-09-16**: typecheck, build, `49/49` tests, LocalNet, artifact diff, `git diff --check`, and TestNet preflight all passed. `npm run testnet:p1` ran exactly once on its fresh deployment path and returned only sanitized `stage=coverage`, `code=TESTNET_OPEN_COVERAGE_MISMATCH`, message `successful coverage record did not match the configured POC values`. It surfaced 19 confirmed public transaction IDs through round **67352090**, followed by the three-member group `M3RL/Z89nn1PDOk4n0pZweFhj72RFTwnvN1JEs/zU44=` at round **67352093**; the exact ordered IDs are recorded in `planning/P1_RESULTS.md`. No application ID was surfaced, no compact evidence was created, and the verifier was not run. The exact POC mismatch cause and any unconfirmed state remain unknown; no retry is authorized.
 
 ## Exact next action
 
-Review the focused corrected-capacity diagnostic and the recorded bounded
-result. The one authorized mutating run and the authorized simulations are
-consumed; do not retry, simulate again, run the TestNet preflight, query further
-endpoints, or run the evidence verifier. The orchestrator must determine the
-next action and provide fresh explicit authorization before any further TestNet
-activity. Do not create `contracts/assurance-core/testnet-evidence.json`
-manually.
+Review the additional acceptance attempt and recorded sanitized progress. The
+authorized mutation has been consumed and failed; do not retry mutation, run
+the verifier, query further endpoints, or create evidence manually. The
+orchestrator must determine the next action and provide fresh explicit
+authorization before any further TestNet activity. Do not start P2 or mark P1
+COMPLETE.
 
 Do not start P2 or later work. Never access `/docs` or manually read a populated
 `.env`.
