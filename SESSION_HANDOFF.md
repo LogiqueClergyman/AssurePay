@@ -3,7 +3,7 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: IN_PROGRESS — Gates A through E ACCEPTED; the additional authorized Gate F TestNet acceptance attempt ran once after readiness passed and failed at `stage=coverage` with `TESTNET_OPEN_COVERAGE_MISMATCH`; no compact evidence was produced, and Gate F remains unaccepted
+- State: IN_PROGRESS — Gates A through E ACCEPTED; the single authorized Gate F TestNet acceptance attempt after the predicate fix ran once and failed at `stage=rejection` with `TESTNET_REJECTION_ROLLBACK_MISMATCH`; Gate F remains unaccepted
 - Branch: `main`
 - Reviewed readiness checkpoint: additional acceptance attempt after independent readiness pass; mutation did not complete and no retry is authorized
 - Active packet: `planning/P1_GATE_F_POC_READINESS.md`
@@ -33,12 +33,13 @@ P0 remains complete. Do not modify or import from `spikes/p0-atomic/**`.
 - Corrected-capacity diagnostic on **2026-09-16**: public reads confirmed app **771803281**, accepted ASA **10458941**, provider ID `01`×32, policy ID `02`×32, and boxes `p||01`×32 and `l||02`×32. The corrected scalar-selector call used current suggested parameters and the opaque signer through normal runtime configuration. A local guard blocked submission and confirmation methods before the request. Exactly one Algod simulation accepted; no return log was exposed in the sanitized result, so capacity was not decoded and expected **164** was not observed. No transaction was submitted, confirmed, or recorded. No second simulation or further TestNet action was taken. This does not establish the exact execution stage of the 2026-09-15 run or provide Gate F acceptance/evidence.
 - Additional authorized acceptance attempt on **2026-09-16**: typecheck, build, `49/49` tests, LocalNet, artifact diff, `git diff --check`, and TestNet preflight all passed. `npm run testnet:p1` ran exactly once on its fresh deployment path and returned only sanitized `stage=coverage`, `code=TESTNET_OPEN_COVERAGE_MISMATCH`, message `successful coverage record did not match the configured POC values`. It surfaced 19 confirmed public transaction IDs through round **67352090**, followed by the three-member group `M3RL/Z89nn1PDOk4n0pZweFhj72RFTwnvN1JEs/zU44=` at round **67352093**; the exact ordered IDs are recorded in `planning/P1_RESULTS.md`. No application ID was surfaced, no compact evidence was created, and the verifier was not run. The exact POC mismatch cause and any unconfirmed state remain unknown; no retry is authorized.
 - False coverage mismatch correction on **2026-09-16**: the three-member coverage group confirmed at round **67352093**, then the runner falsely rejected decoded `CoverageRecord.status=1n` because its early guard used strict comparison with number `1`. The guard now uses the existing fail-closed bigint comparison helper for status and configured integer fields. An ABI-encoded/decoded fixture proves valid `1n` passes and wrong status/provider ID fails. This explains the reported `TESTNET_OPEN_COVERAGE_MISMATCH`; it does not prove later lifecycle stages were exercised or Gate F acceptance. No TestNet command, endpoint query, simulation, verifier, retry, or evidence creation was run in this implementation session.
+- Single authorized acceptance attempt after the predicate fix on **2026-09-16**: typecheck, build, `50/50` tests, LocalNet, artifact diff, and `git diff --check` passed. The first sandboxed preflight returned sanitized `PUBLIC_PREFLIGHT_ENDPOINT_UNAVAILABLE`; the same non-mutating preflight with network access passed for TestNet `testnet-v1.0`, ASA **10458941**, and spendable **5,847,100** versus **1,418,700** required microAlgos. The one `npm run testnet:p1` mutation ran exactly once and returned only sanitized `stage=rejection`, `code=TESTNET_REJECTION_ROLLBACK_MISMATCH`, message `rejected application state was not fully rolled back`. It validated public progress through round **67352545**, then rejection group members `WLBJNUSDTSFERH6ZF6C43EF6BLGXUXEHONJFOXKREQ34LRSZPADA`, `F5LYZALOK67LMBA3ZKW3E2VZBWYOLCKHS6DKINZVVQVFSJMCYIWQ`, and `7Z7ARV5TMTEL3XIEKXU4TILFR2R6NI54U7CHWJX4JVFWM2R7BN4A` at round **67352548**, group `13itlnCcikHbuzCnmv8WSX3vNFQZtTbyZA0d72CSFIA=`. No application ID was surfaced. The rollback mismatch leaves the exact affected state and any unconfirmed mutation unknown; missing IDs/evidence output are not treated as proof that no mutation occurred. No verifier or retry ran.
 
 ## Exact next action
 
-Review this offline predicate fix and the recorded sanitized progress. The
-authorized mutation has been consumed and failed; do not retry mutation, run
-the verifier, query further endpoints, or create evidence manually. The
+Review the predicate fix and this failed rollback checkpoint. The authorized
+mutation has been consumed and failed; do not retry mutation, run the
+verifier, query further endpoints, or create evidence manually. The
 orchestrator must determine the next action and provide fresh explicit
 authorization before any further TestNet activity. Do not start P2 or mark P1
 COMPLETE.
