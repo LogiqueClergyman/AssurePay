@@ -6,7 +6,7 @@ import { ed25519Verifier } from '@algorandfoundation/algokit-utils/crypto'
 import { ALGORAND_TESTNET_CAIP2 } from '@x402/avm'
 import { buildAssuredExactPayloadWithSigner } from '../src/assured-exact.mjs'
 import { createPeraHdSigner, validatePeraHdMnemonic } from '../src/pera-hd-signer.mjs'
-import { EXECUTION_STAGES, TESTNET_CAPACITY_METHOD_SIGNATURE, TESTNET_CAPACITY_SELECTOR, applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, createExecutionDiagnostics, executionFailureResult, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
+import { EXECUTION_STAGES, TESTNET_CAPACITY_METHOD_SIGNATURE, TESTNET_CAPACITY_SELECTOR, TESTNET_COVERAGE_RECORD_TYPE, applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertConfiguredOpenCoverage, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, createExecutionDiagnostics, coverageRecordPublic, executionFailureResult, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
 
 const mnemonic = 'salon zoo engage submit smile frost later decide wing sight chaos renew lizard rely canal coral scene hobby scare step bus leaf tobacco slice'
 const params = { fee: 1_000, minFee: 1_000, firstValid: 1, lastValid: 1_000, genesisHash: new Uint8Array(32), genesisID: 'v1', flatFee: true }
@@ -19,6 +19,19 @@ test('P1 TestNet capacity selector matches committed ARC-56 scalar ABI', () => {
   assert.equal(TESTNET_CAPACITY_METHOD_SIGNATURE, committedSignature)
   assert.deepEqual(TESTNET_CAPACITY_SELECTOR, algosdk.ABIMethod.fromSignature(committedSignature).getSelector())
   assert.notDeepEqual(TESTNET_CAPACITY_SELECTOR, algosdk.ABIMethod.fromSignature('getAvailableCapacity(byte[32],byte[32])(uint64)').getSelector())
+})
+
+test('P1 decoded open coverage guard compares ARC-4 uint64 status as bigint and fails closed', () => {
+  const providerId = '01'.repeat(32)
+  const policyId = '02'.repeat(32)
+  const encoded = algosdk.ABIType.from(TESTNET_COVERAGE_RECORD_TYPE).encode([new Uint8Array(32).fill(1), new Uint8Array(32).fill(2), algosdk.decodeAddress(payerAddress).publicKey, 100n, 50n, 50n, 0n, 75n, new Uint8Array(32).fill(3), 0n, 0n, 1n, false])
+  const decoded = algosdk.ABIType.from(TESTNET_COVERAGE_RECORD_TYPE).decode(encoded)
+  const record = coverageRecordPublic(decoded)
+  const expected = { providerId, policyId, payer: payerAddress }
+  assert.equal(decoded[11], 1n)
+  assert.equal(assertConfiguredOpenCoverage(record, expected), true)
+  assert.throws(() => assertConfiguredOpenCoverage({ ...record, status: 2n }, expected), (error) => error.publicCode === 'TESTNET_OPEN_COVERAGE_MISMATCH')
+  assert.throws(() => assertConfiguredOpenCoverage({ ...record, providerId: '03'.repeat(32) }, expected), (error) => error.publicCode === 'TESTNET_OPEN_COVERAGE_MISMATCH')
 })
 
 test('P1 Pera signer derives Peikert addresses and exposes no private material', async () => {

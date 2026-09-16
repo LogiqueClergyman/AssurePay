@@ -41,9 +41,10 @@ const METHOD = Object.freeze({
   claim: algosdk.ABIMethod.fromSignature('finalizeClaim(byte[32],byte[32],bool,uint64,bool,uint64)void'),
 })
 export const TESTNET_CAPACITY_SELECTOR = METHOD.capacity.getSelector()
+export const TESTNET_COVERAGE_RECORD_TYPE = '(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)'
 const RECORD = Object.freeze({
   provider: '(address,address,byte[32],bool,uint64,uint64,uint64,uint64)',
-  coverage: '(byte[32],byte[32],address,uint64,uint64,uint64,uint64,uint64,byte[32],uint64,uint64,uint64,bool)',
+  coverage: TESTNET_COVERAGE_RECORD_TYPE,
 })
 
 const asJson = (value) => JSON.stringify(value, (_key, item) => typeof item === 'bigint' ? item.toString() : item, 2)
@@ -434,7 +435,11 @@ async function boxValue(algod, appId, name, type) {
   try { return decodeBox(await algod.getApplicationBoxByName(Number(appId), name).do(), type) } catch (error) { if (error?.status === 404 || error?.response?.status === 404) return undefined; throw error }
 }
 function providerRecordPublic(record) { return { owner: record[0], payout: record[1], active: record[3], stakeTotal: record[4], stakeLocked: record[5], openFaultExposure: record[6] } }
-function coverageRecordPublic(record) { return { providerId: hex(record[0]), policyId: hex(record[1]), payer: record[2], grossAmount: record[3], providerNetAmount: record[4], premiumAmount: record[5], lockedStakeAmount: record[7], status: record[11], exposureReleased: record[12] } }
+export function coverageRecordPublic(record) { return { providerId: hex(record[0]), policyId: hex(record[1]), payer: record[2], grossAmount: record[3], providerNetAmount: record[4], premiumAmount: record[5], lockedStakeAmount: record[7], status: record[11], exposureReleased: record[12] } }
+export function assertConfiguredOpenCoverage(openCoverage, { providerId, policyId, payer }) {
+  if (!openCoverage || openCoverage.providerId !== providerId || openCoverage.policyId !== policyId || openCoverage.payer !== payer || !bigintEqual(openCoverage.grossAmount, 100n) || !bigintEqual(openCoverage.providerNetAmount, 50n) || !bigintEqual(openCoverage.premiumAmount, 50n) || !bigintEqual(openCoverage.lockedStakeAmount, 75n) || !bigintEqual(openCoverage.status, 1n) || openCoverage.exposureReleased !== false) throw publicError('TESTNET_OPEN_COVERAGE_MISMATCH', 'successful coverage record did not match the configured POC values')
+  return true
+}
 function stateSnapshot(balances, provider, accounting, appAsset) { return { balances, provider, accounting: [...accounting.entries()], appAsset } }
 function samePublic(left, right) { return asJson(left) === asJson(right) }
 function logBytes(pending, index = 0) { return Buffer.from((pending.logs ?? [])[index] ?? '', 'base64') }
@@ -692,7 +697,7 @@ async function run(settings, readiness, diagnostics = createExecutionDiagnostics
     if (successfulAssetDeltas.payer.assetUnits !== -100n || successfulAssetDeltas.provider.assetUnits !== 50n || successfulAssetDeltas.application.assetUnits !== 50n) throw publicError('TESTNET_SUCCESS_ASSET_DELTA_MISMATCH', 'successful coverage ASA deltas did not match payer -100, provider +50, application +50')
     if (successfulState.provider.stakeLocked !== 75n || successfulState.provider.openFaultExposure !== 100n || successfulState.global.premiumReserve !== 50n || successfulState.global.totalOpenFaultExposure !== 100n) throw publicError('TESTNET_SUCCESS_STATE_DELTA_MISMATCH', 'successful coverage lock, exposure, or reserve deltas did not match the POC profile')
     const openCoverage = coverageRecordPublic(afterCoverage.boxes[hex(coverageBox)])
-    if (openCoverage.providerId !== hex(providerId) || openCoverage.policyId !== hex(policyId) || openCoverage.payer !== payer.address || openCoverage.grossAmount !== 100n || openCoverage.providerNetAmount !== 50n || openCoverage.premiumAmount !== 50n || openCoverage.lockedStakeAmount !== 75n || openCoverage.status !== 1 || openCoverage.exposureReleased !== false) throw publicError('TESTNET_OPEN_COVERAGE_MISMATCH', 'successful coverage record did not match the configured POC values')
+    assertConfiguredOpenCoverage(openCoverage, { providerId: hex(providerId), policyId: hex(policyId), payer: payer.address })
     diagnostics.setStage('rejection')
     const insufficientFixture = await makeCoverage({ algod, payer, appId, appAddress: application, provider: provider.addr.toString(), providerId, policyId, coverageId: rejectedCoverageId, assetId, params: await algodParams(algod) })
     const rejectionSnapshot = { actors, boxes: [{ name: unrelatedProviderBox, type: RECORD.provider }, { name: policyBox, type: '(byte[32],bool,uint64,uint64,uint64,uint64,uint64)' }, { name: coverageBox, type: RECORD.coverage }, { name: rejectedCoverageBox, type: RECORD.coverage }, { name: zeroCoverageBox, type: RECORD.coverage }, { name: claimBox, type: '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)' }] }
