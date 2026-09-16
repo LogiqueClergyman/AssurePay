@@ -334,6 +334,29 @@ test('P1 fake public client rollback snapshot detects changed box, MBR, and bala
   assert.throws(() => assertCompleteRollback(before, after), (error) => error.publicCode === 'TESTNET_REJECTION_ROLLBACK_MISMATCH')
 })
 
+test('P1 rollback snapshot canonicalizes global-state order but rejects value changes', async () => {
+  const app = algosdk.getApplicationAddress(42).toString()
+  const providerId = new Uint8Array(32).fill(1)
+  const providerBox = new Uint8Array(Buffer.concat([Buffer.from('p'), Buffer.from(providerId)]))
+  const providerType = '(address,address,byte[32],bool,uint64,uint64,uint64,uint64)'
+  const providerValue = algosdk.ABIType.from(providerType).encode([algosdk.decodeAddress(payerAddress).publicKey, algosdk.decodeAddress(payerAddress).publicKey, new Uint8Array(32), true, 10n, 0n, 0n, 0n])
+  const stateEntry = (key, uint) => ({ key: Buffer.from(key).toString('base64'), value: { uint } })
+  let globalState = [stateEntry('b', 2), stateEntry('a', 1)]
+  const fake = {
+    accountInformation: (address) => ({ do: async () => ({ amount: address === app ? 1_000 : 2_000, minBalance: address === app ? 500 : 1_000 }) }),
+    accountAssetInformation: () => ({ do: async () => ({ assetHolding: { amount: 10 } }) }),
+    getApplicationByID: () => ({ do: async () => ({ params: { globalState } }) }),
+    getApplicationBoxByName: () => ({ do: async () => ({ value: Buffer.from(providerValue).toString('base64') }) }),
+  }
+  const before = await applicationSnapshot(fake, 42, payerAddress, 77n, providerId, providerBox)
+  globalState = [stateEntry('a', 1), stateEntry('b', 2)]
+  const reordered = await applicationSnapshot(fake, 42, payerAddress, 77n, providerId, providerBox)
+  assert.equal(assertCompleteRollback(before, reordered), true)
+  globalState = [stateEntry('a', 1), stateEntry('b', 3)]
+  const changed = await applicationSnapshot(fake, 42, payerAddress, 77n, providerId, providerBox)
+  assert.throws(() => assertCompleteRollback(before, changed), (error) => error.publicCode === 'TESTNET_REJECTION_ROLLBACK_MISMATCH')
+})
+
 test('P1 verifier transaction proof falls back to the historical block without mutation', async () => {
   const groupId = Buffer.alloc(32, 9).toString('base64')
   const fake = {

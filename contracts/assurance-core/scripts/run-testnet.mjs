@@ -427,7 +427,7 @@ async function appAssetBalance(algod, appAddress, assetId) { return (await accou
 async function applicationState(algod, appId) {
   const response = await algod.getApplicationByID(Number(appId)).do()
   const decodeKey = (value) => Buffer.from(typeof value === 'string' ? value : value ?? '', 'base64').toString()
-  return new Map((response.params?.globalState ?? []).map((entry) => [decodeKey(entry.key), entry.value]))
+  return new Map((response.params?.globalState ?? []).map((entry) => [decodeKey(entry.key), entry.value]).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0))
 }
 function stateUint(state, key) { return BigInt(state.get(key)?.uint ?? 0) }
 function decodeBox(response, type) { return algosdk.ABIType.from(type).decode(Buffer.from(response.value, 'base64')) }
