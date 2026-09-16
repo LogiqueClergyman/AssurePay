@@ -3,9 +3,9 @@
 ## Current phase
 
 - Phase: P1 — On-chain Assurance Core
-- State: IN_PROGRESS — Gates A through E ACCEPTED; the single authorized Gate F TestNet acceptance attempt after the predicate fix ran once and failed at `stage=rejection` with `TESTNET_REJECTION_ROLLBACK_MISMATCH`; Gate F remains unaccepted
+- State: IN_PROGRESS — Gates A through E ACCEPTED; the latest single authorized Gate F TestNet attempt failed at `stage=setup` with sanitized `TESTNET_EXECUTION_FAILED` after confirmed policy creation; Gate F remains unaccepted
 - Branch: `main`
-- Reviewed readiness checkpoint: additional acceptance attempt after independent readiness pass; mutation did not complete and no retry is authorized
+- Reviewed readiness checkpoint: independent readiness and preflight passed; the one authorized mutation did not complete and no retry is authorized
 - Active packet: `planning/P1_GATE_F_POC_READINESS.md`
 - Parent packet: `planning/P1_GATE_F_TESTNET_ACCEPTANCE.md`
 - Results: `planning/P1_RESULTS.md`
@@ -35,20 +35,20 @@ P0 remains complete. Do not modify or import from `spikes/p0-atomic/**`.
 - False coverage mismatch correction on **2026-09-16**: the three-member coverage group confirmed at round **67352093**, then the runner falsely rejected decoded `CoverageRecord.status=1n` because its early guard used strict comparison with number `1`. The guard now uses the existing fail-closed bigint comparison helper for status and configured integer fields. An ABI-encoded/decoded fixture proves valid `1n` passes and wrong status/provider ID fails. This explains the reported `TESTNET_OPEN_COVERAGE_MISMATCH`; it does not prove later lifecycle stages were exercised or Gate F acceptance. No TestNet command, endpoint query, simulation, verifier, retry, or evidence creation was run in this implementation session.
 - Single authorized acceptance attempt after the predicate fix on **2026-09-16**: typecheck, build, `50/50` tests, LocalNet, artifact diff, and `git diff --check` passed. The first sandboxed preflight returned sanitized `PUBLIC_PREFLIGHT_ENDPOINT_UNAVAILABLE`; the same non-mutating preflight with network access passed for TestNet `testnet-v1.0`, ASA **10458941**, and spendable **5,847,100** versus **1,418,700** required microAlgos. The one `npm run testnet:p1` mutation ran exactly once and returned only sanitized `stage=rejection`, `code=TESTNET_REJECTION_ROLLBACK_MISMATCH`, message `rejected application state was not fully rolled back`. It validated public progress through round **67352545**, then the successful x402 coverage group members `WLBJNUSDTSFERH6ZF6C43EF6BLGXUXEHONJFOXKREQ34LRSZPADA`, `F5LYZALOK67LMBA3ZKW3E2VZBWYOLCKHS6DKINZVVQVFSJMCYIWQ`, and `7Z7ARV5TMTEL3XIEKXU4TILFR2R6NI54U7CHWJX4JVFWM2R7BN4A` at round **67352548**, group `13itlnCcikHbuzCnmv8WSX3vNFQZtTbyZA0d72CSFIA=`. These were confirmed successful coverage members immediately before the rejection stage; the intended insufficient-capacity rejection was not confirmed because rollback validation failed after its simulation/pool-rejection path. No application ID was surfaced. The rollback mismatch leaves the exact affected state and any unconfirmed mutation unknown; missing IDs/evidence output are not treated as proof that no mutation occurred. No verifier or retry ran.
 - Read-only rollback diagnosis on **2026-09-16**: public creation transaction `U25GI2IIR6Q6L5T2TNOGIZPJIEP6LFAKHXKWVTVB4B35RULC3Z7A` identifies the failed run's app as **771840677**. Consecutive Algod reads of this app returned the same global-state key/value pairs in different array orders; the old JSON snapshot comparison would reject these equal values. The corrected sorted-key comparison accepted consecutive full public snapshots. Current public state remains at primary provider stake/lock/exposure **123/75/100**, globals **133/50/100**, application ASA holding **183**, and a present coverage box. This directly reproduces a false rollback mismatch mechanism, but the failed run did not retain both snapshots, so its exact differing component cannot be proven retrospectively. No signing, simulation, submission, preflight, verifier, or retry occurred.
+- Latest authorized attempt on **2026-09-16**: records diagnosis committed as `74b5a40`; typecheck, build, **51/51** tests, fresh LocalNet at round **7093** with **95** rejections, artifact diff, and `git diff --check` passed. Sandbox preflight was endpoint-blocked, then the identical non-mutating preflight with network permission passed on `testnet-v1.0`, ASA **10458941**, spendable **4,579,700** versus **1,418,700** required microAlgos, and **39,999,301** ASA units. The one authorized `npm run testnet:p1` ran once and failed at `stage=setup`, `code=TESTNET_EXECUTION_FAILED`; it surfaced 11 confirmed transaction IDs through policy-box funding `X2COOVAL6UJWPYZC6SHEHCPL5H7EO2WVRD4CB4LTGCIJYPBY3MFA` at round **67358914**. Bounded public reads identified created app **771850297** and separately confirmed `createPolicy` call `COMKVD5PTI2BALXYTK4DVQ4BEE22M4LDIJDD37KNZTMAQCPJ7XTA` at round **67358918**; its selector matches the committed ABI and its policy box is present. The policy transaction was not included in runner diagnostics, so the exact exception and whether any later transaction was submitted remain unknown. No evidence file was created; the verifier was not run and no retry occurred.
 
 ## Exact next action
 
-The rollback comparator defect has been reproduced and its correction reviewed.
-The previous mutation has been consumed. The next acceptance action is one
-fresh TestNet run, only after explicit authorization, followed by evidence
-review and the read-only verifier if it succeeds. Do not create evidence
-manually, start P2, or mark P1 COMPLETE.
+Review the latest setup-stage failure and the confirmed but unrecorded policy
+creation. The authorized mutation has been consumed. Do not retry or run the
+verifier; any new TestNet mutation requires fresh explicit authorization.
+Do not create evidence manually, start P2, or mark P1 COMPLETE.
 
 Do not start P2 or later work. Never access `/docs` or manually read a populated
 `.env`.
 
 ## External prerequisites after remediation
 
-- The TestNet configuration and funding preflight passed for ASA **10458941** and the expected/derived public payer address; no configuration deficit was identified.
-- The latest failed run created app **771840677** and confirmed its successful coverage group at round **67352548**, but did not complete the rejection/claim/withdrawal lifecycle or produce Gate F evidence. Public reads reproduce the previous rollback comparator's ordering false positive; the corrected comparator passes current full snapshots. The original differing field remains unknown. Verifier execution is pending, and any new mutating TestNet run requires fresh explicit user authorization.
+- The latest TestNet configuration and funding preflight passed for ASA **10458941** and the expected/derived public payer address; no configuration deficit was identified.
+- The latest failed run created app **771850297** and confirmed policy creation at round **67358918**, but did not complete the deposit/coverage/rejection/claim/withdrawal lifecycle or produce Gate F evidence. Its exact setup-stage exception is unavailable. Verifier execution is pending, and any new mutating TestNet run requires fresh explicit user authorization.
 - Do not start P2 or later work. Never access `/docs` or manually read a populated `.env`.
