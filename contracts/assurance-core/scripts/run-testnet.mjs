@@ -27,6 +27,7 @@ export const SCENARIO = Object.freeze({
   claimAmount: 100n,
   expectedStakeDebit: 75n,
   expectedPoolDebit: 25n,
+  recycledStake: 48n,
   asaMargin: 10n,
   algoMargin: 100_000n,
 })
@@ -71,11 +72,27 @@ export const EXECUTION_STAGES = Object.freeze([
   'claim',
   'withdrawal',
   'finalization',
+  'finalization.capacity-return',
+  'finalization.global-state',
+  'finalization.provider-boxes',
+  'finalization.coverage-claim-boxes',
+  'finalization.balances',
+  'finalization.optional-boxes',
+  'finalization.assertions',
+  'finalization.poc-assertions',
+  'finalization.invariants',
+  'finalization.reconciliation',
   'evidence-write',
 ])
 const executionStageSet = new Set(EXECUTION_STAGES)
 const GENERIC_EXECUTION_FAILURE_MESSAGE = 'TestNet execution failed; inspect public endpoint, account funds, ASA holding, and network state without exposing credentials.'
 const transactionIdPattern = /^[A-Z2-7]{52}$/
+const safeRunnerSourceLine = (error) => {
+  const recorded = error?.runnerSourceLine
+  if (Number.isInteger(recorded) && recorded > 0 && recorded < 10_000) return recorded
+  const match = typeof error?.stack === 'string' ? error.stack.match(/(?:^|\n)\s*at [^\n]*?run-testnet\.mjs:([1-9][0-9]{0,3}):[1-9][0-9]*/)?.[1] : undefined
+  return match ? Number(match) : undefined
+}
 const canonicalGroupId = (value) => {
   if (typeof value !== 'string' || !/^[A-Za-z0-9+/]{43}=$/.test(value)) return false
   const decoded = Buffer.from(value, 'base64')
@@ -106,11 +123,13 @@ export function createExecutionDiagnostics() {
 export function executionFailureResult(error, diagnostics = createExecutionDiagnostics()) {
   const snapshot = diagnostics.snapshot()
   const hasSafePublicError = error?.publicSafeMessage === true && typeof error.publicCode === 'string'
+  const sourceLine = error?.runnerSourceLine !== undefined || !hasSafePublicError ? safeRunnerSourceLine(error) : undefined
   return {
     ok: false,
     phase: 'execution',
     code: hasSafePublicError ? error.publicCode : 'TESTNET_EXECUTION_FAILED',
     stage: snapshot.stage,
+    ...(sourceLine ? { runnerSourceLine: sourceLine } : {}),
     ...(snapshot.confirmedPublicTransactions.length > 0 ? { confirmedPublicTransactions: snapshot.confirmedPublicTransactions } : {}),
     message: hasSafePublicError ? error.message : GENERIC_EXECUTION_FAILURE_MESSAGE,
   }
@@ -259,7 +278,10 @@ export function plannedTransactionTable() {
     payment('successful-provider-transfer', 'successful coverage provider-net transfer'),
     payment('successful-premium-transfer', 'successful coverage premium transfer'),
     appCall('successful-coverage', 'successful coverage application call'),
+    appCall('pre-claim-stake-withdrawal', 'withdraw unlocked primary stake before claim', 2_000),
     appCall('provider-fault-claim', 'provider-fault claim application call', 2_000),
+    payment('post-claim-redeposit-asset', 'restore primary stake after the claim'),
+    appCall('post-claim-redeposit', 'restore primary stake accounting after the claim'),
     appCall('released-provider-withdrawal', 'released primary provider withdrawal', 2_000),
     appCall('read-capacity-after-withdrawal', 'fresh zero-capacity read after full released withdrawal'),
     appCall('rejected-lock-crossing-withdrawal', 'rejected lock-crossing application call', 2_000, false),
@@ -293,7 +315,7 @@ export function calculateTestnetBudget({ minTxnFee = MIN_TX_FEE, approvalProgram
   const conservativeMargin = BigInt(scenario.algoMargin)
   const totalConservativeRequiredSpendableMicroAlgos = appCreationMinBalance + applicationFundingTotal + ephemeralAccountFundingBudget + payerPaidTransactionFees + conservativeMargin
   const unrelatedStake = Number(providerCount) >= 2 ? BigInt(scenario.unrelatedStake) : 0n
-  const requiredAsaUnits = BigInt(scenario.stake) + unrelatedStake + BigInt(scenario.gross) + BigInt(scenario.asaMargin)
+  const requiredAsaUnits = BigInt(scenario.stake) + unrelatedStake + BigInt(scenario.gross) + BigInt(scenario.recycledStake) + BigInt(scenario.asaMargin)
   return {
     approvalByteLength: BigInt(approvalProgramBytes),
     extraPages: BigInt(extraPages),
@@ -315,7 +337,7 @@ export function calculateTestnetBudget({ minTxnFee = MIN_TX_FEE, approvalProgram
     conservativeMargin,
     totalConservativeRequiredSpendableMicroAlgos,
     requiredAsaUnits,
-    requiredAsaScenario: { primaryStake: scenario.stake, unrelatedProviderStake: unrelatedStake, successfulCoverageGross: scenario.gross, margin: scenario.asaMargin, equation: `${scenario.stake} + ${unrelatedStake} + ${scenario.gross} + ${scenario.asaMargin} = ${requiredAsaUnits}` },
+    requiredAsaScenario: { primaryStake: scenario.stake, unrelatedProviderStake: unrelatedStake, successfulCoverageGross: scenario.gross, postClaimRedeposit: scenario.recycledStake, margin: scenario.asaMargin, equation: `${scenario.stake} + ${unrelatedStake} + ${scenario.gross} + ${scenario.recycledStake} + ${scenario.asaMargin} = ${requiredAsaUnits}` },
     spendableEquation: `${appCreationMinBalance} + ${applicationFundingTotal} + ${ephemeralAccountFundingBudget} + ${payerPaidTransactionFees} + ${conservativeMargin} = ${totalConservativeRequiredSpendableMicroAlgos}`,
     feeEquation: `payer-paid ${payerPaidTransactionFees}; planned including uncharged rejection ${plannedPayerTransactionFees}; ephemeral funding includes ${ephemeralTransactionFees}`,
     plannedTransactions,
@@ -389,7 +411,6 @@ function methodArgs(method, values) {
 function paramsWithFee(suggested, fee) {
   return fee === undefined ? suggested : { ...suggested, fee: Number(fee), flatFee: true }
 }
-function transactionId(response) { return response?.txId ?? response?.txid ?? response?.txID }
 function confirmedRound(pending) { return Number(pending?.confirmedRound ?? pending?.['confirmed-round'] ?? 0) }
 function signedGroupId(signed) {
   const txn = algosdk.decodeSignedTransaction(signed[0]).txn
@@ -401,14 +422,40 @@ function transactionStage(options, suffix) {
   if (options?.stagePrefix && options?.diagnostics) options.diagnostics.setStage(`${options.stagePrefix}.${suffix}`)
 }
 
-async function submitRaw(algod, signed, options = {}) {
+async function recoverConfirmation(algod, txId, { attempts = 15, delayMs = 1_000 } = {}) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const pending = await algod.pendingTransactionInformation(txId).do()
+      if (confirmedRound(pending) > 0) return pending
+      if (pending?.poolError) throw publicError('TESTNET_TRANSACTION_REJECTED', 'submitted transaction was rejected before confirmation')
+    } catch (error) {
+      if (error?.publicCode === 'TESTNET_TRANSACTION_REJECTED') throw error
+      // A public Algod endpoint may return 404 or fail briefly after accepting a transaction.
+    }
+    if (attempt + 1 < attempts) await new Promise((resolve) => setTimeout(resolve, delayMs))
+  }
+  throw publicError('TESTNET_CONFIRMATION_UNAVAILABLE', 'transaction confirmation could not be established without resubmission')
+}
+
+export async function submitRaw(algod, signed, options = {}) {
+  const txId = algosdk.decodeSignedTransaction(signed[0]).txn.txID()
   transactionStage(options, 'submission')
-  const response = await algod.sendRawTransaction(signed).do()
-  const txId = transactionId(response) ?? algosdk.decodeSignedTransaction(signed[0]).txn.txID()
+  let submitted = false
+  try {
+    await algod.sendRawTransaction(signed).do()
+    submitted = true
+  } catch {
+    // The endpoint may lose its response after accepting the signed bytes. Never resubmit here.
+  }
   transactionStage(options, 'confirmation')
-  const pending = await algosdk.waitForConfirmation(algod, txId, 20)
-  options.onConfirmed?.({ transactionId: txId, confirmedRound: confirmedRound(pending) })
-  return { transactionId: txId, confirmedRound: confirmedRound(pending), groupId: signedGroupId(signed), pending }
+  let pending
+  if (submitted) {
+    try { pending = await algosdk.waitForConfirmation(algod, txId, 20) } catch { /* recover by signed transaction ID below */ }
+  }
+  if (!pending || confirmedRound(pending) <= 0) pending = await recoverConfirmation(algod, txId, options.confirmationRecovery)
+  const round = confirmedRound(pending)
+  options.onConfirmed?.({ transactionId: txId, confirmedRound: round })
+  return { transactionId: txId, confirmedRound: round, groupId: signedGroupId(signed), pending }
 }
 
 async function submitPayer(algod, payer, txn, options = {}) {
@@ -444,6 +491,33 @@ function stateSnapshot(balances, provider, accounting, appAsset) { return { bala
 function samePublic(left, right) { return asJson(left) === asJson(right) }
 function logBytes(pending, index = 0) { return Buffer.from((pending.logs ?? [])[index] ?? '', 'base64') }
 function decodeReturn(pending, type) { return algosdk.ABIType.from(type).decode(logBytes(pending).subarray(4)) }
+export async function decodeReturnWithRecovery(algod, transactionId, pending, type, { attempts = 5, delayMs = 500 } = {}) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const log = logBytes(pending)
+      if (log.length >= 4 && log.subarray(0, 4).equals(Buffer.from('151f7c75', 'hex'))) return decodeReturn(pending, type)
+    } catch { /* A confirmed transaction may be visible before its ABI log is returned. */ }
+    if (attempt + 1 < attempts) {
+      if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs))
+      try { pending = await algod.pendingTransactionInformation(transactionId).do() } catch { /* retry the public read */ }
+    }
+  }
+  throw publicError('TESTNET_ABI_RETURN_UNAVAILABLE', 'confirmed application call did not expose a decodable ABI return after bounded public reads')
+}
+export async function readFinalPublic(read, { attempts = 5, delayMs = 500 } = {}) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try { return await read() } catch { /* only public reads are passed to this helper */ }
+    if (attempt + 1 < attempts && delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs))
+  }
+  throw publicError('TESTNET_FINAL_READ_UNAVAILABLE', 'final public state could not be read after bounded retries')
+}
+async function finalRequiredBox(algod, appId, name, type) {
+  return readFinalPublic(async () => {
+    const value = await boxValue(algod, appId, name, type)
+    if (value === undefined) throw new Error('required public box unavailable')
+    return value
+  })
+}
 function appFailureText(response) {
   if (!response) return ''
   const group = response['txn-groups']?.[0] ?? response.txnGroups?.[0] ?? response
@@ -597,6 +671,18 @@ function requirePoc(condition, message) {
 }
 function bigintEqual(actual, expected) { try { return BigInt(actual) === BigInt(expected) } catch { return false } }
 
+export function runFinalCheckpoint(checkpoint, assertion) {
+  if (checkpoint !== 'poc' && checkpoint !== 'invariants') throw new TypeError('invalid final assertion checkpoint')
+  try { return assertion() } catch (error) {
+    if (error?.publicSafeMessage === true && typeof error.publicCode === 'string') throw error
+    const code = checkpoint === 'poc' ? 'TESTNET_FINAL_POC_EVALUATION_FAILED' : 'TESTNET_FINAL_INVARIANT_EVALUATION_FAILED'
+    const sanitized = publicError(code, 'final public accounting assertion could not be evaluated from decoded values')
+    const sourceLine = safeRunnerSourceLine(error)
+    if (sourceLine) sanitized.runnerSourceLine = sourceLine
+    throw sanitized
+  }
+}
+
 export function assertPocLifecycleObservations(observed) {
   requirePoc(bigintEqual(observed.capacityAfterDeposit, 164n), 'pre-coverage capacity was not 164 atomic units')
   requirePoc(Number(observed.successfulSubmissions) === 1 && Number(observed.successfulConfirmationRound) > 0, 'successful x402 coverage did not have exactly one submission and confirmation')
@@ -679,7 +765,7 @@ async function run(settings, readiness, diagnostics = createExecutionDiagnostics
     const unrelatedDeposit = await submitRaw(algod, [await payer.signTransaction(unrelatedDepositTransfer), await payer.signTransaction(unrelatedDepositCall)], progress)
     const capacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }], [], undefined, [], { ...progress, diagnostics, stagePrefix: 'capacity-read' })
     diagnostics.setStage('capacity-read.return-decoding')
-    const capacityAfterDeposit = decodeReturn(capacityRead.pending, 'uint64')
+    const capacityAfterDeposit = await decodeReturnWithRecovery(algod, capacityRead.transactionId, capacityRead.pending, 'uint64')
     diagnostics.setStage('coverage')
     await applicationPayment(BOX_MBR.coverage, 'successful coverage tombstone box MBR before coverage creation')
     const beforeCoverage = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, { actors, boxes: [{ name: unrelatedProviderBox, type: RECORD.provider }, { name: policyBox, type: '(byte[32],bool,uint64,uint64,uint64,uint64,uint64)' }, { name: coverageBox, type: RECORD.coverage }, { name: rejectedCoverageBox, type: RECORD.coverage }, { name: zeroCoverageBox, type: RECORD.coverage }, { name: claimBox, type: '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)' }] })
@@ -704,6 +790,11 @@ async function run(settings, readiness, diagnostics = createExecutionDiagnostics
     const insufficient = await rejectedCoverage(algod, appId, application, assetId, genesisId, genesisHash, insufficientFixture, payer, providerId, providerBox, rejectionSnapshot)
     const lockCrossing = await rejectedApplication(algod, payer, appId, METHOD.withdraw, [providerId, 76], [{ appIndex: 0, name: providerBox }], [assetId], { fee: 2_000, assetId, providerId, providerBox, snapshot: rejectionSnapshot })
     const negativeResult = await rejectedApplication(algod, negativeSigner, appId, METHOD.withdraw, [providerId, 1], [{ appIndex: 0, name: providerBox }], [assetId], { fee: 2_000, assetId, providerId, providerBox, snapshot: rejectionSnapshot })
+    const preClaimWithdrawal = await callPayer(algod, payer, appId, METHOD.withdraw, [providerId, SCENARIO.recycledStake], [{ appIndex: 0, name: providerBox }], [assetId], 2_000, [], progress)
+    const afterPreClaimWithdrawal = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, rejectionSnapshot)
+    const preClaimProvider = providerRecordPublic(afterPreClaimWithdrawal.provider)
+    const preClaimAccounting = new Map(afterPreClaimWithdrawal.accounting)
+    if (SCENARIO.stake - SCENARIO.recycledStake !== SCENARIO.expectedStakeDebit || preClaimProvider.stakeTotal !== SCENARIO.expectedStakeDebit || preClaimProvider.stakeLocked !== SCENARIO.expectedStakeDebit || preClaimProvider.openFaultExposure !== SCENARIO.claimAmount || stateUint(preClaimAccounting, 'totalProviderStake') !== SCENARIO.expectedStakeDebit + SCENARIO.unrelatedStake || stateUint(preClaimAccounting, 'premiumReserve') !== SCENARIO.premium || stateUint(preClaimAccounting, 'totalOpenFaultExposure') !== SCENARIO.claimAmount || afterPreClaimWithdrawal.appAsset !== afterCoverage.appAsset - SCENARIO.recycledStake) throw publicError('TESTNET_PRECLAIM_STAKE_MISMATCH', 'pre-claim withdrawal did not leave the configured locked stake available for the claim')
     diagnostics.setStage('claim')
     await applicationPayment(BOX_MBR.claim, 'claim tombstone box MBR before claim finalization')
     const claimBefore = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, rejectionSnapshot)
@@ -719,25 +810,43 @@ async function run(settings, readiness, diagnostics = createExecutionDiagnostics
     if (!samePublic(claimBefore.boxes[hex(unrelatedProviderBox)], unrelatedAfterClaim) || unrelatedAfterClaimPublic.stakeTotal !== 10n || unrelatedAfterClaimPublic.stakeLocked !== 0n || unrelatedAfterClaimPublic.openFaultExposure !== 0n) throw publicError('TESTNET_UNRELATED_COLLATERAL_CHANGED', 'unrelated provider collateral changed during the primary provider-fault claim')
     if (claimDeltas.provider.stakeTotal !== -SCENARIO.expectedStakeDebit || claimDeltas.provider.stakeLocked !== -SCENARIO.expectedStakeDebit || claimDeltas.provider.openFaultExposure !== -SCENARIO.claimAmount || claimDeltas.global.totalProviderStake !== -SCENARIO.expectedStakeDebit || claimDeltas.global.premiumReserve !== -SCENARIO.expectedPoolDebit || claimDeltas.global.totalOpenFaultExposure !== -SCENARIO.claimAmount || claimDeltas.physicalApplicationAsset !== -SCENARIO.claimAmount) throw publicError('TESTNET_CLAIM_WATERFALL_MISMATCH', 'observed provider-fault claim waterfall did not match the configured-ASA deltas')
     diagnostics.setStage('withdrawal')
-    const withdrawal = await callPayer(algod, payer, appId, METHOD.withdraw, [providerId, SCENARIO.stake - SCENARIO.expectedStakeDebit], [{ appIndex: 0, name: providerBox }], [assetId], 2_000, [], progress)
+    const redepositTransfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({ sender: payer.address, receiver: application, assetIndex: assetId, amount: Number(SCENARIO.recycledStake), suggestedParams: await algodParams(algod) })
+    const redepositCall = algosdk.makeApplicationNoOpTxnFromObject({ sender: payer.address, appIndex: appId, appArgs: [METHOD.deposit.getSelector(), providerId], boxes: [{ appIndex: 0, name: providerBox }], foreignAssets: [assetId], suggestedParams: await algodParams(algod) })
+    algosdk.assignGroupID([redepositTransfer, redepositCall])
+    const redeposit = await submitRaw(algod, [await payer.signTransaction(redepositTransfer), await payer.signTransaction(redepositCall)], progress)
+    const afterRedeposit = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, rejectionSnapshot)
+    const postClaimProvider = providerRecordPublic(afterRedeposit.provider)
+    const postClaimAccounting = new Map(afterRedeposit.accounting)
+    if (postClaimProvider.stakeTotal !== SCENARIO.recycledStake || postClaimProvider.stakeLocked !== 0n || postClaimProvider.openFaultExposure !== 0n || stateUint(postClaimAccounting, 'totalProviderStake') !== SCENARIO.unrelatedStake + SCENARIO.recycledStake || stateUint(postClaimAccounting, 'premiumReserve') !== SCENARIO.premium - SCENARIO.expectedPoolDebit || stateUint(postClaimAccounting, 'totalOpenFaultExposure') !== 0n || afterRedeposit.appAsset !== claimAfter.appAsset + SCENARIO.recycledStake) throw publicError('TESTNET_POSTCLAIM_REDEPOSIT_MISMATCH', 'post-claim redeposit did not restore the expected withdrawable stake')
+    const withdrawal = await callPayer(algod, payer, appId, METHOD.withdraw, [providerId, SCENARIO.recycledStake], [{ appIndex: 0, name: providerBox }], [assetId], 2_000, [], progress)
     const afterWithdrawal = await applicationSnapshot(algod, appId, payer.address, assetId, providerId, providerBox, rejectionSnapshot)
     const zeroFixture = await makeCoverage({ algod, payer, appId, appAddress: application, provider: provider.addr.toString(), providerId, policyId, coverageId: zeroCoverageId, assetId, params: await algodParams(algod) })
     const zeroCapacity = await rejectedCoverage(algod, appId, application, assetId, genesisId, genesisHash, zeroFixture, payer, providerId, providerBox, rejectionSnapshot)
     const finalCapacityRead = await callPayer(algod, payer, appId, METHOD.capacity, [providerId, policyId], [{ appIndex: 0, name: providerBox }, { appIndex: 0, name: policyBox }], [], undefined, [], progress)
-    diagnostics.setStage('finalization')
-    const finalCapacity = decodeReturn(finalCapacityRead.pending, 'uint64')
-    const finalAccountingState = await applicationState(algod, appId)
-    const finalProvider = await boxValue(algod, appId, providerBox, RECORD.provider)
-    const finalUnrelatedProvider = await boxValue(algod, appId, unrelatedProviderBox, RECORD.provider)
-    const finalCoverage = await boxValue(algod, appId, coverageBox, RECORD.coverage)
-    const claimRecord = await boxValue(algod, appId, claimBox, '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)')
-    const finalAsset = await appAssetBalance(algod, application, assetId)
-    const finalApplicationAccount = await accountBalance(algod, application, assetId)
+    diagnostics.setStage('finalization.capacity-return')
+    const finalCapacity = await decodeReturnWithRecovery(algod, finalCapacityRead.transactionId, finalCapacityRead.pending, 'uint64')
+    diagnostics.setStage('finalization.global-state')
+    const finalAccountingState = await readFinalPublic(() => applicationState(algod, appId))
+    diagnostics.setStage('finalization.provider-boxes')
+    const finalProvider = await finalRequiredBox(algod, appId, providerBox, RECORD.provider)
+    const finalUnrelatedProvider = await finalRequiredBox(algod, appId, unrelatedProviderBox, RECORD.provider)
+    diagnostics.setStage('finalization.coverage-claim-boxes')
+    const finalCoverage = await finalRequiredBox(algod, appId, coverageBox, RECORD.coverage)
+    const claimRecord = await finalRequiredBox(algod, appId, claimBox, '(byte[32],bool,uint64,bool,uint64,uint64,uint64,uint64)')
+    diagnostics.setStage('finalization.balances')
+    const finalAsset = await readFinalPublic(() => appAssetBalance(algod, application, assetId))
+    const finalApplicationAccount = await readFinalPublic(() => accountBalance(algod, application, assetId))
     const finalProviders = [{ providerId: hex(providerId), record: providerRecordPublic(finalProvider) }, { providerId: hex(unrelatedProviderId), record: providerRecordPublic(finalUnrelatedProvider) }]
     const finalCoveragePublic = coverageRecordPublic(finalCoverage)
     const finalClaimPublic = { claimId: hex(claimId), finalized: claimRecord[1], approvedAmount: claimRecord[2], providerFault: claimRecord[3], stakeDebit: claimRecord[5], poolDebit: claimRecord[6] }
-    assertPocLifecycleObservations({ capacityAfterDeposit, successfulSubmissions: successful.submissions, successfulConfirmationRound: successful.confirmedRound, successBalances: successfulAssetDeltas, successState, providerId: hex(providerId), policyId: hex(policyId), payer: payer.address, openCoverage, claimRecord: finalClaimPublic, refund, refundCount: 1, claimDeltas, unrelatedProvider: unrelatedAfterClaimPublic, finalCoverage: coverageRecordPublic(finalCoverage), finalPrimary: providerRecordPublic(finalProvider), finalCapacity, finalAccounting: { totalProviderStake: stateUint(finalAccountingState, 'totalProviderStake'), premiumReserve: stateUint(finalAccountingState, 'premiumReserve'), totalOpenFaultExposure: stateUint(finalAccountingState, 'totalOpenFaultExposure') }, finalAsset, tombstones: { coverage: finalCoverage !== undefined, claim: claimRecord !== undefined, rejectedCoverage: (await boxValue(algod, appId, rejectedCoverageBox, RECORD.coverage)) !== undefined, zeroCoverage: (await boxValue(algod, appId, zeroCoverageBox, RECORD.coverage)) !== undefined } })
-    const invariants = assertComputedInvariants({ providers: finalProviders, coverages: [finalCoveragePublic], claims: [finalClaimPublic], accounting: { totalProviderStake: stateUint(finalAccountingState, 'totalProviderStake'), premiumReserve: stateUint(finalAccountingState, 'premiumReserve'), totalOpenFaultExposure: stateUint(finalAccountingState, 'totalOpenFaultExposure') }, physicalApplicationAsset: finalAsset, rejectedBoxes: [await boxValue(algod, appId, rejectedCoverageBox, RECORD.coverage), await boxValue(algod, appId, zeroCoverageBox, RECORD.coverage)], claimDelta: { ...claimDeltas, approvedAmount: claimRecord[2], stakeDebit: claimRecord[5], poolDebit: claimRecord[6], storedPayer: payer.address }, refund })
+    diagnostics.setStage('finalization.optional-boxes')
+    const rejectedCoverageBoxValue = await readFinalPublic(() => boxValue(algod, appId, rejectedCoverageBox, RECORD.coverage))
+    const zeroCoverageBoxValue = await readFinalPublic(() => boxValue(algod, appId, zeroCoverageBox, RECORD.coverage))
+    diagnostics.setStage('finalization.poc-assertions')
+    runFinalCheckpoint('poc', () => assertPocLifecycleObservations({ capacityAfterDeposit, successfulSubmissions: successful.submissions, successfulConfirmationRound: successful.confirmedRound, successBalances: successfulAssetDeltas, successState: successfulState, providerId: hex(providerId), policyId: hex(policyId), payer: payer.address, openCoverage, claimRecord: finalClaimPublic, refund, refundCount: 1, claimDeltas, unrelatedProvider: unrelatedAfterClaimPublic, finalCoverage: coverageRecordPublic(finalCoverage), finalPrimary: providerRecordPublic(finalProvider), finalCapacity, finalAccounting: { totalProviderStake: stateUint(finalAccountingState, 'totalProviderStake'), premiumReserve: stateUint(finalAccountingState, 'premiumReserve'), totalOpenFaultExposure: stateUint(finalAccountingState, 'totalOpenFaultExposure') }, finalAsset, tombstones: { coverage: finalCoverage !== undefined, claim: claimRecord !== undefined, rejectedCoverage: rejectedCoverageBoxValue !== undefined, zeroCoverage: zeroCoverageBoxValue !== undefined } }))
+    diagnostics.setStage('finalization.invariants')
+    const invariants = runFinalCheckpoint('invariants', () => assertComputedInvariants({ providers: finalProviders, coverages: [finalCoveragePublic], claims: [finalClaimPublic], accounting: { totalProviderStake: stateUint(finalAccountingState, 'totalProviderStake'), premiumReserve: stateUint(finalAccountingState, 'premiumReserve'), totalOpenFaultExposure: stateUint(finalAccountingState, 'totalOpenFaultExposure') }, physicalApplicationAsset: finalAsset, rejectedBoxes: [rejectedCoverageBoxValue, zeroCoverageBoxValue], claimDelta: { ...claimDeltas, approvedAmount: claimRecord[2], stakeDebit: claimRecord[5], poolDebit: claimRecord[6], storedPayer: payer.address }, refund }))
+    diagnostics.setStage('finalization.reconciliation')
     const fundingTotal = funding.reduce((sum, item) => sum + BigInt(item.amount), 0n)
     if (fundingTotal !== budget.applicationFundingTotal) throw publicError('TESTNET_FUNDING_RECONCILIATION_MISMATCH', 'actual application funding payments do not equal the planned MBR schedule')
     const evidence = {
@@ -758,8 +867,9 @@ async function run(settings, readiness, diagnostics = createExecutionDiagnostics
         insufficientCapacity: { ...insufficient, coverageId: hex(rejectedCoverageId), sameApplication: true },
         rejectedWithdrawal: { ...lockCrossing, label: 'over/lock-crossing withdrawal', amount: 76n, before: undefined, after: undefined },
         authorizationNegative: { classification: 'authorization', simulation: negativeResult.simulation, pool: negativeResult.pool, sameSignedBytes: negativeResult.sameSignedBytes, completeRollback: negativeResult.completeRollback },
+        preClaimWithdrawal: { ...publicPending(preClaimWithdrawal), providerId: hex(providerId), amount: SCENARIO.recycledStake, remainingProvider: preClaimProvider },
         providerFaultClaim: { ...publicPending(claim), claimId: hex(claimId), coverageId: hex(coverageId), refundInnerTransfer: refund, deltas: { balances: balanceDeltas(claimBefore.balances, claimAfter.balances), ...claimDeltas }, waterfall: { approvedAmount: claimRecord[2], stakeDebit: claimRecord[5], poolDebit: claimRecord[6] }, claimRecord: finalClaimPublic, unrelatedCollateralUnchanged: true },
-        exposureReleaseAndWithdrawal: { ...publicPending(withdrawal), providerId: hex(providerId), amount: SCENARIO.stake - SCENARIO.expectedStakeDebit, postWithdrawal: { provider: providerRecordPublic(afterWithdrawal.provider) }, freshCapacityRead: { ...publicPending(finalCapacityRead), providerId: hex(providerId), policyId: hex(policyId), capacity: finalCapacity } },
+        exposureReleaseAndWithdrawal: { ...publicPending(withdrawal), providerId: hex(providerId), amount: SCENARIO.recycledStake, redeposit: { ...publicPending(redeposit), amount: SCENARIO.recycledStake, provider: postClaimProvider }, postWithdrawal: { provider: providerRecordPublic(afterWithdrawal.provider) }, freshCapacityRead: { ...publicPending(finalCapacityRead), providerId: hex(providerId), policyId: hex(policyId), capacity: finalCapacity } },
         zeroCapacity: { ...zeroCapacity, coverageId: hex(zeroCoverageId), remainingCapacity: 0n },
       },
       final: {
@@ -894,7 +1004,9 @@ function publicTxnSteps(evidence) {
     steps.depositStake?.primary,
     steps.depositStake?.unrelated,
     steps.capacityAfterDeposit,
+    steps.preClaimWithdrawal,
     steps.providerFaultClaim,
+    steps.exposureReleaseAndWithdrawal?.redeposit,
     steps.exposureReleaseAndWithdrawal,
   ].filter((step) => step?.transactionId && step?.confirmedRound !== undefined)
 }

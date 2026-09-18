@@ -6,7 +6,7 @@ import { ed25519Verifier } from '@algorandfoundation/algokit-utils/crypto'
 import { ALGORAND_TESTNET_CAIP2 } from '@x402/avm'
 import { buildAssuredExactPayloadWithSigner } from '../src/assured-exact.mjs'
 import { createPeraHdSigner, validatePeraHdMnemonic } from '../src/pera-hd-signer.mjs'
-import { EXECUTION_STAGES, TESTNET_CAPACITY_METHOD_SIGNATURE, TESTNET_CAPACITY_SELECTOR, TESTNET_COVERAGE_RECORD_TYPE, applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertConfiguredOpenCoverage, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, createExecutionDiagnostics, coverageRecordPublic, executionFailureResult, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, runnerMode, sameSignedByteArrays, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
+import { EXECUTION_STAGES, SCENARIO, TESTNET_CAPACITY_METHOD_SIGNATURE, TESTNET_CAPACITY_SELECTOR, TESTNET_COVERAGE_RECORD_TYPE, applicationSnapshot, assertCompleteRollback, assertComputedInvariants, assertConfiguredOpenCoverage, assertPocLifecycleObservations, calculateTestnetBudget, compactFailure, computeLifecycleInvariants, createExecutionDiagnostics, coverageRecordPublic, decodeReturnWithRecovery, executionFailureResult, isIntendedApplicationAssertionFailure, loadDotEnv, matchApplicationAssertionFailures, plannedTransactionTable, preflight, publicEvidenceSafe, proveTransaction, readFinalPublic, runFinalCheckpoint, runnerMode, sameSignedByteArrays, submitRaw, testnetConfig, validatePublicEvidence, verifyClaimRefund, verifyPublicEvidence, writePublicEvidence } from '../scripts/run-testnet.mjs'
 
 const mnemonic = 'salon zoo engage submit smile frost later decide wing sight chaos renew lizard rely canal coral scene hobby scare step bus leaf tobacco slice'
 const params = { fee: 1_000, minFee: 1_000, firstValid: 1, lastValid: 1_000, genesisHash: new Uint8Array(32), genesisID: 'v1', flatFee: true }
@@ -101,8 +101,8 @@ test('P1 preflight reports network, ASA holding, spendable, and exact budget bra
 
 test('P1 budget names every ASA and ALGO term without hidden prefunding', () => {
   const budget = calculateTestnetBudget()
-  assert.deepEqual(budget.requiredAsaScenario, { primaryStake: 123n, unrelatedProviderStake: 10n, successfulCoverageGross: 100n, margin: 10n, equation: '123 + 10 + 100 + 10 = 243' })
-  assert.equal(budget.requiredAsaUnits, 243n)
+  assert.deepEqual(budget.requiredAsaScenario, { primaryStake: 123n, unrelatedProviderStake: 10n, successfulCoverageGross: 100n, postClaimRedeposit: 48n, margin: 10n, equation: '123 + 10 + 100 + 48 + 10 = 291' })
+  assert.equal(budget.requiredAsaUnits, 291n)
   assert.equal(budget.applicationFundingLines.baseAndAsset, 200_000n)
   assert.equal(budget.applicationFundingLines.providerBox, 67_300n)
   assert.equal(budget.applicationFundingLines.unrelatedProviderBox, 67_300n)
@@ -113,12 +113,27 @@ test('P1 budget names every ASA and ALGO term without hidden prefunding', () => 
   assert.equal(budget.ephemeralFundingLines.primaryProvider, 201_000n)
   assert.equal(budget.ephemeralFundingLines.authorizationNegative, 102_000n)
   assert.equal(budget.ephemeralAccountFundingBudget, 303_000n)
-  assert.equal(budget.payerPaidTransactionFees, 27_000n)
-  assert.equal(budget.plannedPayerTransactionFees, 29_000n)
-  assert.equal(budget.totalConservativeRequiredSpendableMicroAlgos, 1_418_700n)
-  assert.equal(budget.spendableEquation, '471000 + 517700 + 303000 + 27000 + 100000 = 1418700')
+  assert.equal(budget.payerPaidTransactionFees, 31_000n)
+  assert.equal(budget.plannedPayerTransactionFees, 33_000n)
+  assert.equal(budget.totalConservativeRequiredSpendableMicroAlgos, 1_422_700n)
+  assert.equal(budget.spendableEquation, '471000 + 517700 + 303000 + 31000 + 100000 = 1422700')
   assert.ok(plannedTransactionTable().some((item) => item.name === 'application-asset-opt-in' && item.fee === 2_000n))
   assert.ok(plannedTransactionTable().some((item) => item.name === 'provider-fault-claim' && item.fee === 2_000n))
+  assert.ok(plannedTransactionTable().some((item) => item.name === 'pre-claim-stake-withdrawal' && item.fee === 2_000n))
+  assert.ok(plannedTransactionTable().some((item) => item.name === 'post-claim-redeposit-asset' && item.fee === 1_000n))
+})
+
+test('P1 claim scenario leaves only the locked 75 at risk and restores a 48 withdrawal afterward', () => {
+  const waterfall = (stakeTotal, lockedStake, approvedAmount) => {
+    const available = stakeTotal - (lockedStake - SCENARIO.expectedStakeDebit)
+    const stakeDebit = approvedAmount < available ? approvedAmount : available
+    return { stakeDebit, poolDebit: approvedAmount - stakeDebit }
+  }
+  assert.deepEqual(waterfall(SCENARIO.stake, SCENARIO.expectedStakeDebit, SCENARIO.claimAmount), { stakeDebit: 100n, poolDebit: 0n })
+  const stakeBeforeClaim = SCENARIO.stake - SCENARIO.recycledStake
+  assert.equal(stakeBeforeClaim, SCENARIO.expectedStakeDebit)
+  assert.deepEqual(waterfall(stakeBeforeClaim, SCENARIO.expectedStakeDebit, SCENARIO.claimAmount), { stakeDebit: 75n, poolDebit: 25n })
+  assert.equal(stakeBeforeClaim - SCENARIO.expectedStakeDebit + SCENARIO.recycledStake - SCENARIO.recycledStake, 0n)
 })
 
 test('P1 preflight fails closed for invalid network, absent ASA/opt-in, and spendable balance', async () => {
@@ -235,7 +250,9 @@ function representativeEvidence() {
       insufficientCapacity: rejection({ simulationReason: 'simulation', facilitatorSubmissionCount: 0, coverageBoxRemainsAbsent: true }),
       rejectedWithdrawal: rejection({ classification: 'application-assertion', label: 'over/lock-crossing withdrawal' }),
       authorizationNegative: rejection({ classification: 'authorization' }),
+      preClaimWithdrawal: { transactionId: 'PRECLAIM', confirmedRound: 7, amount: 48, remainingProvider: { stakeTotal: 75, stakeLocked: 75, openFaultExposure: 100 } },
       providerFaultClaim: { transactionId: 'CLAIM', confirmedRound: 7, waterfall: { approvedAmount: 100 } },
+      exposureReleaseAndWithdrawal: { transactionId: 'WITHDRAW', confirmedRound: 7, amount: 48, redeposit: { transactionId: 'REDEPOSIT', groupId: 'GROUP', confirmedRound: 7, amount: 48, provider: { stakeTotal: 48, stakeLocked: 0, openFaultExposure: 0 } } },
       zeroCapacity: rejection({ simulationReason: 'simulation', facilitatorSubmissionCount: 0, remainingCapacity: 0 }),
     },
     final: { providers: [{ providerId: '01'.repeat(32), record: {} }, { providerId: '02'.repeat(32), record: {} }], tombstones: [{ prefix: 'c', id: '03'.repeat(32), type: 'coverage', status: 2 }, { prefix: 'f', id: '04'.repeat(32), type: 'claim', status: true }], accounting: {}, applicationMinimumBalance: 0, invariants: {} },
@@ -310,6 +327,102 @@ test('P1 byte identity and runner modes keep preflight/verifier non-mutating', (
   assert.equal(runnerMode(['node', 'runner', '--preflight']), 'preflight')
   assert.equal(runnerMode(['node', 'runner', '--verify-evidence']), 'verify-evidence')
   assert.equal(runnerMode(['node', 'runner']), 'mutating-acceptance')
+})
+
+test('P1 confirmation recovers a publicly confirmed transaction without resubmission', async () => {
+  const account = algosdk.generateAccount()
+  const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: account.addr, receiver: account.addr, amount: 0, suggestedParams: params })
+  const signed = txn.signTxn(account.sk)
+  let submissions = 0
+  let lookups = 0
+  const fake = {
+    sendRawTransaction: () => ({ do: async () => { submissions += 1; return { txId: txn.txID() } } }),
+    status: () => ({ do: async () => ({ lastRound: 1n }) }),
+    statusAfterBlock: () => ({ do: async () => { throw new Error('temporary endpoint failure') } }),
+    pendingTransactionInformation: () => ({ do: async () => ({ confirmedRound: ++lookups === 1 ? 0n : 7n }) }),
+  }
+  const progress = []
+  const recovered = await submitRaw(fake, [signed], { onConfirmed: (item) => progress.push(item), confirmationRecovery: { attempts: 2, delayMs: 0 } })
+  assert.equal(submissions, 1)
+  assert.equal(recovered.transactionId, txn.txID())
+  assert.equal(recovered.confirmedRound, 7)
+  assert.deepEqual(progress, [{ transactionId: txn.txID(), confirmedRound: 7 }])
+
+  const lostResponse = { sendRawTransaction: () => ({ do: async () => { submissions += 1; throw new Error('private endpoint detail') } }), pendingTransactionInformation: () => ({ do: async () => ({ confirmedRound: 8n }) }) }
+  const confirmedDespiteLostResponse = await submitRaw(lostResponse, [signed], { confirmationRecovery: { attempts: 1, delayMs: 0 } })
+  assert.equal(confirmedDespiteLostResponse.confirmedRound, 8)
+  assert.equal(submissions, 2, 'each separate call submits only once')
+})
+
+test('P1 confirmation fails closed when the signed transaction cannot be confirmed', async () => {
+  const account = algosdk.generateAccount()
+  const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({ sender: account.addr, receiver: account.addr, amount: 0, suggestedParams: params })
+  const signed = txn.signTxn(account.sk)
+  let submissions = 0
+  const fake = { sendRawTransaction: () => ({ do: async () => { submissions += 1; throw new Error('private endpoint detail') } }), pendingTransactionInformation: () => ({ do: async () => { throw new Error('private lookup detail') } }) }
+  await assert.rejects(submitRaw(fake, [signed], { confirmationRecovery: { attempts: 2, delayMs: 0 } }), (error) => {
+    assert.equal(error.publicCode, 'TESTNET_CONFIRMATION_UNAVAILABLE')
+    assert.equal(JSON.stringify(executionFailureResult(error)).includes('private'), false)
+    return true
+  })
+  assert.equal(submissions, 1)
+
+  const rejected = {
+    sendRawTransaction: () => ({ do: async () => { submissions += 1; return { txId: txn.txID() } } }),
+    status: () => ({ do: async () => ({ lastRound: 1n }) }),
+    pendingTransactionInformation: () => ({ do: async () => ({ confirmedRound: 0n, poolError: 'private pool detail' }) }),
+  }
+  await assert.rejects(submitRaw(rejected, [signed], { confirmationRecovery: { attempts: 1, delayMs: 0 } }), (error) => {
+    assert.equal(error.publicCode, 'TESTNET_TRANSACTION_REJECTED')
+    assert.equal(JSON.stringify(executionFailureResult(error)).includes('private'), false)
+    return true
+  })
+  assert.equal(submissions, 2)
+})
+
+test('P1 final public reads recover delayed ABI logs and transient endpoint failures without resubmission', async () => {
+  const log = Buffer.concat([Buffer.from('151f7c75', 'hex'), Buffer.from(algosdk.ABIType.from('uint64').encode(0n))])
+  let lookups = 0
+  const algod = { pendingTransactionInformation: () => ({ do: async () => { lookups += 1; return { logs: [log] } } }) }
+  assert.equal(await decodeReturnWithRecovery(algod, 'PUBLIC_TX', { logs: [] }, 'uint64', { attempts: 2, delayMs: 0 }), 0n)
+  assert.equal(lookups, 1)
+  await assert.rejects(decodeReturnWithRecovery(algod, 'PUBLIC_TX', { logs: [] }, 'uint64', { attempts: 1, delayMs: 0 }), (error) => error.publicCode === 'TESTNET_ABI_RETURN_UNAVAILABLE')
+  let reads = 0
+  assert.equal(await readFinalPublic(async () => { reads += 1; if (reads === 1) throw new Error('private endpoint detail'); return 35n }, { attempts: 2, delayMs: 0 }), 35n)
+  assert.equal(reads, 2)
+  await assert.rejects(readFinalPublic(async () => { throw new Error('private endpoint detail') }, { attempts: 2, delayMs: 0 }), (error) => {
+    assert.equal(error.publicCode, 'TESTNET_FINAL_READ_UNAVAILABLE')
+    assert.equal(JSON.stringify(executionFailureResult(error)).includes('private'), false)
+    return true
+  })
+})
+
+test('P1 final assertion checkpoints retain public mismatches and suppress uncoded exception details', () => {
+  assert.equal(runFinalCheckpoint('poc', () => true), true)
+  const known = Object.assign(new Error('safe public mismatch'), { publicCode: 'TESTNET_POC_ASSERTION_MISMATCH', publicSafeMessage: true })
+  assert.throws(() => runFinalCheckpoint('poc', () => { throw known }), (error) => error === known)
+  for (const checkpoint of ['poc', 'invariants']) {
+    const diagnostics = createExecutionDiagnostics()
+    diagnostics.setStage(`finalization.${checkpoint === 'poc' ? 'poc-assertions' : 'invariants'}`)
+    assert.throws(() => runFinalCheckpoint(checkpoint, () => { throw new TypeError('private decoded value') }), (error) => {
+      const result = executionFailureResult(error, diagnostics)
+      assert.equal(result.code, checkpoint === 'poc' ? 'TESTNET_FINAL_POC_EVALUATION_FAILED' : 'TESTNET_FINAL_INVARIANT_EVALUATION_FAILED')
+      assert.equal(JSON.stringify(result).includes('private'), false)
+      return true
+    })
+  }
+  const uncoded = new TypeError('private decoded value')
+  uncoded.stack = 'TypeError: private decoded value\n    at private (file:///private/location/run-testnet.mjs:823:17)\n    at secret elsewhere'
+  const result = executionFailureResult(uncoded)
+  assert.equal(result.runnerSourceLine, 823)
+  assert.equal(JSON.stringify(result).includes('private'), false)
+  assert.throws(() => runFinalCheckpoint('invariants', () => { throw uncoded }), (error) => {
+    const checkpoint = executionFailureResult(error)
+    assert.equal(checkpoint.code, 'TESTNET_FINAL_INVARIANT_EVALUATION_FAILED')
+    assert.equal(checkpoint.runnerSourceLine, 823)
+    assert.equal(JSON.stringify(checkpoint).includes('private'), false)
+    return true
+  })
 })
 
 test('P1 fake public client rollback snapshot detects changed box, MBR, and balance state', async () => {
