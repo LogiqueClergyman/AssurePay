@@ -150,3 +150,63 @@ failure/fee/reentry controls are test-only. Compile with the pinned solc-js
 0.8.30/Cancun/optimizer200 and execute on an isolated Anvil chain84532. Ephemeral
 test wallets are generated in memory and never serialized. This fixture cannot
 substitute for Gate C native public USDC evidence.
+
+## EVM-009 — Gate C adapter and verification boundary
+
+Status: ACCEPTED for the M1 spike only. Date: 2026-10-19.
+
+Use the pinned actual x402 client/resource-server/facilitator classes with a
+self-hosted `assured-exact` scheme adapter. Upfront negotiation skips the SDK's
+facilitator verify step during resource-server verify; exercise facilitator
+verify explicitly as a separate read-only check, then settle through the
+resource-server's before-handler path. Service admission requires confirmed
+settlement, not merely `verifyPayment` success.
+
+The facilitator freezes configured terms, validates/revalidates the exact Core
+call, and delegates transaction preparation to an opaque signer returning only
+`{hash,broadcast}`. Derive the hash before broadcasting; signed bytes remain in
+memory. Reconcile known hashes after ambiguous submission, including after the
+authorization expires; never silently sign a replacement purchase. The spike's
+relay cache is process-local. A public runner must persist public hashes before
+broadcast and refuse automatic replacement after restart.
+
+A signer-free verifier binds successful receipt and transaction to Core,
+relayer and calldata; checks canonical block identity, exact Core coverage event,
+two token transfer logs, authorization-used event, nonce and coverage state at
+that receipt block. Report observed inclusion/confirmation policy, not finality
+that was not checked. Local fixture integration remains distinct from native
+public USDC acceptance. No public mutation is authorized by this decision.
+
+## EVM-010 — Public spike budget and wire normalization
+
+Status: ACCEPTED for M1 only. Date: 2026-10-19.
+
+The installed SDK creates optional own properties with `undefined` values.
+Model the actual JSON wire boundary in the no-HTTP harness before strict payload
+validation; do not permit unnegotiated extension contents. Configure the custom
+client's explicit asset allowlist with the fixed 100-unit atomic cap instead
+of disabling its spend controls.
+
+A bounded public run contains at most four relayer transactions: Core creation,
+registered successful purchase, admission-disable fixture, valid-signature
+included revert. Per-transaction gas caps are 2,000,000/500,000/100,000/500,000
+(3,100,000 total) with configured EIP-1559 fee caps and zero native value.
+Base also charges L1 publication fees; OP Stack transaction format cannot cap
+that component with `maxFeePerGas`. Treat `MAX_L1_FEE_WEI` as a total auxiliary
+fee reserve, not an enforceable L1 fee ceiling. The total native-spend ceiling
+is `MAX_TOTAL_GAS * MAX_FEE_PER_GAS_ATOMIC + MAX_L1_FEE_WEI`.
+
+Require a dedicated relayer funded to exactly that ceiling before execution;
+reject excess funds. Recheck its balance and account nonce before each new
+preparation, stop on unrelated funding/use, and never auto-top-up or replace.
+This funds-only bound assumes no concurrent use/incoming funds during the run.
+Account insufficiency may stop the run if auxiliary fees exceed the reserve.
+No public run is authorized until the user approves concrete scope/budget and
+provides funded opaque runtime signers. No acceptance or fee measurement is
+inferred from this preparation.
+
+Sources checked 2026-10-19: Base network fees
+(https://docs.base.org/specifications/transactions/network-fees), and OP Stack
+fees (https://docs.optimism.io/op-stack/transactions/fees). These establish the
+separate fee components and transaction-format limitation; actual network costs
+must be measured during the authorized run.

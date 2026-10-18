@@ -1,0 +1,27 @@
+{
+  "gate": "C",
+  "scope": "local-only; actual registered x402 SDK plus Anvil ERC-3009 fixture",
+  "publicMutation": false,
+  "tests": 78,
+  "executionFiles": [
+    "test/execution.test.ts",
+    "test/driver.test.ts",
+    "test/integration.test.ts",
+    "test/public-proof.test.ts"
+  ],
+  "checks": {
+    "compile": "pass; creation bytecode unchanged from Gate B",
+    "typecheck": "pass",
+    "fullSuite": "pass"
+  },
+  "confirmationPolicy": "one canonical inclusion; no finality claim",
+  "sourceSha256": {
+    "src/x402.ts": "50d679758cd5498f8561b7f49c9f2ae726ba66c582dfeb9d299403e913a55246",
+    "src/flow.ts": "24469535b47c98302cf3059987ea889d473fcf04dd1ffbfee3b397bf6be0382d",
+    "src/evm-driver.ts": "db889664b390c510cfcee60c966d0b9038647dc2b41fea75c1299975957eec1d",
+    "src/receipt.ts": "6e3c8ba61b5bce0c937908fc6edaf3286dc6624d17a6925ea1dc65bbf7858667",
+    "src/public-proof.ts": "ae27ee6170d78e5d96ba7ef667ca1ddae89e507bd6fce79ce1d4cdf50466ae0e",
+    "src/public-config.ts": "c3e056d652ccfb97cd56261e75429018e4721621121e477bef64b7c99cd5bdb0",
+    "src/journal.ts": "80819010e21412b79376a174bede8d3fb8b736c60b6def9e0d057d2653e126bb"
+  }
+}

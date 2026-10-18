@@ -1,4 +1,4 @@
-# M1 settlement feasibility — Gates A/B
+# M1 settlement feasibility — local Gates A/B/C
 
 This package contains the first implementation checkpoint, not the full MVP.
 The packet is `planning/EVM_M1_SETTLEMENT_SPIKE.md` at repository root.
@@ -48,8 +48,8 @@ fields and unnegotiated extensions. It validates signature encoding only;
 `src/call.ts` now verifies the receive signature and prepares/revalidates only
 the fixed Core calldata. `src/relay.ts` derives/stores the public transaction hash
 before one broadcast attempt and recovers only through bounded receipt reads.
-The registration test uses an explicitly unimplemented, rejecting facilitator
-to prove scheme discovery/negotiation without pretending to settle.
+The original registration test retains its rejecting facilitator as a Gate A
+negative fixture. Gate C now separately exercises a real self-hosted adapter.
 
 `src/preflight.ts` checks chain, deployed code, token metadata/domain, an unused
 probe nonce and the v/r/s receive selector at a consistent canonical block.
@@ -99,11 +99,11 @@ intent-field substitution, signer/domain/type/replay/cancellation, exact time
 boundaries, admin checks, reentrancy selector and full nested rollback including
 token nonce. Included reverts still charge native gas to the relayer.
 
-Run `npm run test:execution` for that subset; `npm test` includes all44 tests.
+Run `npm run test:execution` for that subset; `npm test` includes all78 tests.
 Anvil1.7.1 must be available on PATH and local loopback binding permitted. The
 call/relay unit checks additionally exercise immutable calldata and recovery
 after a lost broadcast response. Relay state is process-local, not durable
-across a restart. Full registered settlement is Gate C work.
+across a restart. Actual registered settlement is described below.
 
 ## Reproducibility and limits
 
@@ -114,5 +114,49 @@ separate identities. No moving source URL is treated as an installed revision.
 
 Solidity 0.8.30 with Cancun target/optimizer 200 and OpenZeppelin 5.6.1 are pinned
 and used by Gate B. Forge/Anvil1.7.1 are available. Actual local compilation/
-execution and all44 tests pass. The full financial core, registered real x402
-settlement, public mutation and native USDC acceptance are not yet proven.
+execution and all78 tests pass. The full financial core, public mutation and
+native USDC settlement acceptance are not yet proven.
+
+
+## Gate C — registered local settlement
+
+`src/x402.ts` registers actual pinned SDK client/facilitator schemes;
+`src/flow.ts` wires them to the actual initialized resource server. This is a
+self-hosted facilitator and a JSON-wire harness, without an HTTP app. SDK
+optional `undefined` fields are omitted at that wire boundary; actual extension
+objects remain rejected. The client explicitly allows only the configured asset
+with a 100-unit cap. Trusted configuration and prepared calls are frozen.
+
+The upfront SDK flow skips facilitator verification during server verify.
+Tests separately call facilitator verify for signature/binding validation, then
+server verify, then server settlement in `before-handler`. Service must wait
+for confirmed settlement; server verify alone establishes no coverage. Admission
+is rechecked by simulation and Core execution, not reserved by signature checks.
+
+`src/evm-driver.ts` signs bounded transactions in memory, derives their hashes
+locally and awaits a public journal callback before broadcast. No signed bytes
+leave its closure. `src/receipt.ts` verifies chain/transaction/canonical block,
+exact coverage and token events, and nonce/coverage state at that block.
+Transient read failures remain pending. Retries reconcile the same known hash
+even after authorization expiry; a different purchase is refused while pending.
+
+`src/public-proof.ts` additionally pins deployment creation input to the compiled
+Core plus constructor, compares canonical pre/post balances and accounting, and
+verifies an included revert while admission is disabled with a valid payer
+signature. A status-0 receipt does not itself prove the exact revert cause; no
+trace-based reason proof is claimed. Its local test installs mock bytecode at
+the native token address on an isolated Anvil chain only. That test supplies no
+native-token or public-chain evidence.
+
+`src/public-config.ts` parses bounded public configuration without touching a
+signer or RPC. `src/journal.ts` persists only public identities exclusively and
+fsyncs them before submission; existing sessions permit read-only recovery.
+Public execution still requires separate explicit scope/funding. The runner
+and signer-free CLI verifier are the remaining preparation work.
+
+Base fees include L1 publication costs outside EIP-1559 execution fee caps.
+The public auxiliary reserve is not a transaction-format L1 fee ceiling; use a
+dedicated relayer with the exact approved total funding and no concurrent use
+or incoming funds. EVM-010 records this constraint and the bounded four-step
+attempt. Sources: [Base network fees](https://docs.base.org/specifications/transactions/network-fees),
+[OP Stack fees](https://docs.optimism.io/op-stack/transactions/fees).

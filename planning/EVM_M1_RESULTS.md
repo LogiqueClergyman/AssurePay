@@ -3,7 +3,7 @@
 Date: 2026-10-18. Branch: `evm/restart`.
 Starting commit: `0026c60` — clean EVM baseline.
 Packet: `planning/EVM_M1_SETTLEMENT_SPIKE.md`.
-M1 state: IN_PROGRESS. Gates A/B: COMPLETE. Gate C: NEXT; public proof not started.
+M1 state: IN_PROGRESS. Gates A/B: COMPLETE. Gate C: local integration PASS; public proof pending.
 
 ## Gate A scope and delegation
 
@@ -171,3 +171,49 @@ runner/verifier and configuration-only preflight. Actual public native USDC
 proof still requires explicit bounded run scope and funded runtime wallets;
 no such wallet configuration was provisioned. Do not start M2 before M1's
 required public gate is accepted.
+
+
+## Gate C — Registered local integration checkpoint
+
+Date: 2026-10-19. Gate B commit: `07957e5`.
+M1 remains IN_PROGRESS; native public USDC settlement proof is absent.
+
+Separate Luna(high) agents built the registered adapter, receipt verifier, and
+public configuration/journal. Primary integrated the actual SDK graph, opaque
+EVM driver, shared compiler and signer-free proof readers, reviewed the work,
+and ran the combined suite. The shared compiler extraction preserves both
+Gate B creation-bytecode digests exactly.
+
+`npm run compile`, `npm run typecheck` and `npm test` pass: **78/78** tests.
+Actual Anvil execution through SDK client -> resource server -> registered
+self-hosted facilitator -> Core proves settlement before service, canonical
+receipt/event/state verification, mutation/admission rejection, and one-hash
+recovery after a lost response and authorization expiry. Other negative tests
+cover concurrent keys, transient receipt verification errors, wrong chain,
+changed block identity, mismatched transaction/log/state, config and journal
+failure behavior. No public transaction was submitted.
+
+SDK integration discoveries were corrected under EVM-009/010: explicitly allow
+the configured asset at 100 atomic units in client spend controls; model actual
+JSON transport omission of optional undefined properties while rejecting
+unnegotiated extensions; distinguish upfront server verify (which bypasses
+facilitator verify) from confirmed before-handler settlement. The facilitator
+verify check is separately exercised and does not reserve admission.
+
+The signer-free public proof reader pins deployment creation input and checks
+canonical before/after token balances/count/reserve. Admission proof establishes
+an included revert with valid payer signature, admission disabled at both block
+boundaries, and unchanged balances/nonce/coverage. No trace-based exact revert
+reason proof is claimed. Tests use mock bytecode at the native address only on
+isolated Anvil; this is explicitly not native USDC acceptance.
+
+The durable journal contains public hashes/addresses/nonces/calldata hashes,
+never signed bytes or payloads. Existing sessions are recovery-only. Config-only
+validation constructs no signer, contacts no RPC and creates no journal. Base
+L1/auxiliary fees need a separate reserve; EVM-010 records a dedicated exactly
+funded relayer constraint and its no-concurrent-funding/use assumption.
+
+Next: finish the bounded public runner and independent CLI verifier, verify
+failure/restart behavior, then obtain runtime funding and explicit approval for
+the concrete four-transaction public attempt. Do not start M2 before the public
+gate passes. This checkpoint is local feasibility evidence, not MVP completion.

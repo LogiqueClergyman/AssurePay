@@ -1,42 +1,41 @@
 # Session handoff
 
-Date: 2026-10-18. Branch: `evm/restart`.
+Date: 2026-10-19. Branch: `evm/restart`.
 Current phase: M1 settlement feasibility — IN_PROGRESS.
 Active packet: `planning/EVM_M1_SETTLEMENT_SPIKE.md`.
 Results: `planning/EVM_M1_RESULTS.md`.
-Gates A/B: COMPLETE. Gate C actual registered settlement is next.
-Gate A commit: `5126ccf`; Gate B checkpoint is ready for authorized commit.
+Gate A commit: `5126ccf`. Gate B commit: `07957e5`.
+Gate C local registration/execution: PASS. Public proof: PENDING.
 
-## Current implementation
+## Current state
 
-The isolated `spikes/evm-m1/` package contains pinned tooling, strict intent/wire
-schemas, EOA signature/call preparation, a submit-once recovery helper, read-only
-public token preflight, minimal Solidity Core and faithful ERC-3009 token mock.
-The full financial core/provider registry/stake/pool/claims system is not built.
+The isolated `spikes/evm-m1/` package compiles unchanged pinned Solidity and
+passes strict typechecking plus 78 tests. Actual SDK client/resource server/
+self-hosted facilitator executes on Anvil before service. Receipt and public
+proof readers check canonical transaction/event/state, pre/post balances and
+rollback. Signed bytes and payer signatures remain in memory. The public
+configuration parser and exclusive/fsynced public journal are implemented.
+The original Gate A rejecting facilitator remains only a negative fixture.
 
-`npm run compile`, `npm run typecheck` and `npm test` pass: 44 tests including
-9 actual Anvil execution cases. The suite proves parity,100/93/7 split, intent
-binding, replay/cancel/extraction, strict time bounds, admin controls, specific
-reentrancy guard rejection and full nested rollback with relayer gas charged.
-No public transaction was submitted. Existing token preflight is read-only.
-
-The user authorizes verified checkpoint commits and sequential progression,
-using Luna(high) delegation with primary verification. Three bounded agents
-handled contracts/tests/helpers; one agent hit a usage limit and its unfinished
-work was reassigned. Primary reviewed/integrated and ran the final suite.
+Primary verified delegated Luna(high) work, corrected SDK spend-control and
+JSON-wire issues, and reproduced actual EVM results. No public transaction or
+full financial core/provider/stake/pool/claim system exists yet. This is a
+scoped spike review, not a production security audit.
 
 ## Exact next action
 
-Commit the verified Gate B checkpoint, then implement Gate C's actual x402 core
-client/server/facilitator settlement against Anvil using the same prepared call
-and relay helper. Verify canonical receipt/Core event/token logs and stored
-coverage; do not reuse the rejecting Gate A registration stub as acceptance.
-Then prepare the bounded public runner, signer-free verifier and configuration
-preflight. Required native Base Sepolia USDC settlement proof is still absent.
-Public wallet configuration/funding and explicit bounded execution scope remain
-prerequisites; do not inspect private backups or manually read populated envs.
+Finish and verify `src/public-runner.ts`, `scripts/public-run.ts` and
+`scripts/verify-public.ts` with bounded execution and read-only restart recovery.
+The assigned Luna agent is implementing those paths; preserve its in-progress
+work. Then update results/handoff and commit the verified preparation checkpoint.
 
-Read EVM-007/008 and the spike README/toolchain/vector named by the packet.
-No `/docs` access is needed. Do not start M2 until M1's public gate passes.
-No push or amendment of archive/main is authorized. Source review here is a
-scoped spike review, not a production security audit.
+Runtime funded payer/relayer and explicit bounded public execution scope remain
+prerequisites. Do not manually inspect populated envs/private backups. Follow
+EVM-009/010: four fixed transactions, locally derived hashes durably recorded
+before broadcast, existing sessions recovery-only, exact total funding of a
+dedicated relayer and no concurrent use/funding. Auxiliary fees are not capped
+by EIP-1559. Default commands must remain non-mutating.
+
+User authorizes verified checkpoint commits and sequential Luna(high)
+delegation; no push or history amendment. No `/docs` access is needed. Do not
+start M2 until native public USDC evidence satisfies M1.

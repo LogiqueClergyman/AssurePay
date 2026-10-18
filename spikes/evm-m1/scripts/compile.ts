@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { compileContracts } from '../test/helpers/evm.js';
+import { compileContracts } from '../src/compiler.js';
 
 try {
   const artifacts = compileContracts();
