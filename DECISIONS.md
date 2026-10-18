@@ -118,3 +118,35 @@ may be superseded if execution evidence demonstrates a better alternative.
 Research reference: upstream commit `faa1c694c66a3732aaabbce93bdae140e521a67d`.
 Installed release identities, integrity digests and inspected source hashes are
 recorded in `spikes/evm-m1/toolchain.json` and its package lockfile.
+
+## EVM-008 — Minimal Gate B execution boundary
+
+Status: ACCEPTED for the M1 spike only. Date: 2026-10-18.
+
+Freeze `AssuranceCoreSpike` constructor as `(token, providerPayout, providerId,
+policyId, policyHash)`. Token/payout and demo provider/policy/hash are immutable;
+deployer is the fixture administrator. Require deployed token code, nonzero
+addresses/IDs and a payout distinct from Core and the token. No provider registry or full
+financial core is introduced here.
+
+`settleAssured(intent, v, r, s)` uses the Gate A twelve-field tuple, checks
+chain/Core/token and immutable demo terms, positive payer/request/salt, gross
+100 and the exclusive 300-second window, then calls token receive authorization
+with nonce equal to `hashIntent(intent)`. Reject payer equal to Core or payout
+so exact independent payer/Core/provider balance deltas remain meaningful.
+Store `coverages[id] = (payer, requestHash, gross)`, increase `coverageCount` and
+`premiumReserve`, and pay provider net93. Require exact received/final deltas
+and propagate any failure. Non-reentrant; no arbitrary external target or refund.
+
+For this disposable spike, only deployer may toggle `admissionEnabled` and
+`failAfterTransfer`. The latter deliberately reverts after nested receive,
+coverage writes and provider transfer to prove full rollback. These are explicit
+test fixtures, not production control features. Emit `CoverageOpened` with
+coverage/payer/provider/policy/request and gross/net/premium facts.
+
+Use a separate faithfully signed ERC-3009 ERC20 fixture (USDC/2, six decimals)
+with standard receive/transfer authorization and signed cancellation. Its mint,
+failure/fee/reentry controls are test-only. Compile with the pinned solc-js
+0.8.30/Cancun/optimizer200 and execute on an isolated Anvil chain84532. Ephemeral
+test wallets are generated in memory and never serialized. This fixture cannot
+substitute for Gate C native public USDC evidence.

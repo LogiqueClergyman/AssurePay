@@ -3,9 +3,9 @@
 Date: 2026-10-18. Branch: `evm/restart`.
 Starting commit: `0026c60` — clean EVM baseline.
 Packet: `planning/EVM_M1_SETTLEMENT_SPIKE.md`.
-M1 state: IN_PROGRESS. Gate A: COMPLETE. Gates B/C: NOT STARTED.
+M1 state: IN_PROGRESS. Gates A/B: COMPLETE. Gate C: NEXT; public proof not started.
 
-## Scope and delegation
+## Gate A scope and delegation
 
 The user authorized beginning implementation and explicitly requested Luna
 agents with high reasoning for delegated work while the primary agent verifies.
@@ -107,7 +107,7 @@ Final checks also cover Markdown references/fences, JSON parsing, unchanged
 root package/lockfile and archive refs, ignored dependency paths, absent populated
 environments and `git diff --check`. No `/docs` or private backup was accessed.
 
-## Exact next action
+## Historical Gate A next action
 
 Start Gate B real EVM execution: implement only the minimal fixed-economics
 spike Core plus a faithful ERC-3009 fixture and tests. Prove TS/Solidity hash
@@ -115,3 +115,59 @@ parity, valid receive authorization, every altered intent binding, replay and
 nested token/state/nonce rollback. Keep the full provider/policy/stake/pool/claim
 system for M2. Gate C then needs actual registered settlement and an authorized,
 funded bounded public run; no public mutation authorization was consumed here.
+
+
+## Gate B — Real local execution checkpoint
+
+State: COMPLETE. Gate A checkpoint commit: `5126ccf`.
+The user authorized checkpoint commits, sequential progress and Luna(high)
+delegation. Core and token fixture were implemented by separate Luna agents;
+a third execution-test agent hit its usage limit before producing a file, so
+its work was reassigned. Primary built the compiler/Anvil harness, reviewed all
+code/tests, corrected masked failure paths and ran the actual EVM suite.
+
+### Implemented and reviewed
+
+- `AssuranceCoreSpike.sol` and receive interface implement EVM-008, fixed100/93/7,
+  immutable demo terms, exact deltas, strict timing, replay, non-reentrancy and
+  explicit admission/post-transfer failure fixtures.
+- `AuthorizationTokenMock.sol` is a faithful signed ERC-3009 test token with
+  cancellation, false-return/fee/callback fixtures. No public-token proof is implied.
+- `src/call.ts` recovers the EOA receive signer, enforces canonical v/low-s,
+  prepares only fixed Core calldata, and revalidates exact bytes before submission.
+- `src/relay.ts` records a locally derived hash before one broadcast attempt,
+  coalesces concurrent calls and recovers through 1–10 read-only receipt checks.
+  Wrong-hash receipt/mismatch/revert fail closed; state remains process-local.
+- `test/helpers/evm.ts` uses pinned solc-js/Cancun/optimizer200 and isolated
+  Anvil84532 with no default unlocked accounts. Test wallets are generated in
+  memory and raw errors/signatures/keys are not emitted.
+
+### Primary verification
+
+`npm run compile` and `npm run typecheck` pass. Network-permitted local
+`npm test` passes **44/44** tests, including **9 actual Anvil execution tests**.
+Local loopback permission was required; no public mutation occurred.
+
+Actual execution proves TypeScript/Solidity vector parity; exact successful
+payer/Core/provider deltas; nonce/coverage/event accounting; all12 field
+substitutions with unchanged original signature; wrong signer/domain/type;
+replay/cancellation/extraction; 300-second and exact timestamp boundaries;
+admin restrictions; and guard-specific reentry rejection. False-return, fee,
+and forced-after-transfer failures restore balances, nonce, coverage/count/
+reserve. Included reverts charge exactly gasUsed*effectiveGasPrice to relayer.
+
+Review fixed missing independent Core time checks and tests whose disabled
+admission/accumulated balances could mask later failure cases. Each rollback
+case now uses new contracts and funded payer. Reentry checks the exact guard
+error selector, not just a generic failed callback. The final passing run
+exercised these corrections. A scoped implementation review was performed;
+this is not a production security audit or financial-core acceptance.
+
+### Exact next action
+
+Commit this verified checkpoint, then begin Gate C's actual registered x402
+client/server/facilitator settlement on Anvil. Prepare the signer-safe public
+runner/verifier and configuration-only preflight. Actual public native USDC
+proof still requires explicit bounded run scope and funded runtime wallets;
+no such wallet configuration was provisioned. Do not start M2 before M1's
+required public gate is accepted.

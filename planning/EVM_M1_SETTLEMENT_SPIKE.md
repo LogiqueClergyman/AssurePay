@@ -1,6 +1,6 @@
 # M1 — EVM intent-bound settlement feasibility
 
-State: IN_PROGRESS — Gate A complete; Gate B next. Date: 2026-10-18.
+State: IN_PROGRESS — Gates A/B complete; Gate C next. Date: 2026-10-18.
 
 ## Mission
 

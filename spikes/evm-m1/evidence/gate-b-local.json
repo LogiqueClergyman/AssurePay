@@ -1,0 +1,33 @@
+{
+  "kind": "local-execution-checkpoint",
+  "date": "2026-10-18",
+  "chainId": 84532,
+  "network": "isolated Anvil; not Base Sepolia",
+  "tokenIsFixture": true,
+  "compiler": "0.8.30+commit.73712a01",
+  "evmTarget": "cancun",
+  "optimizerRuns": 200,
+  "testCounts": {
+    "all": 44,
+    "realEvmExecution": 9
+  },
+  "checks": [
+    "tsSolidityHashParity",
+    "grossNetPremium100_93_7",
+    "signedFieldBinding",
+    "replayAndCancellation",
+    "strictTimeBoundaries",
+    "signatureExtractionRejection",
+    "adminRestrictions",
+    "guardSpecificReentryRejection",
+    "nestedBalanceNonceCoverageRollback",
+    "includedRevertGasCharged",
+    "immutableCallRevalidation",
+    "submitOnceReceiptRecovery"
+  ],
+  "sourceSha256": {
+    "contracts/AssuranceCoreSpike.sol": "feec3d30929bd374156753ee653c434f73ff1e92513124e40fdb07efd3c3fdbd",
+    "contracts/mocks/AuthorizationTokenMock.sol": "d5d5a3f865a9c20f5387c4c23da79b72a68ec35e212fe005017d1a44c3794bdc"
+  },
+  "limits": "Local fixture proof only. No live native-USDC settlement, no full financial core or production security audit."
+}

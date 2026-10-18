@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "compile": "node --import tsx scripts/compile.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts",
+    "test:execution": "node --import tsx --test test/execution.test.ts",
     "preflight": "node --import tsx scripts/preflight.ts"
   },
   "dependencies": {

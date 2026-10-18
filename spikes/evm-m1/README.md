@@ -1,4 +1,4 @@
-# M1 settlement feasibility — Gate A
+# M1 settlement feasibility — Gates A/B
 
 This package contains the first implementation checkpoint, not the full MVP.
 The packet is `planning/EVM_M1_SETTLEMENT_SPIKE.md` at repository root.
@@ -8,6 +8,7 @@ The packet is `planning/EVM_M1_SETTLEMENT_SPIKE.md` at repository root.
 ```sh
 cd spikes/evm-m1
 npm ci --ignore-scripts
+npm run compile
 npm run typecheck
 npm test
 npm run preflight
@@ -44,7 +45,9 @@ trusted EVM addresses are normalized before comparison.
 `src/profile.ts` defines exact requirements and payment payload binding and a
 real SDK server interface with upfront-only flow. It rejects unknown financial
 fields and unnegotiated extensions. It validates signature encoding only;
-cryptographic verification and settlement execution belong to the next gate.
+`src/call.ts` now verifies the receive signature and prepares/revalidates only
+the fixed Core calldata. `src/relay.ts` derives/stores the public transaction hash
+before one broadcast attempt and recovers only through bounded receipt reads.
 The registration test uses an explicitly unimplemented, rejecting facilitator
 to prove scheme discovery/negotiation without pretending to settle.
 
@@ -78,6 +81,30 @@ Parse-time error categories are `M1_PROFILE_REQUIREMENTS`,
 name the invalid field without printing values. Preflight returns bounded
 codes defined by `PreflightCode` and public metadata only.
 
+## Real local execution
+
+`contracts/AssuranceCoreSpike.sol` receives100, records coverage/premium7 and
+pays93 atomically. Immutable demo terms, exact balance deltas, replay checks,
+strict time bounds and a reentrancy guard are enforced. Admin admission and
+forced-postcondition controls are explicit disposable spike fixtures.
+
+`contracts/mocks/AuthorizationTokenMock.sol` implements signed receive/transfer
+authorization and cancellation; its failure/fee/reentry controls exercise
+rollback. This token is a local fixture, not public USDC.
+
+`test/execution.test.ts` compiles actual Solidity and starts isolated Anvil
+chains with no default unlocked accounts. Ephemeral wallets/signatures are
+held in memory. Tests prove hash parity, successful split/event/state, every
+intent-field substitution, signer/domain/type/replay/cancellation, exact time
+boundaries, admin checks, reentrancy selector and full nested rollback including
+token nonce. Included reverts still charge native gas to the relayer.
+
+Run `npm run test:execution` for that subset; `npm test` includes all44 tests.
+Anvil1.7.1 must be available on PATH and local loopback binding permitted. The
+call/relay unit checks additionally exercise immutable calldata and recovery
+after a lost broadcast response. Relay state is process-local, not durable
+across a restart. Full registered settlement is Gate C work.
+
 ## Reproducibility and limits
 
 Exact packages/integrities are in `package-lock.json`; `toolchain.json` records
@@ -86,7 +113,6 @@ identified upstream research revision. The npm release and research commit are
 separate identities. No moving source URL is treated as an installed revision.
 
 Solidity 0.8.30 with Cancun target/optimizer 200 and OpenZeppelin 5.6.1 are pinned
-for Gate B. Forge/Anvil 1.7.1 are available. No Solidity contract, compiler
-execution, real x402 settlement or public mutation is claimed at Gate A.
-Gate B must prove signature binding, actual nested token rollback and replay
-behavior in real EVM execution before proceeding to public proof.
+and used by Gate B. Forge/Anvil1.7.1 are available. Actual local compilation/
+execution and all44 tests pass. The full financial core, registered real x402
+settlement, public mutation and native USDC acceptance are not yet proven.
