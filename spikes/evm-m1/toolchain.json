@@ -1,0 +1,70 @@
+{
+  "researchDate": "2026-10-18",
+  "upstream": {
+    "repository": "https://github.com/x402-foundation/x402",
+    "researchCommit": "faa1c694c66a3732aaabbce93bdae140e521a67d",
+    "note": "Research commit; installed npm release identity is separately bound by package-lock integrity."
+  },
+  "runtime": {
+    "node": "24.18.0",
+    "npm": "11.16.0",
+    "forge": "1.7.1",
+    "anvil": "1.7.1",
+    "foundryCommit": "4072e48705af9d93e3c0f6e29e93b5e9a40caed8"
+  },
+  "compiler": {
+    "solc": "0.8.30",
+    "evmVersion": "cancun",
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    }
+  },
+  "packages": {
+    "@x402/core": {
+      "version": "2.28.0",
+      "integrity": "sha512-Da/7zKxCKqpBoB4Msc9tFgkAv7tJTD8nG+DSSm+QdXAyJS4PQsmgVSKe17rDJTtlu0pwNbLcOje6MyQ6kaDkig==",
+      "resolved": "https://registry.npmjs.org/@x402/core/-/core-2.28.0.tgz"
+    },
+    "@x402/evm": {
+      "version": "2.28.0",
+      "integrity": "sha512-BZuoaCKMoPQQuMTa4oibvoyI06WdCpgrzgdicUu8d+5NBMAfWb6LAmSQf1KkeiS8C+25/+2JGB4cHSL0VLGnSA==",
+      "resolved": "https://registry.npmjs.org/@x402/evm/-/evm-2.28.0.tgz"
+    },
+    "viem": {
+      "version": "2.57.7",
+      "integrity": "sha512-x3UqqrcQuESaRVK6a0BvNmoNP0SVhu913uxEAxYLJx1lNYnj6ylTntfUdakCUKjk1+T+63gkdwFGJQ2O5C/nRw==",
+      "resolved": "https://registry.npmjs.org/viem/-/viem-2.57.7.tgz"
+    },
+    "@openzeppelin/contracts": {
+      "version": "5.6.1",
+      "integrity": "sha512-Ly6SlsVJ3mj+b18W3R8gNufB7dTICT105fJhodGAGgyC2oqnBAhqSiNDJ8V8DLY05cCz81GLI0CU5vNYA1EC/w==",
+      "resolved": "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-5.6.1.tgz"
+    },
+    "solc": {
+      "version": "0.8.30",
+      "integrity": "sha512-9Srk/gndtBmoUbg4CE6ypAzPQlElv8ntbnl6SigUBAzgXKn35v87sj04uZeoZWjtDkdzT0qKFcIo/wl63UMxdw==",
+      "resolved": "https://registry.npmjs.org/solc/-/solc-0.8.30.tgz"
+    },
+    "tsx": {
+      "version": "4.20.6",
+      "integrity": "sha512-ytQKuwgmrrkDTFP4LjR0ToE2nqgy886GpvRSpU0JAnrdBYppuY5rLkRUYPU1yCryb24SsKBTL/hlDQAEFVwtZg==",
+      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.20.6.tgz"
+    },
+    "typescript": {
+      "version": "5.9.3",
+      "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz"
+    },
+    "@types/node": {
+      "version": "24.10.1",
+      "integrity": "sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==",
+      "resolved": "https://registry.npmjs.org/@types/node/-/node-24.10.1.tgz"
+    }
+  },
+  "inspectedInstalledSources": {
+    "@x402/evm/dist/esm/exact/facilitator/index.mjs": "cac1eca2694990485d0b34c556ee8109c2b510c10bdbba607dcc3c45b6eb40c3",
+    "@x402/evm/dist/esm/exact/server/index.mjs": "ece083ee374514fc53cb4d8b9bf7b346b81a901b3e1745375b0ec5a44b86053b",
+    "@x402/evm/dist/esm/chunk-DBLZWTJ6.mjs": "f42002aae4268bf03cc62e1d3b8316027809c9b76673b2e181eaf4cf27de734d"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "kind": "read-only-token-compatibility",
+  "date": "2026-10-18",
+  "limits": "Metadata and v/r/s ABI rejection probe only; no valid signature, transfer, Core deployment or settlement.",
+  "result": {
+    "ok": true,
+    "code": "ok",
+    "chainId": 84532,
+    "token": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "block": {
+      "number": "48276820",
+      "hash": "0x477b7c33b2cb7c3c7aaa50f04a3fb3f4c46170d23f09c805694a6bb83022d688",
+      "timestamp": "1792321928"
+    },
+    "decimals": 6,
+    "tokenName": "USDC",
+    "tokenVersion": "2",
+    "domainMatches": true,
+    "nonceUnused": true,
+    "receiveAuthorizationAbi": "vrs"
+  }
+}

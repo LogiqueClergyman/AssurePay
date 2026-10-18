@@ -89,3 +89,32 @@ commit; do not rewrite old commits or push.
 Keep only current EVM requirements, rationale, packets and concise state. No
 EVM code, dependency compatibility, gas performance or public acceptance is
 claimed by this cleanup.
+
+## EVM-007 — M1 experimental wire profile and execution order
+
+Status: ACCEPTED for the M1 spike only. Date: 2026-10-18.
+
+After inspecting pinned `@x402/core` and `@x402/evm` 2.28.0, select custom
+`assured-exact` / `assurepay-evm-v1`, with
+`extra.assetTransferMethod=assured-eip3009-receive` and
+`extra.paymentFlow=upfront`. Server declares upfront as its only supported flow;
+ordinary authorization/post-handler settlement is rejected. Core must accept
+liability before the provider executes the paid service.
+
+Installed exact client/facilitator implementations sign/execute token
+`TransferWithAuthorization`; an arbitrary ATM label does not replace that path
+with a receive-authorization Core call. Exact's Permit2 witness commits only
+receiver/validAfter beyond standard transfer parameters. Up-to and batch paths
+introduce variable/deferred charge and different admission semantics. Direct
+wallet execution adds payer gas. For this fixed-gross USDC/EOA spike, the custom
+receive path is the smallest candidate meeting the intended boundaries.
+
+Custom scheme registration and payment-flow negotiation are supported by the
+installed core interfaces. That is SDK extensibility evidence, not a claim that
+our Core execution or facilitator settlement is already proven. Gate B/C must
+validate actual binding, nested rollback and registered settlement. This choice
+may be superseded if execution evidence demonstrates a better alternative.
+
+Research reference: upstream commit `faa1c694c66a3732aaabbce93bdae140e521a67d`.
+Installed release identities, integrity digests and inspected source hashes are
+recorded in `spikes/evm-m1/toolchain.json` and its package lockfile.

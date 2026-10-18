@@ -1,6 +1,6 @@
 # M1 — EVM intent-bound settlement feasibility
 
-State: READY; not started. Date: 2026-10-18.
+State: IN_PROGRESS — Gate A complete; Gate B next. Date: 2026-10-18.
 
 ## Mission
 
@@ -9,7 +9,7 @@ coverage creation atomic before implementing the full assurance core. Target
 Base Sepolia/native test USDC and an EOA payer. The candidate below uses receive
 authorization, a custom x402 handler and relayer-paid transaction; it is not
 mandatory if Gate A establishes a better supported approach.
-Read `AGENTS.md`, handoff, this packet, EVM-001 through EVM-006 in `DECISIONS.md`,
+Read `AGENTS.md`, handoff, this packet, EVM-001 through EVM-007 in `DECISIONS.md`,
 and the M1 gate in the root plan. This packet is self-contained; no `/docs`
 access is necessary.
 
@@ -23,6 +23,13 @@ backend or full provider registry/policy/claims implementation. Use fixed demo
 terms in the spike. Run one gate at a time and report concrete blockers.
 
 ## Candidate profile to evaluate
+
+Gate A selected this candidate for the spike under EVM-007. The transfer method
+is `assured-eip3009-receive` and `extra.paymentFlow=upfront`; server supports only
+settlement-before-service. Exact schemas, unsigned hash vector and installed
+release identities are in `spikes/evm-m1/README.md`, `vectors/intent-v1.json` and
+`toolchain.json`. Read those files when continuing implementation. Gate A results
+are in `planning/EVM_M1_RESULTS.md`. Selection is not settlement acceptance.
 
 `scheme=assured-exact`, `profile=assurepay-evm-v1`, x402 v2,
 `network=eip155:84532`, `asset=<verified native USDC>`, `payTo=<spike Core>`.

@@ -1,51 +1,58 @@
 # Session handoff
 
 Date: 2026-10-18. Branch: `evm/restart`.
-Current phase: baseline cleanup — COMPLETE.
-Packet: `planning/EVM_BASELINE_CLEANUP.md`.
-Results: `planning/EVM_BASELINE_RESULTS.md`.
-Next phase: M1 settlement feasibility — READY, not started.
-Next packet: `planning/EVM_M1_SETTLEMENT_SPIKE.md`.
+Current phase: M1 settlement feasibility — IN_PROGRESS.
+Active packet: `planning/EVM_M1_SETTLEMENT_SPIKE.md`.
+Results: `planning/EVM_M1_RESULTS.md`.
+Checkpoint: Gate A COMPLETE; Gate B next; public settlement NOT STARTED.
+Starting commit: `0026c60`. Gate A is ready for the user-authorized checkpoint commit.
 
-## Current state
+## Implemented state
 
-The user approved an EVM restart and removal of previous implementation and
-planning history from the active branch. Current tree contains EVM architecture,
-MVP/rationale, self-contained planning, concise root state and dependency-free
-package metadata. No contracts or application code have been implemented.
+`spikes/evm-m1/` contains pinned dependencies, strict intent/hash/typed-data
+helpers, trusted wire requirements/payload validation, upfront-only SDK server,
+read-only token preflight, 21 passing tests, an unsigned hash vector, source/
+toolchain identities and a compact public token-compatibility result. There are
+no Solidity contracts, application services or financial-core implementation yet.
 
-The user explicitly directed independent EVM technical choices: do not preserve
-a payment scheme, call type, storage layout or mechanism solely because history
-used it. Read `DECISIONS.md`; EVM-003 through EVM-005 are candidates to validate.
-Base is accepted as the initial target, with Base Sepolia/native test USDC first.
+User explicitly requested Luna agents with high reasoning for bounded delegated
+tasks and primary verification. Three agents did comparison, intent and preflight;
+primary reviewed/fixed/integrated and ran the combined checks. Additional
+blockchain/Solidity skills may be installed when a concrete need arises.
 
-The archive ref named in EVM-006 and `main` preserve the prior checkpoint.
-Ignored local configuration and build data were moved to a private external
-backup without opening populated environments; its location is in the cleanup
-results. Do not import private files, old dependencies or technical requirements
-back into this project. No network transaction, deployment or push occurred.
+Read EVM-007 before continuing: experiment uses `assured-exact`, profile
+`assurepay-evm-v1`, ATM `assured-eip3009-receive`, and upfront-only flow. Ordinary
+x402 exact defaults to settlement after service and uses transfer authorization;
+our server rejects that flow. The custom choice is for this experiment, remains
+replaceable, and is not a claim of already proven settlement.
+
+## Verification and proof limits
+
+From the spike: `npm run typecheck` and `npm test` pass, 21/21 tests. Installed
+package/lock integrity and source identities passed. A signer-free public
+preflight passed on Base Sepolia/native USDC at block 48276820: decimals6,
+USDC/version2 typed-data domain and expected receive-selector rejection.
+Public output has no signature, raw response or secret. No transaction was sent.
+
+The actual SDK registration test deliberately rejects execution; signature
+syntax validation is not cryptographic verification. No Solidity compilation,
+TS/Solidity parity, real token transfer, capacity, claims, HTTP service or live
+settlement acceptance has been proven. Review `planning/EVM_M1_RESULTS.md`
+for corrections and commands rather than treating fixture tests as chain proof.
 
 ## Exact next action
 
-Start M1 Gate A. Compare EVM payment/settlement options against atomic coverage,
-intent binding, payer UX and actual x402/token support. Inspect available tools,
-pin compatible versions in the isolated `spikes/evm-m1/` project, and freeze
-schemas/hash vectors only after selecting the supported mechanism. Verify actual
-native USDC code, domain and receive ABI if pursuing that candidate.
+Continue M1 Gate B in the existing isolated spike. Read its README,
+`vectors/intent-v1.json` and `toolchain.json` as named by the packet. Implement
+minimal fixed-economics Solidity Core and a faithful ERC-3009 fixture. Prove
+hash parity, receive/split/coverage success, every altered binding, replay,
+and nested token nonce/balance/state rollback with actual EVM execution.
+Keep full provider/policy/stake/claims architecture out until M2.
 
-Then prove real local execution/rollback and registered x402 integration. Public
-proof must have a bounded authorized run and funded payer/relayer; none was
-provisioned in cleanup. Record blockers instead of substituting a mock or
-independent post-payment coverage transaction.
-
-Do not start M2 full financial contracts, provider SDKs or evidence backend
-before M1 acceptance. Do not read `/docs` unless the user/active packet names
-material in scope; M1 is self-contained. Never manually read populated environments.
-
-## Verification and open items
-
-Cleanup verification covers archive refs, removed-path recoverability, current
-file/link consistency, neutral dependency metadata, absence of staged secrets
-and clean Git status after the requested cleanup commit. No runnable tests exist
-in this baseline. Exact tooling, selected settlement/profile, token compatibility,
-gas/cost and confirmation policy remain M1 work; no EVM acceptance is claimed.
+Then Gate C requires actual registered x402 settlement, independent read-only
+verification and a bounded authorized/funded public run. None was attempted or
+provisioned here. Do not reintroduce separate post-payment coverage creation.
+The user now authorizes focused commits at verified checkpoints and proceeding
+sequentially through gates, with Luna(high) delegation and primary review.
+Never manually read populated environments or private backups. M1 is
+self-contained; no `/docs` access is needed or authorized for implementation.
