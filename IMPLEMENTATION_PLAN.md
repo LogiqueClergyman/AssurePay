@@ -1,89 +1,25 @@
-# AssurePay POC Implementation Plan
+# AssurePay EVM implementation plan
 
-## Operating model
+Updated 2026-10-18. Target: Base Sepolia, native test USDC, EOA first.
 
-Implementation is sequential. Only one phase and one coding session should be active at a time. The phase order is fixed:
-
-```text
-P0 atomic-group spike
-  -> P1 Assurance Core
-  -> P2 provider/client path
-  -> P3 evidence and claims backend
-  -> P4 demo and TestNet hardening
-```
-
-Later phases may be prepared conceptually, but their code must not begin until the preceding gate passes. The orchestrator creates a self-contained work packet immediately before each phase.
-
-## Status summary
-
-| Phase | State | Active packet | Gate |
+| Phase | State | Work packet | Gate |
 |---|---|---|---|
-| P0 Atomic group spike | COMPLETE | `planning/P0_TESTNET_ACCEPTANCE.md` | TestNet accepted: assured-exact three-member settlement and actual atomic pool rejection proved |
-| P1 Assurance Core | COMPLETE | `planning/P1_GATE_F_POC_READINESS.md` | Gates A–F accepted; real TestNet lifecycle, compact public evidence, read-only verifier, and focused orchestrator review passed |
-| P2 Provider/client path | BLOCKED_BY_P1 | Not created | Pending |
-| P3 Evidence and claims backend | BLOCKED_BY_P2 | Not created | Pending |
-| P4 Demo hardening | BLOCKED_BY_P3 | Not created | Pending |
+| Baseline cleanup | COMPLETE | `planning/EVM_BASELINE_CLEANUP.md` | EVM-only active tree; archive preserved; results in `planning/EVM_BASELINE_RESULTS.md` |
+| M1 Settlement feasibility | READY | `planning/EVM_M1_SETTLEMENT_SPIKE.md` | Select mechanism, pin tooling, prove intent binding/atomicity and real x402/native USDC execution |
+| M2 Solidity financial core | NOT_READY | Prepare after M1 acceptance | Registration/policies/stake, pool funding/reservations, withdrawals, claims/expiry and execution invariants |
+| M3 Client/provider flow | NOT_READY | Prepare after M2 acceptance | Canonical request encoding, response receipt and real HTTP flow |
+| M4 Evidence and claims backend | NOT_READY | Prepare after M3 acceptance | Encrypted evidence, payer workflow, canonical/reorg-safe projection |
+| M5 Public MVP acceptance | NOT_READY | Prepare after M4 acceptance | Reproducible scenarios, measured costs and signer-free independent verifier |
 
-Allowed states are `NOT_READY`, `READY`, `IN_PROGRESS`, `BLOCKED`, `REVIEW`, and `COMPLETE`.
+Only one phase is active. The baseline design has been reviewed with the user;
+its mechanism candidates still require feasibility evidence. M1 may choose a
+better EVM mechanism and update decisions before freezing schemas or starting
+dependent code. No previous technical implementation constrains this choice.
 
-## P0 — Atomic-group spike
+A phase is accepted only when its deliverables, required tests and live proofs
+exist, material decisions are recorded, and the handoff states the exact next
+action and any unresolved blocker. Simulation, a model or a local fixture does
+not substitute for a gate that explicitly requires actual public settlement.
 
-Purpose: remove the largest protocol uncertainty before building the rest of the system.
-
-The gate passes only when the intended x402 AVM settlement path can carry an Algorand atomic group containing provider revenue, assurance premium, and an Assurance Core application call, and a failing application call prevents both asset transfers. Facilitator fee abstraction must also be tested when the selected facilitator path requires it.
-
-The final result must choose and justify one wire representation:
-
-- extend the current AVM `exact` flow with the assurance transactions; or
-- introduce a dedicated scheme identifier such as `assured-exact`.
-
-TestNet execution evidence is required to mark P0 complete. A fully working LocalNet implementation without TestNet credentials or funds remains `BLOCKED`, with the exact external prerequisite recorded.
-
-## P1 — Assurance Core
-
-Purpose: implement the financial source of truth.
-
-Expected scope includes provider registration, immutable policy versions, stake accounting, capacity and exposure, safe withdrawals, coverage creation, claim finalization, refunds to the bound payer, pause behavior, balance reconciliation, and the required invariant tests.
-
-The P1 packet must incorporate the group representation and contract constraints learned in P0. Do not implement P1 from this summary alone.
-
-## P2 — Provider/client path
-
-Purpose: prove an assured x402 request from initial HTTP request through verified provider response.
-
-Expected scope includes canonical request commitments, assurance metadata in the 402 response, client group construction, provider middleware, response commitments, signed receipts, and receipt verification.
-
-The P2 packet must freeze the canonical encodings and receipt schema. Do not implement P2 from this summary alone.
-
-## P3 — Evidence and claims backend
-
-Purpose: persist verifiable encrypted evidence, project chain state, and drive the constrained POC claim flow.
-
-Expected scope includes PostgreSQL, MinIO/S3-compatible storage, AES-256-GCM envelope encryption behind a replaceable key-wrapper interface, idempotent evidence ingestion, chain projection, payer-authorized claim creation, adjudicator actions, and refund confirmation.
-
-The P3 packet must define the database projection and evidence formats. Do not implement P3 from this summary alone.
-
-## P4 — Demo and TestNet hardening
-
-Purpose: make the complete POC reproducible and visibly prove its required properties.
-
-The final demonstrations are:
-
-1. successful assured call;
-2. insufficient provider capacity rejects the entire payment;
-3. withdrawal safety and zero-capacity rejection;
-4. approved provider-fault refund to the original payer;
-5. visible failure when evidence is tampered with.
-
-A clean checkout must be able to start local dependencies, deploy the contract, seed a provider and policy, execute the core flow, verify receipts and evidence, exercise capacity and withdrawal enforcement, approve a refund, and repeat the core flow on TestNet.
-
-## Gate policy
-
-The orchestrator marks a phase `COMPLETE` only when:
-
-- every deliverable in its active packet exists;
-- required automated tests pass;
-- required live-network evidence is recorded;
-- material decisions are recorded in `DECISIONS.md`;
-- `SESSION_HANDOFF.md` contains no unresolved blocker for that phase; and
-- the implementation has been reviewed against the packet rather than merely shown to compile.
+Do not add production UI, governance, risk/actuarial models, subjective AI
+adjudication, commerce execution, multiple chains/assets or mainnet deployment.

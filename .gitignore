@@ -1,4 +1,18 @@
+# Dependencies and generated outputs
 node_modules/
-spikes/p0-atomic/artifacts/
-spikes/p0-atomic/.env
-contracts/assurance-core/.env
+out/
+cache/
+broadcast/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Runtime credentials; templates may be checked in
+.env
+.env.*
+!.env.example
+.envrc
+
+# Local files
+.DS_Store
+*.log
