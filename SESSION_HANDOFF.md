@@ -1,12 +1,10 @@
 # Session handoff
 
 Date:2026-10-19. Branch:`evm/restart`. M1:ACCEPTED under EVM-015.
-Active work: M2 Solidity financial core — REVIEW. Active packet:
-`planning/EVM_M2_FINANCIAL_CORE.md`; results:`planning/EVM_M2_RESULTS.md`.
-User accepted requirements (EVM-016); interfaces fixed by EVM-017. Implemented
-packages/evm-core with pinned compile/typecheck, 15 actual local EVM scenarios,
-aggregate solvency/isolation checks and independent scoped source review.
-No new Core public deployment or production audit is claimed.
+Active work: M3 client/provider HTTP flow — IN_PROGRESS. Active packet:
+`planning/EVM_M3_HTTP_FLOW.md`. M2 accepted under EVM-018; its immutable Core
+and verified local accounting remain unchanged. M3 interfaces/recovery boundary
+are recorded in EVM-019. No new public mutation or wallet access.
 Completed packet:`planning/EVM_M1_SETTLEMENT_SPIKE.md`; results:
 `planning/EVM_M1_RESULTS.md`. All gates pass. Compile/typecheck and105 tests pass.
 
@@ -28,15 +26,11 @@ journals `.local-public-run`/`.local-vault-funding`. Never display populated env
 keys, signatures or raw signed blobs. Runtime Node env loading only.
 Do not delete journals or replace a payment to recover a response.
 
-Exact next action: primary may accept the M2 local gate after reading results,
-then prepare a self-contained M3 client/provider HTTP-flow packet. No further
-product clarification is needed for M2, and no new public mutation is included.
-Do not begin M3 implementation without its packet and recorded interfaces.
-M2 gas/artifact evidence:`packages/evm-core/evidence/local-execution.json`.
-Creation hash d4680a45ecd7c1c5ebbf0e4436c1e0e531438dad2e0635852db44ef36b2688b6;
-runtime template11562 bytes. Local fixture gas is not a public fee estimate.
-Preserve M1 code/evidence/journals and private configs; no wallet access needed
-for local implementation. `/docs` remains outside scope.
+Exact next action: implement packages/x402-assurance per M3 packet with
+Luna(high) delegation and primary verification. Test actual registered SDK,
+localhost HTTP and M2 EVM execution, durable known-hash/service recovery,
+canonical request and owner-signed response receipts. No M4 backend scope.
+Preserve all M1/M2 contracts/evidence/private configs and completed journals.
 
 User authorizes Luna(high) delegation, gated continuation and checkpoint commits.
 No push, history amendment or `/docs` access. Preserve archive/main.

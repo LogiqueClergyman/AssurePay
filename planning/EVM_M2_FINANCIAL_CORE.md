@@ -1,6 +1,6 @@
 # M2 — Solidity financial core
 
-State: REVIEW — local implementation and execution gate pass; results in
+State: ACCEPTED under EVM-018 — local implementation and execution gate pass; results in
 planning/EVM_M2_RESULTS.md. Prerequisite M1 ACCEPTED (EVM-015); requirements accepted by
 user on 2026-10-19 (EVM-016). Target: Base Sepolia/native USDC, EOA authorization.
 Read AGENTS.md, SESSION_HANDOFF.md, EVM-016/017 in DECISIONS.md, accepted

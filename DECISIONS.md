@@ -352,3 +352,45 @@ depend on them. Pin Solidity0.8.30/Cancun/optimizer200 with viaIR for this new
 package, OZ5.6.1 and existing viem/TS tool versions. Existing M1 contracts/tooling
 remain unchanged. M2 requires local actual EVM execution; no new public mutation
 is included. This is implementation design, not proven solvency/security yet.
+
+## EVM-018 — M2 local gate acceptance
+
+Status: ACCEPTED. Date:2026-10-19. Source: recorded primary verification,
+independent scoped review and user authorization to proceed with M3.
+
+Accept M2's local gate: pinned compile/typecheck, 15 actual Anvil execution
+scenarios, deterministic solvency/isolation invariants, gas evidence and scoped
+independent accounting review pass. planning/EVM_M2_RESULTS.md records exact
+limits. The new Core has not been publicly deployed or production-audited.
+M3 may depend on its frozen ABI/economics without changing M1/M2 contracts.
+
+## EVM-019 — M3 HTTP profile and recovery boundary
+
+Status: ACCEPTED for local implementation. Date:2026-10-19.
+
+Use a separate packages/x402-assurance package with pinned x4022.28.0/viem2.57.7.
+The new wire profile is assurepay-evm-v2 under custom assured-exact, ATM
+assured-eip3009-receive-v2, upfront-only; M1's experimental fixed-term v1 wire is
+not silently reinterpreted. Retain unchanged twelve-field AssuredIntentV1 and
+native-token receive authorization nonce commitment. Read and verify immutable
+M2 policy/provider terms and token signing domain at canonical chain state;
+client independently checks its trusted Core/token/provider/policy and spend cap.
+
+The self-contained M3 packet freezes request hashing, response receipt signing,
+transport constraints and component interfaces before they are used. Bind exact
+POST body bytes, canonical configured URL, fixed content type and client request
+ID. Owner-signed EIP712 response receipt binds coverage/request/status/body hash.
+This attests provider assertions, not evidence validity or service quality.
+
+Separate public-only payment and service journals: derive/persist transaction
+identity before one broadcast; known hashes are only reconciled on retry/restart.
+Persist service execution-start before handler entry. A handler interrupted at
+that boundary is indeterminate and never automatically rerun. Completed response
+bytes/signatures may be cached only in memory for this phase; after process
+restart report response unavailable rather than fabricate/rerun. Encrypted
+persistent evidence/result storage belongs to M4. This is bounded single-process
+service idempotency, not exactly-once external effects or distributed failover.
+
+No public mutations, vault operations, role/economic changes or claims backend
+are included in M3. Real HTTP + registered x402 + actual local M2 Core execution
+is required; local ERC3009 fixtures do not substitute for later public acceptance.

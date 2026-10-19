@@ -6,8 +6,8 @@ Updated 2026-10-18. Target: Base Sepolia, native test USDC, EOA first.
 |---|---|---|---|
 | Baseline cleanup | COMPLETE | `planning/EVM_BASELINE_CLEANUP.md` | EVM-only active tree; archive preserved; results in `planning/EVM_BASELINE_RESULTS.md` |
 | M1 Settlement feasibility | ACCEPTED | `planning/EVM_M1_SETTLEMENT_SPIKE.md` | All gates pass: native public USDC settlement/rollback, independent signer-free recovery, compile/typecheck and105 tests |
-| M2 Solidity financial core | REVIEW | `planning/EVM_M2_FINANCIAL_CORE.md` | Implemented; pinned compile/typecheck, 15 actual-EVM scenarios, solvency/isolation invariants and independent scoped review pass; results in `planning/EVM_M2_RESULTS.md` |
-| M3 Client/provider flow | NOT_READY | Prepare after M2 acceptance | Canonical request encoding, response receipt and real HTTP flow |
+| M2 Solidity financial core | ACCEPTED | `planning/EVM_M2_FINANCIAL_CORE.md` | Implemented; pinned compile/typecheck, 15 actual-EVM scenarios, solvency/isolation invariants and independent scoped review pass; results in `planning/EVM_M2_RESULTS.md` |
+| M3 Client/provider flow | IN_PROGRESS | `planning/EVM_M3_HTTP_FLOW.md` | Canonical request encoding, response receipt and real HTTP flow |
 | M4 Evidence and claims backend | NOT_READY | Prepare after M3 acceptance | Encrypted evidence, payer workflow, canonical/reorg-safe projection |
 | M5 Public MVP acceptance | NOT_READY | Prepare after M4 acceptance | Reproducible scenarios, measured costs and signer-free independent verifier |
 

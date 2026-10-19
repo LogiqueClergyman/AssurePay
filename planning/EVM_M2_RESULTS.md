@@ -3,7 +3,7 @@
 Date: 2026-10-19. Branch: `evm/restart`.
 Requirements accepted by user in EVM-016; interfaces fixed in EVM-017.
 Packet: `planning/EVM_M2_FINANCIAL_CORE.md`.
-State: REVIEW — implementation/local gate complete; no new public deployment.
+State: ACCEPTED under EVM-018 — local gate complete; no new public deployment.
 
 ## Delivered behavior
 
