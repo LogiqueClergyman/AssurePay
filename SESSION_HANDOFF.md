@@ -67,3 +67,12 @@ Latest funding check supersedes the initial zero-token snapshot: block48320062
 shows payer native USDC20000000 atomic (20 test USDC), relayer ETH0. Only the
 relayer's exactly410000000000000 wei funding remains. Do not execute while
 that balance is0. No public test transaction or execution journal was created.
+
+
+Latest update supersedes the zero-ETH check: block48320595 shows relayer
+99564892689918374 wei (0.099564892689918374 test ETH) and payer20000000 atomic
+native USDC. Funding has arrived, but the relayer balance exceeds the approved
+exact410000000000000 wei ceiling. No test/funding transaction has been sent.
+Current next step is to normalize the execution balance under explicit funding
+scope, then use the existing approved test. Do not bypass the excess-balance
+guard, increase the budget, move funds or create a second purchase silently.

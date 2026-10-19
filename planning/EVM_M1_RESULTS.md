@@ -328,3 +328,16 @@ shows payer native USDC20000000 atomic (20 test USDC), relayer native ETH0.
 Payer funding is sufficient. Only exactly410000000000000 wei ETH at the
 configured relayer remains needed. No public test transaction was submitted;
 existing authorization and wallet/journal safety constraints remain unchanged.
+
+
+### ETH funding received above the configured ceiling
+
+Canonical Base Sepolia block48320595
+(`0xe809ab2d25edbc7b5982fa068ef5c00beb0f2839239cdc2a53f2e64f2f1f426a`)
+shows relayer99564892689918374 wei and payer20000000 atomic native USDC.
+Both assets have arrived. The relayer exceeds EVM-010/011's approved exact
+starting ceiling410000000000000 wei, so the guarded runner remains blocked.
+No public test or fund-moving transaction was submitted. Retain the wallets;
+normalize the execution balance under an explicitly scoped funding action
+before starting the already-approved four-transaction test. Do not increase
+the approved spend budget merely because more funds arrived.
