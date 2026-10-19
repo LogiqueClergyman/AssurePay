@@ -12,7 +12,8 @@
     "test:integration": "node --import tsx --test test/integration.test.ts",
     "public:check": "node --import tsx scripts/check-public-config.ts",
     "public:run": "node --import tsx scripts/public-run.ts",
-    "public:verify": "node --import tsx scripts/verify-public.ts"
+    "public:verify": "node --import tsx scripts/verify-public.ts",
+    "wallets:setup": "node --import tsx scripts/setup-test-wallets.ts"
   },
   "dependencies": {
     "@x402/core": "2.28.0",

@@ -210,3 +210,28 @@ Sources checked 2026-10-19: Base network fees
 fees (https://docs.optimism.io/op-stack/transactions/fees). These establish the
 separate fee components and transaction-format limitation; actual network costs
 must be measured during the authorized run.
+
+
+## EVM-011 — Approved public attempt and local test-wallet setup
+
+Status: ACCEPTED. Date: 2026-10-19. Source: user confirmation after the proposed
+four-transaction Base Sepolia attempt and 0.00041 test ETH budget.
+
+The user approves the EVM-010 public attempt and continued implementation in
+phase order, with Luna(high) delegation and primary verification/checkpoint
+commits. Do not ask again for the same attempt's approval. Runtime wallet
+configuration/funding remains necessary; approval alone is not execution proof
+and does not bypass M1's gate before M2.
+
+Prepare fresh dedicated test EOAs locally so the user need only fund the public
+payer/relayer addresses. Persist keys only in an exclusive, mode0600 ignored
+runtime environment file; never print keys or manually inspect its contents.
+Use Node's runtime env-file loading for address/config checks and execution.
+Keep the public transaction journal in a persistent ignored local directory.
+Do not overwrite an existing wallet file or reuse a journal as a new attempt.
+
+Approved values remain max fee100000000 wei, priority1000000 wei, total gas
+3100000 and auxiliary reserve100000000000000 wei: relayer starts with exactly
+410000000000000 wei; payer has at least200 atomic native test USDC. Provider
+payout is a distinct test address. No mainnet transaction or broader public
+spending budget is inferred from continued phase authorization.

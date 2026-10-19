@@ -177,7 +177,8 @@ included revert using a second valid payer authorization. Gas caps are
 cap plus auxiliary reserve gives an exact dedicated starting balance of
 410000000000000 wei (0.00041 test ETH). Payer needs at least 200 atomic USDC;
 only the successful purchase spends 100. Provider payout needs no funding.
-This scope/budget is prepared, not authorized or executed.
+The user has approved this scope/budget under EVM-011; funded runtime readiness
+and actual public execution are still pending.
 
 After explicit public approval and runtime funding/configuration, the execute
 entry point is `npm run public:run -- --execute` with the exact scope guard and
@@ -201,3 +202,26 @@ journal tampering. The runner's separate live read-only preflight passed native
 USDC at block48318516. No public transaction, funded-runtime readiness, or M1
 public settlement acceptance is claimed. See `evidence/public-preparation.json`
 and root `planning/EVM_M1_RESULTS.md` for verified state and remaining gate.
+
+
+## Dedicated local test wallets
+
+`npm run wallets:setup` creates three fresh disposable EOAs and an ignored,
+mode0600 `.env.local` once; it refuses an existing file. Its output contains
+only public addresses and funding amounts. It never prints a private key and
+does not contact an RPC or create a transaction. Keep that file private and do
+not recreate it after funding. The persistent ignored journal path is
+`.local-public-run` inside this spike.
+
+Use Node's runtime loader for this configuration; do not manually display it:
+
+```sh
+node --env-file=.env.local --import tsx scripts/check-public-config.ts --execute
+```
+
+That command only validates configuration/presence and prints public metadata.
+After funding the approved wallets, the authorized runner can load the same
+file with `node --env-file=.env.local --import tsx scripts/public-run.ts --execute`.
+Future sessions must retain the existing file/journal and reconcile existing
+hashes. Approval for the one attempt is already recorded; wallet funding is the
+remaining prerequisite. Do not pass private keys through chat.

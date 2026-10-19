@@ -282,3 +282,39 @@ then the signer-free verifier against that journal. On uncertainty, only query
 recorded hashes; do not create another purchase or discard a journal. Record
 actual public hashes, block/gas/calldata, deltas and rollback before accepting
 M1. Do not start M2 or mark M1 complete while this public evidence is absent.
+
+
+## Approved run and dedicated test wallets
+
+Date: 2026-10-19. The user explicitly approved the proposed four-transaction
+attempt and continued gated phases. EVM-011 records that approval; it does not
+need to be requested again for the same attempt. Funding is the sole current
+prerequisite. No public transaction was submitted.
+
+A Luna(high) agent implemented the small local wallet bootstrap; primary
+reviewed it and verified strict typecheck plus **90/90** tests. The three new
+tests check private/exclusive file creation, refusal to overwrite, fixed errors,
+and Node runtime loading with signer/public-address consistency without key
+output. No Solidity or financial mechanism changed.
+
+The bootstrap was then run once. It created the dedicated payer, relayer and
+payout EOAs in the ignored mode0600 `spikes/evm-m1/.env.local`. Its file and
+parent directory were synced before public addresses were returned. The keys
+were not printed or manually inspected. The guarded configuration check loaded
+the file through Node and passed with the exact approved roles/budget/scope.
+The persistent ignored public journal path is `.local-public-run` in the spike;
+that journal has not been created by a public execution yet.
+
+A canonical read-only funding check at block **48319038**, hash
+`0xbe9045a446780936c8da1d73fb9cca57e03706f75b63d63d6c818fe0fe17f7e6`,
+observed relayer native balance0 and payer native USDC balance0. Public-only
+funding evidence is in `evidence/wallet-funding-pending.json`; no key material
+is included. User must send exactly410000000000000 wei of Base Sepolia ETH to
+the dedicated relayer and at least200 atomic native test USDC to the payer.
+No provider payout funding is needed.
+
+Next: retain the existing private config and public journal, recheck funding,
+then load configuration opaquely with Node's `--env-file` and execute the one
+already-approved guarded attempt. Verify/reconcile its public hashes, update M1
+results, and progress to M2 only when M1's public gate passes. No further
+approval is needed for this same bounded attempt; do not expand its budget.
