@@ -318,3 +318,13 @@ then load configuration opaquely with Node's `--env-file` and execute the one
 already-approved guarded attempt. Verify/reconcile its public hashes, update M1
 results, and progress to M2 only when M1's public gate passes. No further
 approval is needed for this same bounded attempt; do not expand its budget.
+
+
+### Funding recheck
+
+After the requested five-second wait and one confirmation recheck, canonical
+Base Sepolia block48320062 (`0xba4d98f7b13ed27232510ac435a63b4450b019a8f8117e6adb8ba886bb53db2d`)
+shows payer native USDC20000000 atomic (20 test USDC), relayer native ETH0.
+Payer funding is sufficient. Only exactly410000000000000 wei ETH at the
+configured relayer remains needed. No public test transaction was submitted;
+existing authorization and wallet/journal safety constraints remain unchanged.

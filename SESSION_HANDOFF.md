@@ -61,3 +61,9 @@ Wallet setup checkpoint: `wallets:setup` was run once after primary verification
 It refuses existing configs; do not run it again to recover keys/addresses.
 A readonly canonical check at block48319038 saw both required balances0. No
 public transaction was submitted. The last pre-setup checkpoint is `82094e3`.
+
+
+Latest funding check supersedes the initial zero-token snapshot: block48320062
+shows payer native USDC20000000 atomic (20 test USDC), relayer ETH0. Only the
+relayer's exactly410000000000000 wei funding remains. Do not execute while
+that balance is0. No public test transaction or execution journal was created.
