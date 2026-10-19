@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "code": "ok",
+  "chainId": 84532,
+  "token": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "block": {
+    "number": "48318516",
+    "hash": "0x499b8a0bf0b65d485d8f2f6ff0ffa96617558fa15cf3a86121806910b4c7445e",
+    "timestamp": "1792405320"
+  },
+  "decimals": 6,
+  "tokenName": "USDC",
+  "tokenVersion": "2",
+  "domainMatches": true,
+  "nonceUnused": true,
+  "receiveAuthorizationAbi": "vrs",
+  "scope": "read-only runner adapter; synthetic invalid signature; no transaction submitted"
+}

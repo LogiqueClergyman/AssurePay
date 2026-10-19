@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-19",
+  "gate": "M1-C-public-preparation",
+  "state": "prepared; native public settlement pending",
+  "previousLocalCheckpoint": "6a2b92b",
+  "checks": {
+    "compile": "pass; Gate B bytecode digests unchanged",
+    "typecheck": "pass",
+    "tests": 87,
+    "failures": 0,
+    "actualLocalFourTransactionRunner": "pass",
+    "signerFreeRecovery": "pass",
+    "tamperedJournalNonce": "rejected",
+    "liveRunnerReadonlyTokenPreflight": "pass at block48318516",
+    "defaultCli": "CHECK_ONLY using synthetic public config",
+    "missingRuntimeConfig": "rejected; variable names only",
+    "missingRecoveryJournal": "rejected; no signer needed"
+  },
+  "publicTransactionsSubmitted": 0,
+  "confirmationPolicy": "canonical inclusion, minimum1; no finality claim",
+  "proposedPublicScope": {
+    "transactions": [
+      "deploy",
+      "registered-success",
+      "admission-disable",
+      "included-revert"
+    ],
+    "gasCaps": [
+      "2000000",
+      "500000",
+      "100000",
+      "500000"
+    ],
+    "maxFeePerGasWei": "100000000",
+    "maxPriorityFeePerGasWei": "1000000",
+    "auxiliaryReserveWei": "100000000000000",
+    "dedicatedRelayerExactStartingWei": "410000000000000",
+    "payerMinimumUsdcAtomic": "200",
+    "payerSuccessfulSpendAtomic": "100",
+    "authorization": "not granted; runtime wallets/funding absent",
+    "constraint": "no concurrent relayer use or incoming funds; auxiliary reserve is not an on-chain L1 fee cap"
+  },
+  "sourceSha256": {
+    "src/public-runner.ts": "04bbf333b9481b5d55a7b966eea98b9e8f952bfb190c37c337047b331991601c",
+    "src/public-proof.ts": "f0f448a0860d63a25512c14cd8cc9759b9e9ab9c6eaad93cd7df02be2d5adbcd",
+    "scripts/public-run.ts": "15d6b08e6b5df6f2a8f3de2dc1775f179f57db7b7d577bd2e3b34c6fae2b1af8",
+    "scripts/verify-public.ts": "4bfaee66af84f6c16ba8dcffefae53bcaca05dd3ad1f69d10553c657503af27e",
+    "test/public-runner.test.ts": "08e081e5098ad9e15b3a73ac5d65d79cb1baa6016bc25f1b9ce624908302fb13",
+    "test/public-runner-evm.test.ts": "a999bd76281e1164345a75ffe7e502b1f1a1eadcbcf2a599a1a96df0b0e48610"
+  }
+}

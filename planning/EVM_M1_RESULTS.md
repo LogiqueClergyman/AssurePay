@@ -217,3 +217,68 @@ Next: finish the bounded public runner and independent CLI verifier, verify
 failure/restart behavior, then obtain runtime funding and explicit approval for
 the concrete four-transaction public attempt. Do not start M2 before the public
 gate passes. This checkpoint is local feasibility evidence, not MVP completion.
+
+
+## Gate C — Public runner preparation checkpoint
+
+Date: 2026-10-19. Registered local checkpoint: `6a2b92b`.
+State: implementation/preparation PASS; native public settlement still PENDING.
+
+A resumed Luna(high) implementation agent finished the bounded runner, another
+expanded failure tests, and another independently reviewed proof/budget safety.
+Primary reviewed all paths, built and ran the actual four-transaction Anvil
+acceptance test, corrected integration issues, and reproduced the full suite.
+
+`npm run compile`, `npm run typecheck`, and `npm test` pass **87/87** tests.
+The actual runner deploys Core, settles via the registered SDK handler, disables
+admission and includes a valid-signature reverted transaction, all against an
+explicit local mock fixture. It records four hashes before four broadcasts,
+checks gas/fees/value, recovers without signer access and rejects tampered
+journal nonce data. Negative checks cover partial known-hash recovery, wrong
+signer, insufficient/excess funding, a preexisting pending queue and a nonce
+change before preparation. This remains local EVM evidence, not native USDC.
+
+Review caught a preexisting-pending-nonce baseline gap and fixed it by requiring
+the confirmed snapshot count to equal pending before session creation, then
+checking both counts before each new transaction. Actual integration also
+caught deployment-null normalization, omitted zero fields/empty code in viem,
+and preflight sender/hex encoding differences. These fixes were exercised in
+the final passing run. Revert reporting now names the authorization nonce and
+states rollback while admission is disabled, without claiming a trace-based
+exact revert cause; out-of-gas ambiguity is rejected. Complete recovery binds
+nonce/calldata/intent identities, four consecutive nonces/order, gas/fee caps,
+relayer EOA code and canonical financial proofs.
+
+`src/public-runner.ts` and the two CLI entry points finish Gate C preparation.
+Default execution is configuration-only. Existing journals enter read-only
+recovery before touching a signer, including partial/pending runs. The verifier
+reports public block/gas/calldata fields and available auxiliary fee metadata,
+with one canonical inclusion as its policy and no finality claim.
+
+A fresh signer-free check through the runner's actual adapter passed native
+Base Sepolia USDC at block **48318516**, hash
+`0x499b8a0bf0b65d485d8f2f6ff0ffa96617558fa15cf3a86121806910b4c7445e`.
+This verifies token identity/domain/receive selector only. It used a synthetic
+invalid signature and submitted no transaction. Evidence is in
+`evidence/runner-token-preflight.json` and `evidence/public-preparation.json`.
+
+The actual runtime config check reports missing role-address/budget variables;
+no populated environment or private backup was manually inspected. Synthetic
+public configuration returns CHECK_ONLY; a nonexistent journal returns
+JOURNAL_UNAVAILABLE without signer use. No public mutation was made.
+
+### Exact next action and blocker
+
+Obtain explicit approval and configure funded opaque runtime signers for one
+four-transaction Base Sepolia attempt. Proposed template: max fee100000000 wei,
+priority1000000 wei, total gas3100000 and auxiliary reserve100000000000000 wei;
+dedicated relayer starts with exactly **410000000000000 wei (0.00041 test ETH)**,
+with no incoming funds/concurrent use. Payer holds at least200 atomic native
+USDC; successful spend100. Expected payer, relayer and payout are distinct.
+The auxiliary reserve is not a protocol-enforced L1 fee ceiling (EVM-010).
+
+After approval/funding, run the guarded entry point once with a fresh journal,
+then the signer-free verifier against that journal. On uncertainty, only query
+recorded hashes; do not create another purchase or discard a journal. Record
+actual public hashes, block/gas/calldata, deltas and rollback before accepting
+M1. Do not start M2 or mark M1 complete while this public evidence is absent.

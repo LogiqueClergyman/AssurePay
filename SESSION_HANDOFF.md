@@ -4,38 +4,47 @@ Date: 2026-10-19. Branch: `evm/restart`.
 Current phase: M1 settlement feasibility — IN_PROGRESS.
 Active packet: `planning/EVM_M1_SETTLEMENT_SPIKE.md`.
 Results: `planning/EVM_M1_RESULTS.md`.
-Gate A commit: `5126ccf`. Gate B commit: `07957e5`.
-Gate C local registration/execution: PASS. Public proof: PENDING.
+Commits: Gate A `5126ccf`; Gate B `07957e5`; registered local Gate C `6a2b92b`.
+Gates A/B and Gate C preparation/local integration PASS. Public proof PENDING.
 
-## Current state
+## Verified state
 
-The isolated `spikes/evm-m1/` package compiles unchanged pinned Solidity and
-passes strict typechecking plus 78 tests. Actual SDK client/resource server/
-self-hosted facilitator executes on Anvil before service. Receipt and public
-proof readers check canonical transaction/event/state, pre/post balances and
-rollback. Signed bytes and payer signatures remain in memory. The public
-configuration parser and exclusive/fsynced public journal are implemented.
-The original Gate A rejecting facilitator remains only a negative fixture.
+`spikes/evm-m1/` compiles the pinned unchanged Solidity, passes strict typecheck
+and all87 tests. Actual Anvil execution proves registered x402 settlement,
+atomic100/93/7, negative/rollback cases, and the complete bounded four-step
+runner plus signer-free restart recovery and journal-tamper rejection. A fresh
+read-only runner-adapter check passed native Base Sepolia USDC at block48318516.
+No public transaction or native USDC settlement acceptance exists yet.
 
-Primary verified delegated Luna(high) work, corrected SDK spend-control and
-JSON-wire issues, and reproduced actual EVM results. No public transaction or
-full financial core/provider/stake/pool/claim system exists yet. This is a
-scoped spike review, not a production security audit.
+Luna(high) agents implemented and independently reviewed focused paths; primary
+integrated, corrected SDK/viem/nonce assumptions and ran final checks. This is a
+scoped spike review, not a production security audit. Source hashes and proof
+limits are recorded in evidence/public-preparation.json and the results file.
 
-## Exact next action
+Default `npm run public:run` and `public:check` are configuration-only. Existing
+journal paths enter recovery before accessing signers. `public:verify --
+--journal <directory>` only reads public journal/RPC state. Partial known-hash
+runs are reconciled without replacements. No signatures/raw signed blobs or
+secrets are persisted. Runtime role/budget variables are currently missing.
 
-Finish and verify `src/public-runner.ts`, `scripts/public-run.ts` and
-`scripts/verify-public.ts` with bounded execution and read-only restart recovery.
-The assigned Luna agent is implementing those paths; preserve its in-progress
-work. Then update results/handoff and commit the verified preparation checkpoint.
+## Exact next action and blocker
 
-Runtime funded payer/relayer and explicit bounded public execution scope remain
-prerequisites. Do not manually inspect populated envs/private backups. Follow
-EVM-009/010: four fixed transactions, locally derived hashes durably recorded
-before broadcast, existing sessions recovery-only, exact total funding of a
-dedicated relayer and no concurrent use/funding. Auxiliary fees are not capped
-by EIP-1559. Default commands must remain non-mutating.
+Obtain explicit bounded public approval and funded opaque runtime wallets; do
+not manually inspect populated envs/private backups or ask for keys in chat.
+Prepared scope: one fresh Core deployment, one registered successful purchase,
+one admission-disable fixture transaction, one valid-signature included revert.
+The template uses gas caps2000000/500000/100000/500000, max fee100000000 wei,
+priority1000000 wei and auxiliary reserve100000000000000 wei. Dedicated relayer
+must hold exactly410000000000000 wei (0.00041 test ETH), payer >=200 atomic
+native USDC; successful spend100. No concurrent relayer use/incoming funding.
+Auxiliary reserve is not an on-chain L1 fee cap; follow EVM-009/010.
 
-User authorizes verified checkpoint commits and sequential Luna(high)
-delegation; no push or history amendment. No `/docs` access is needed. Do not
-start M2 until native public USDC evidence satisfies M1.
+After approval/configuration/funding, run `public:check`, signer-free token
+preflight, then the guarded `public:run -- --execute` once with a fresh explicit
+M1_PUBLIC_JOURNAL_DIR. On uncertainty read existing hashes only; never remove a
+journal/re-sign to recover a response. Verify independently with `public:verify`
+and record actual public hashes, canonical financial outcomes and measured fees.
+M1 cannot be accepted and M2 cannot begin until the packet's public gate passes.
+
+User authorizes verified checkpoint commits and Luna(high) delegation. No push,
+history amendment, or `/docs` access is authorized/needed. Preserve archive/main.

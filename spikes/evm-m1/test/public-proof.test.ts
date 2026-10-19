@@ -12,6 +12,10 @@ import { attemptRevert, compileContracts, deploy, signReceive, startEvm, transac
 test('public proof readers verify actual local deployment/split/valid-signature admission revert', async () => {
   const evm = await startEvm();
   try {
+    const send = async (request: Record<string, unknown>) => {
+      try { return await evm.walletClient.sendTransaction(request); }
+      catch { throw new Error('LOCAL_PUBLIC_PROOF_SUBMISSION_FAILED'); }
+    };
     const artifacts = compileContracts();
     const tokenArtifact = artifacts.AuthorizationTokenMock!;
     const coreArtifact = artifacts.AssuranceCoreSpike!;
@@ -22,7 +26,7 @@ test('public proof readers verify actual local deployment/split/valid-signature 
     await transact(evm, tokenArtifact.abi, NATIVE_USDC, 'mint', [evm.payer.address, 200n]);
     const deploymentInput = encodeDeployData({ ...coreArtifact, args: [NATIVE_USDC, evm.provider.address,
       DEMO_TERMS.providerId, DEMO_TERMS.policyId, DEMO_TERMS.policyHash] });
-    const deploymentHash = await evm.walletClient.sendTransaction({ account: evm.owner, data: deploymentInput, gas: 2_000_000n });
+    const deploymentHash = await send({ account: evm.owner, data: deploymentInput, gas: 2_000_000n });
     const receipt = await evm.publicClient.waitForTransactionReceipt({ hash: deploymentHash });
     const core = receipt.contractAddress;
     const deployment = await verifyPublicDeployment(evm.publicClient, { transaction: deploymentHash,
@@ -41,7 +45,7 @@ test('public proof readers verify actual local deployment/split/valid-signature 
       return { call, intent };
     };
     const first = await purchase('a1');
-    const firstHash = await evm.walletClient.sendTransaction({ account: evm.owner, to: core, data: first.call.data, gas: 500_000n });
+    const firstHash = await send({ account: evm.owner, to: core, data: first.call.data, gas: 500_000n });
     await evm.publicClient.waitForTransactionReceipt({ hash: firstHash });
     const expected = { transaction: firstHash, core, payer: evm.payer.address, relayer: evm.owner.address,
       providerPayout: evm.provider.address, calldataHash: keccak256(first.call.data) };
@@ -52,11 +56,19 @@ test('public proof readers verify actual local deployment/split/valid-signature 
     assert.equal((await verifyPublicSuccess(evm.publicClient, { ...expected, minimumConfirmations: 2n })).ok, false);
     await transact(evm, coreArtifact.abi, core, 'setAdmissionEnabled', [false]);
     const second = await purchase('b2');
-    const revertHash = await evm.walletClient.sendTransaction({ account: evm.owner, to: core, data: second.call.data, gas: 500_000n });
+    const revertHash = await send({ account: evm.owner, to: core, data: second.call.data, gas: 500_000n });
     await evm.publicClient.waitForTransactionReceipt({ hash: revertHash });
     const rollback = await verifyPublicAdmissionRevert(evm.publicClient, { ...expected,
       transaction: revertHash, calldataHash: keccak256(second.call.data) });
     assert.equal(rollback.ok, true);
+    assert.equal('authorizationNonceUnused' in rollback ? rollback.authorizationNonceUnused : false, true);
+    const actualReceipt = await evm.publicClient.getTransactionReceipt({ hash: revertHash });
+    const actualTx = await evm.publicClient.getTransaction({ hash: revertHash });
+    const outOfGasReader = { ...evm.publicClient,
+      getTransactionReceipt: async () => ({ ...actualReceipt, gasUsed: actualTx.gas }),
+    };
+    assert.equal((await verifyPublicAdmissionRevert(outOfGasReader, { ...expected,
+      transaction: revertHash, calldataHash: keccak256(second.call.data) })).ok, false);
     assert.equal((await verifyPublicAdmissionRevert(evm.publicClient, expected)).ok, false);
     assert.equal((await verifyPublicDeployment(evm.publicClient, { transaction: deploymentHash,
       relayer: evm.outsider.address, providerPayout: evm.provider.address })).ok, false);

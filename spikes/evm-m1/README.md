@@ -99,7 +99,7 @@ intent-field substitution, signer/domain/type/replay/cancellation, exact time
 boundaries, admin checks, reentrancy selector and full nested rollback including
 token nonce. Included reverts still charge native gas to the relayer.
 
-Run `npm run test:execution` for that subset; `npm test` includes all78 tests.
+Run `npm run test:execution` for that subset; `npm test` includes all87 tests.
 Anvil1.7.1 must be available on PATH and local loopback binding permitted. The
 call/relay unit checks additionally exercise immutable calldata and recovery
 after a lost broadcast response. Relay state is process-local, not durable
@@ -114,7 +114,7 @@ separate identities. No moving source URL is treated as an installed revision.
 
 Solidity 0.8.30 with Cancun target/optimizer 200 and OpenZeppelin 5.6.1 are pinned
 and used by Gate B. Forge/Anvil1.7.1 are available. Actual local compilation/
-execution and all78 tests pass. The full financial core, public mutation and
+execution and all87 tests pass. The full financial core, public mutation and
 native USDC settlement acceptance are not yet proven.
 
 
@@ -151,8 +151,8 @@ native-token or public-chain evidence.
 `src/public-config.ts` parses bounded public configuration without touching a
 signer or RPC. `src/journal.ts` persists only public identities exclusively and
 fsyncs them before submission; existing sessions permit read-only recovery.
-Public execution still requires separate explicit scope/funding. The runner
-and signer-free CLI verifier are the remaining preparation work.
+Public execution still requires separate explicit scope/funding. The bounded
+runner and signer-free CLI verifier are now implemented and locally verified.
 
 Base fees include L1 publication costs outside EIP-1559 execution fee caps.
 The public auxiliary reserve is not a transaction-format L1 fee ceiling; use a
@@ -160,3 +160,44 @@ dedicated relayer with the exact approved total funding and no concurrent use
 or incoming funds. EVM-010 records this constraint and the bounded four-step
 attempt. Sources: [Base network fees](https://docs.base.org/specifications/transactions/network-fees),
 [OP Stack fees](https://docs.optimism.io/op-stack/transactions/fees).
+
+
+## Public runner and exact next step
+
+`npm run public:check` validates public configuration only. `npm run public:run`
+also defaults to check-only, without constructing a signer, contacting an RPC,
+or writing a journal. `.env.example` is a template; provide runtime variables
+through your local secure environment. The runtime keys are never printed or
+written to the journal. Do not supply them in chat or evidence files.
+
+The prepared scope is one four-transaction Base Sepolia attempt: fresh pinned
+Core deployment, registered x402 settlement, admin admission disable, and one
+included revert using a second valid payer authorization. Gas caps are
+2,000,000 / 500,000 / 100,000 / 500,000. The template's 0.1 gwei execution fee
+cap plus auxiliary reserve gives an exact dedicated starting balance of
+410000000000000 wei (0.00041 test ETH). Payer needs at least 200 atomic USDC;
+only the successful purchase spends 100. Provider payout needs no funding.
+This scope/budget is prepared, not authorized or executed.
+
+After explicit public approval and runtime funding/configuration, the execute
+entry point is `npm run public:run -- --execute` with the exact scope guard and
+a fresh `M1_PUBLIC_JOURNAL_DIR`. It rejects preexisting pending relayer use and
+excess native funding. Each new preparation rechecks confirmed/pending nonce
+and canonical balance; fee/gas/value and signed transaction fields are bound.
+Only one broadcast is attempted for each durably recorded hash. Any uncertainty
+stops progression. Do not remove/recreate a journal to recover a response.
+
+`npm run public:verify -- --journal <directory>` performs signer-free recovery.
+Existing execution journals also route directly to recovery before signer access.
+Partial runs query every known hash and remain incomplete/pending. Complete
+recovery checks journal identities/nonces, four consecutive transactions and
+chain order, limits, relayer EOA code, deployment, token/coverage proof and
+rollback. It reports public block/gas/calldata metadata and available auxiliary
+fees. One canonical inclusion is the current policy; finality is not claimed.
+
+The complete runner is tested through actual Anvil execution with explicitly
+injected mock token code/preflight, including restart without a signer and
+journal tampering. The runner's separate live read-only preflight passed native
+USDC at block48318516. No public transaction, funded-runtime readiness, or M1
+public settlement acceptance is claimed. See `evidence/public-preparation.json`
+and root `planning/EVM_M1_RESULTS.md` for verified state and remaining gate.

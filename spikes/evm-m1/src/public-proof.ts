@@ -122,7 +122,7 @@ export async function verifyPublicAdmissionRevert(client: ProofReader, expected:
     const confirmations = expected.minimumConfirmations ?? 1n;
     if (confirmations < 1n || confirmations > 1000n || receipt.status !== 'reverted' ||
         !same(receipt.transactionHash, expected.transaction) || !same(tx.blockHash, receipt.blockHash) ||
-        tx.blockNumber !== receipt.blockNumber || receipt.blockNumber < 1n || receipt.logs.length !== 0) throw new Error();
+        tx.blockNumber !== receipt.blockNumber || receipt.blockNumber < 1n || receipt.logs.length !== 0 || receipt.gasUsed >= tx.gas) throw new Error();
     const blockNumber = receipt.blockNumber as bigint;
     const block = await client.getBlock({ blockNumber });
     const previous = await client.getBlock({ blockNumber: blockNumber - 1n });
@@ -152,9 +152,9 @@ export async function verifyPublicAdmissionRevert(client: ProofReader, expected:
     }
     if (!same((await client.getBlock({ blockNumber })).hash, receipt.blockHash) ||
         !same((await client.getBlock({ blockNumber: blockNumber - 1n })).hash, previous.hash)) throw new Error();
-    return { ok: true, code: 'PUBLIC_ADMISSION_ROLLBACK_VERIFIED', transaction: expected.transaction,
+    return { ok: true, code: 'PUBLIC_ROLLBACK_WITH_ADMISSION_DISABLED_VERIFIED', transaction: expected.transaction,
       blockNumber, blockHash: receipt.blockHash as Hex, gasUsed: receipt.gasUsed as bigint,
-      effectiveGasPrice: receipt.effectiveGasPrice as bigint, nonceUnused: true, tokenBalancesUnchanged: true,
+      effectiveGasPrice: receipt.effectiveGasPrice as bigint, authorizationNonceUnused: true, tokenBalancesUnchanged: true,
       revertCause: 'not-traced; admission-disabled-at-block-boundaries' };
-  } catch { return { ok: false, code: 'PUBLIC_ADMISSION_ROLLBACK_INVALID', transaction: expected.transaction }; }
+  } catch { return { ok: false, code: 'PUBLIC_ROLLBACK_WITH_ADMISSION_DISABLED_INVALID', transaction: expected.transaction }; }
 }
