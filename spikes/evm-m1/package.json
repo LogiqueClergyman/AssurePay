@@ -13,7 +13,9 @@
     "public:check": "node --import tsx scripts/check-public-config.ts",
     "public:run": "node --import tsx scripts/public-run.ts",
     "public:verify": "node --import tsx scripts/verify-public.ts",
-    "wallets:setup": "node --import tsx scripts/setup-test-wallets.ts"
+    "wallets:setup": "node --import tsx scripts/setup-test-wallets.ts",
+    "vault:setup": "node --import tsx scripts/setup-vault.ts",
+    "vault:fund": "node --env-file=.env.local --env-file=.env.vault.local --import tsx scripts/vault-funding.ts"
   },
   "dependencies": {
     "@x402/core": "2.28.0",

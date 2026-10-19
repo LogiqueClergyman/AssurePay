@@ -341,3 +341,21 @@ No public test or fund-moving transaction was submitted. Retain the wallets;
 normalize the execution balance under an explicitly scoped funding action
 before starting the already-approved four-transaction test. Do not increase
 the approved spend budget merely because more funds arrived.
+
+
+### Vault normalization preparation
+
+The user authorized a managed Base Sepolia test-fund vault (EVM-012). Luna(high)
+agents implemented storage/funding/fee readers; primary review corrected stale
+balance checks, canonical transaction identity, checksum handling and pending
+hash recovery. Compile and strict typecheck pass; **105/105 tests pass**,
+including actual local EVM two-transfer normalization, restart with no duplicate
+transfer, lost-response recovery and changed-balance rejection before broadcast.
+Base receipt fee enrichment is read-only and explicitly preserves unavailable
+fee fields. Solidity creation hashes remain unchanged.
+
+Next: create the ignored private vault configuration once, execute the two
+authorized funding transfers using the durable funding journal, independently
+verify exact relayer funding, then run the approved four-transaction native
+USDC proof. No public funding/protocol transaction has been submitted at this
+preparation checkpoint.

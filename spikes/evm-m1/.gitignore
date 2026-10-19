@@ -1,2 +1,4 @@
 .env.local
 .local-public-run/
+.env.vault.local
+.local-vault-funding/

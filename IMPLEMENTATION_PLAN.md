@@ -5,7 +5,7 @@ Updated 2026-10-18. Target: Base Sepolia, native test USDC, EOA first.
 | Phase | State | Work packet | Gate |
 |---|---|---|---|
 | Baseline cleanup | COMPLETE | `planning/EVM_BASELINE_CLEANUP.md` | EVM-only active tree; archive preserved; results in `planning/EVM_BASELINE_RESULTS.md` |
-| M1 Settlement feasibility | IN_PROGRESS | `planning/EVM_M1_SETTLEMENT_SPIKE.md` | Gates A/B complete; Gate C local x402 + bounded runner/recovery pass (87 tests); public attempt approved; dedicated wallets await funding/native USDC acceptance |
+| M1 Settlement feasibility | IN_PROGRESS | `planning/EVM_M1_SETTLEMENT_SPIKE.md` | Gates A/B complete; Gate C local x402 + bounded runner/recovery pass (105 tests); public attempt and vault normalization approved; native USDC acceptance pending |
 | M2 Solidity financial core | NOT_READY | Prepare after M1 acceptance | Registration/policies/stake, pool funding/reservations, withdrawals, claims/expiry and execution invariants |
 | M3 Client/provider flow | NOT_READY | Prepare after M2 acceptance | Canonical request encoding, response receipt and real HTTP flow |
 | M4 Evidence and claims backend | NOT_READY | Prepare after M3 acceptance | Encrypted evidence, payer workflow, canonical/reorg-safe projection |

@@ -131,6 +131,15 @@ or broadcaster acknowledgment alone is insufficient. Record confirmation
 policy/finality level, public transaction/block hashes and gas/calldata.
 Distinguish true token deltas from unavoidable native gas fees.
 
+## Authorized vault funding preparation
+
+Under EVM-012 and the user's explicit vault instruction, prepare/manage a local
+Base Sepolia test EOA vault. Normalize excess relayer funding using the two
+journaled zero-calldata transfers defined by that decision, preserve the
+existing runtime wallets, and keep this funding evidence separate from the
+four protocol proof transactions. Vault files/scripts/tests remain under the
+spike's allowed paths. This grants no production treasury or full-core scope.
+
 ## Results and stopping rule
 
 Results record verified versions, schemas/vectors, test commands, actual EVM

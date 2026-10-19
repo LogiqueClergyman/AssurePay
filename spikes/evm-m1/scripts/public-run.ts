@@ -4,6 +4,7 @@ import { baseSepolia } from 'viem/chains';
 import { parsePublicConfig, publicConfigSummary, PublicConfigError } from '../src/public-config.js';
 import { BASE_SEPOLIA_RPC, validateRpcUrl } from '../src/preflight.js';
 import { publicJournalExists, recoverPublicRun, runPublicExecution } from '../src/public-runner.js';
+import { withBaseReceiptFees } from '../src/base-receipt-fees.js';
 
 const args = process.argv.slice(2);
 const execute = args.length === 1 && args[0] === '--execute';
@@ -31,8 +32,8 @@ if (!validArgs) {
     if (await publicJournalExists(journalPath)) {
       const rpcUrl = process.env.BASE_SEPOLIA_RPC_URL ?? BASE_SEPOLIA_RPC;
       if (!validateRpcUrl(rpcUrl)) throw new Error('M1_INVALID_RPC');
-      const client = createPublicClient({ chain: baseSepolia, transport: http(rpcUrl, { retryCount: 0 }), cacheTime: 0,
-        batch: { multicall: false } });
+      const client = withBaseReceiptFees(createPublicClient({ chain: baseSepolia, transport: http(rpcUrl, { retryCount: 0 }), cacheTime: 0,
+        batch: { multicall: false } }));
       const result = await recoverPublicRun(client as never, journalPath, 1n);
       out(result);
       if (!result.ok) process.exitCode = 1;
@@ -44,8 +45,8 @@ if (!validArgs) {
         out({ ok: false, code: 'SIGNER_ADDRESS_MISMATCH' });
         process.exitCode = 1;
       } else {
-        const client = createPublicClient({ chain: baseSepolia, transport: http(config.rpcUrl, { retryCount: 0 }), cacheTime: 0,
-          batch: { multicall: false } });
+        const client = withBaseReceiptFees(createPublicClient({ chain: baseSepolia, transport: http(config.rpcUrl, { retryCount: 0 }), cacheTime: 0,
+          batch: { multicall: false } }));
         const wallet = createWalletClient({ account: relayer, chain: baseSepolia,
           transport: http(config.rpcUrl, { retryCount: 0 }) });
         const result = await runPublicExecution({ config, payer, relayer, client: client as never,

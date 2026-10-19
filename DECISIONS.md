@@ -235,3 +235,54 @@ Approved values remain max fee100000000 wei, priority1000000 wei, total gas
 410000000000000 wei; payer has at least200 atomic native test USDC. Provider
 payout is a distinct test address. No mainnet transaction or broader public
 spending budget is inferred from continued phase authorization.
+
+
+## EVM-012 — Managed Base Sepolia test-fund vault
+
+Status: ACCEPTED. Date: 2026-10-19. Source: user explicitly authorizes creating
+and managing a vault account for excess funds and retrieving funds when needed.
+
+Use one locally generated test-only EOA vault, with an exclusive mode0600 ignored
+runtime file and public-only durable funding journal. Keep existing payer,
+provider payout and relayer identities/configuration. This is test-wallet
+operations, not a protocol treasury contract or production custody design.
+
+Normalize the currently overfunded relayer with two ordinary ETH transfers:
+(1) relayer sends its canonical balance minus410000000000000 wei to the new
+vault; its own funding fee leaves it below that target; (2) vault sends the
+measured shortfall back, so the receiving relayer holds exactly the approved
+410000000000000 wei. Excess remains in the vault. Funding operations are
+separate from the already-approved four protocol-test transactions. They may
+move only funds among these recorded local test accounts on chain84532.
+
+Bound each funding transaction to21000 gas, max fee100000000 wei and priority
+1000000 wei, zero calldata, and the exact measured value/destination. Preflight
+an auxiliary L1 fee estimate against100000000000000 wei per transfer; this is
+an estimate guard, not a transaction-format L1 fee cap. Record actual fee/balance
+outcomes. No automatic fee escalation or same-purpose replacement is allowed.
+
+Derive/sign in memory, durably record transaction hash/nonce/value/addresses
+and fee/gas bounds before broadcasting once. Existing funding journals allow
+read-only recovery; an ambiguous transaction must be reconciled by hash before
+any next step. Never repeat the excess transfer or create a fresh purchase to
+recover a response. If the first transfer is confirmed, one uniquely journaled
+shortfall top-up may continue without repeating it. Reject concurrent wallet
+use, unknown nonces, nonempty account code, wrong chain or changed balances.
+
+The user authorizes managing/retrieving test funds as needed for implementation;
+keep each later operation's purpose/value/fee scope explicit and recorded.
+Current concrete scope is the two normalization transfers then the existing
+M1 proof. No mainnet funds or external recipient transfer is inferred.
+
+## EVM-013 — Allowlisted Base receipt fee enrichment
+
+Status: ACCEPTED for M1 evidence. Date: 2026-10-19.
+
+The pinned viem Base Sepolia chain uses the standard receipt formatter, which
+omits raw OP Stack L1 fee fields. Preserve standard receipt validation, then
+read the same public receipt through `eth_getTransactionReceipt` and attach
+only strictly parsed fee quantities after matching transaction/block identity.
+Never output or persist raw receipts or calldata. Missing/unsupported fee fields
+remain explicitly unavailable; do not guess an operator-fee formula. Wire this
+read-only enrichment into public run/recovery so measured L1 publication fees
+are retained without changing settlement or signing behavior.

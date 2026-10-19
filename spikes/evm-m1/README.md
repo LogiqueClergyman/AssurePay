@@ -225,3 +225,24 @@ file with `node --env-file=.env.local --import tsx scripts/public-run.ts --execu
 Future sessions must retain the existing file/journal and reconcile existing
 hashes. Approval for the one attempt is already recorded; wallet funding is the
 remaining prerequisite. Do not pass private keys through chat.
+
+
+## Authorized test-fund vault
+
+The EVM-012 vault moves only Base Sepolia test ETH between the existing relayer
+and a new local vault EOA. Preserve the existing `.env.local`; create the vault
+configuration once with `npm run vault:setup`. It refuses to overwrite an
+existing `.env.vault.local` and prints only the vault address and configuration
+path. Keep both runtime files private; do not display or manually inspect them.
+
+From `spikes/evm-m1`, first run `npm run vault:fund` for its default check. It
+loads the existing relayer configuration and `.env.vault.local`. When the
+public state is ready, run `npm run vault:fund -- --execute` once. The runner
+journals each transaction hash and nonce before broadcasting and is bounded to
+the two authorized transfers: excess relayer balance to the vault, then the
+measured shortfall back to the relayer so it holds exactly
+`410000000000000` wei. It uses the persistent `.local-vault-funding` journal
+(or the configured `VAULT_FUNDING_JOURNAL_DIR`) for recovery. Never
+delete or recreate that journal to retry. If a result is pending or uncertain,
+reconcile its recorded hash before any further funding action. Keys and signed
+transaction bytes are not printed or stored in the journal.
