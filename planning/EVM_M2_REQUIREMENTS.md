@@ -1,27 +1,17 @@
-# M2 financial-core requirements — draft for decision closure
+# M2 financial-core requirements — accepted baseline
 
-Status: DRAFT. This packet proposes a narrow baseline for review; none of the
-economic or product choices below is accepted. Do not implement M2 contracts
-from this draft until the required decisions are recorded in `DECISIONS.md`.
+Status: ACCEPTED under EVM-016; user chose the proposed baseline. Exact
+implementation interfaces and local execution gate are in EVM-017 and
+planning/EVM_M2_FINANCIAL_CORE.md.
 
 ## Current work boundary
 
-Read `AGENTS.md`, `SESSION_HANDOFF.md`, accepted EVM-015 and proposed EVM-004/005
-in `DECISIONS.md`, and the M2 row in `IMPLEMENTATION_PLAN.md`. M1 is accepted;
-its fixed100/93/7 demo is not a requirement for these financial terms. No
-`/docs` material is in scope.
-
-Until requirements close, allowed writes are this packet and focused
-`DECISIONS.md`, handoff and plan updates. Do not implement contracts, SDKs or
-backend, modify spike code, create signers, or send public transactions under
-this packet. Existing continuation authorization does not resolve missing
-product rules. Record answers before components depend on them.
-
-Exit gate: the refund/authority model and the equations/transitions below are
-complete, coherent and recorded as accepted or excluded; then prepare a separate
-M2 implementation packet. Documentation checks are `git diff --check` and a
-review for unresolved financial assumptions. These do not satisfy any financial
-execution gate; the coding packet must require actual EVM invariants.
+The user selected the proposed baseline on2026-10-19 (EVM-016). This accepted
+requirements record is refined into the active implementation packet
+`planning/EVM_M2_FINANCIAL_CORE.md` (EVM-017). Its paths, interfaces and gates
+control implementation. No `/docs` material is in scope. Historical proposal
+wording below describes the accepted baseline; remaining implementation details
+are fixed in the new packet before dependent code.
 
 ## Purpose and proposed scope
 
@@ -33,9 +23,7 @@ and pause behavior. Reuse M1's proven payment boundary only after its accepted
 interfaces are identified in the M2 implementation packet. This is a test
 financial core, not a production deployment or a second chain/asset design.
 
-The formulas and state rules below are conservative proposals to make the
-decisions concrete. They must not be described as accepted requirements until
-the user chooses or revises them.
+The user accepted the conservative formulas and state rules below.
 
 ## Proposed policy and settlement terms
 
@@ -122,8 +110,7 @@ One explicitly configured administrator controls provider/policy registration
 and a global pause. The proposed pause blocks new provider/policy registration
 and new settlement/coverage admission only. It does not block provider/pool
 funding, safe provider withdrawals, timely claim registration, adjudication,
-or unclaimed expiry closure. Start with one adjudicator address; who appoints
-or replaces it is unresolved. No upgrade, recovery key, or production role
+or unclaimed expiry closure. Start with one adjudicator address; the constructor configures it and this phase has no replacement function. No upgrade, recovery key, or production role
 rotation is proposed in this phase.
 
 ## Safety requirements independent of the refund-model choice
@@ -144,32 +131,10 @@ around token calls so a coverage has exactly one terminal transition and cannot
 refund or release twice. Pending timely claims block expiry closure. These
 properties need actual EVM success/failure/invariant tests in the coding packet.
 
-## Decisions required before the implementation packet
+## Decision closure
 
-The unresolved product question is whether the proposed refund authority and
-funding model matches the intended MVP. A baseline selection may cover the
-proposal as a whole; individual engineering details need not each receive a
-separate approval. The decision record must resolve these areas:
-
-1. Whether immutable policy BPS/duration/pool-only fields are the right
-   product controls, their permitted ranges, and premium/withholding rounding.
-2. Whether `L = ceil(G * stakeBps / 10,000)` and the stated pool reservation
-   rules provide the intended collateral and refund coverage.
-3. Which claim reasons qualify, who selects the adjudicator, whether one
-   adjudicator is sufficient, and which terminal outcomes/refund allocations
-   it may authorize.
-4. Whether provider-fault recovery may consume the same provider's free stake
-   before the pool, and how amounts not used for refunds are released.
-5. Coverage duration/expiry semantics, unclaimed closure, and treatment of
-   claims filed before expiry but finalized later.
-6. Administrator and adjudicator authority, pause scope, provider/policy
-   registration rules, and provider withdrawal authorization.
-7. Whether donated pool funds can ever be withdrawn and whether any additional
-   M2 economic paths are required.
-
-Do not fill unanswered points using historical notes or assumptions. Record
-the selected terms in `DECISIONS.md`; mark excluded behavior out of
-scope. Then write a separate M2 implementation packet with exact storage and
-interfaces, integer transition equations, success/failure invariants, and a
-local EVM execution gate. Financial contract implementation waits for a complete accepted requirements
-packet; the user’s existing implementation authorization remains in force.
+The user accepted the proposed model as a whole. EVM-016 records the economic
+and product rules; EVM-017 and the active implementation packet fix constructor
+role selection, immutable registry ownership, canonical hashes, withdrawal
+recipients, refund enum semantics, equations and actual-EVM acceptance tests.
+No economic requirements remain unanswered for this M2 local implementation.

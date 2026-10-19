@@ -317,3 +317,38 @@ Evidence and exact hashes/costs are in M1 results and public-native-usdc evidenc
 JSON. One canonical inclusion, no finality claim, no traced revert cause and no
 production audit. M2 may now be prepared; unresolved requirements in proposed
 EVM-004/005 must be recorded before dependent financial implementation.
+
+## EVM-016 — Accepted M2 collateral and refund baseline
+
+Status: ACCEPTED. Date:2026-10-19. Source: user selected “Use this proposed
+baseline” for the concrete M2 requirements/refund-model question.
+
+Accept the baseline in planning/EVM_M2_REQUIREMENTS.md: immutable configurable
+policy economics; minimum-one floor premium credited to pool; ceiling stake
+locks and optional revenue withholding into provider stake; conservative pool
+reservation G for pool-only eligibility, otherwise G-L. Provider-fault refunds
+use own coverage lock, same-provider free stake, then pool. Optional pool-only
+refunds consume pool funds only. Protect every other coverage/provider lock.
+One configured adjudicator may reject or approve partial/full refunds <=gross,
+paid to stored payer. Timely payer claims pin collateral without timeout;
+unclaimed expiry releases locks. Donations have no pool withdrawal/share right.
+Pause blocks admission/registration, not funding or existing obligations.
+EVM-004/005 are accepted as refined by this decision and the M2 packet.
+
+## EVM-017 — M2 local implementation boundary and fixed interfaces
+
+Status: ACCEPTED for implementation. Date:2026-10-19.
+
+Use isolated packages/evm-core, non-upgradeable Core with constructor-fixed admin
+and adjudicator, admin-controlled immutable provider/policy registration, and
+owner-only free stake withdrawal paid to stored owner. Constructor selects the
+single resolver; no replacement/role rotation in this phase. A resolver submits
+approved decisions; evidence evaluation itself belongs to later backend work.
+
+planning/EVM_M2_FINANCIAL_CORE.md freezes function/enum/storage semantics,
+canonical policy hash, unchanged twelve-field intent hash and atomic receive
+boundary, rounding/refund transitions and execution invariants before components
+depend on them. Pin Solidity0.8.30/Cancun/optimizer200 with viaIR for this new
+package, OZ5.6.1 and existing viem/TS tool versions. Existing M1 contracts/tooling
+remain unchanged. M2 requires local actual EVM execution; no new public mutation
+is included. This is implementation design, not proven solvency/security yet.

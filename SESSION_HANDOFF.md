@@ -1,8 +1,9 @@
 # Session handoff
 
 Date:2026-10-19. Branch:`evm/restart`. M1:ACCEPTED under EVM-015.
-Active work: M2 requirements closure, draft packet:
-`planning/EVM_M2_REQUIREMENTS.md`. No M2 contract implementation gate is open.
+Active work: M2 Solidity financial core. Active packet:
+`planning/EVM_M2_FINANCIAL_CORE.md`. User accepted requirements (EVM-016);
+interfaces are fixed by EVM-017. Local implementation gate is open.
 Completed packet:`planning/EVM_M1_SETTLEMENT_SPIKE.md`; results:
 `planning/EVM_M1_RESULTS.md`. All gates pass. Compile/typecheck and105 tests pass.
 
@@ -24,19 +25,10 @@ journals `.local-public-run`/`.local-vault-funding`. Never display populated env
 keys, signatures or raw signed blobs. Runtime Node env loading only.
 Do not delete journals or replace a payment to recover a response.
 
-Exact next action: obtain the intended refund/authority model for the concrete
-M2 draft. A product-clarification question is pending with three choices:
-use the proposed baseline, provider-fault refunds only, or automatic on-chain
-claim decisions. Do not treat elapsed time as an answer. Proposed baseline uses
-configurable immutable policy terms, fully
-reserved refunds, provider stake before pool for provider-fault refunds, optional
-policy-authorized pool-only refunds, and one configured adjudicator submitting
-partial/full refunds or rejection. Timely pending claims retain collateral.
-These are proposals, not accepted economic requirements. Record the selected
-terms in DECISIONS, then prepare the complete M2 implementation packet with
-interfaces, equations and execution invariants. Do not import requirements from
-`/docs`, history or comments. AGENTS requires gaps recorded and affected work
-stopped, so financial contracts wait for these requirements to be resolved.
+Exact next action: implement packages/evm-core per the active packet with
+Luna(high) contract/test delegation and independent primary review. Run pinned
+compile/typecheck and actual EVM financial/invariant tests, record M2 results.
+No new public mutations or M3 scope. Preserve completed M1 evidence and journals.
 
 User authorizes Luna(high) delegation, gated continuation and checkpoint commits.
 No push, history amendment or `/docs` access. Preserve archive/main.
