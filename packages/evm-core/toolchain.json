@@ -1,0 +1,15 @@
+{
+  "runtime": { "node": "24.18.0", "npm": "11.16.0", "anvil": "1.7.1" },
+  "compiler": {
+    "solc": "0.8.30",
+    "evmVersion": "cancun",
+    "optimizer": { "enabled": true, "runs": 200 },
+    "viaIR": true
+  },
+  "packages": {
+    "@openzeppelin/contracts": "5.6.1",
+    "viem": "2.57.7",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "code": "M2_LOCAL_EVM_MEASURED",
+  "chain": "isolated-anvil-84532",
+  "token": "faithful local ERC3009 fixture; not public USDC",
+  "gasUsed": {
+    "deploy": "2578907",
+    "registerProvider": "75733",
+    "registerPolicy": "100114",
+    "depositStake": "113243",
+    "fundPool": "71273",
+    "settleAssured": "516653",
+    "fileClaim": "56646",
+    "providerFault": "152127",
+    "poolOnly": "151525",
+    "rejection": "81589",
+    "closeExpired": "61305",
+    "withdrawStake": "89776",
+    "includedDuplicateRevert": "29443"
+  },
+  "artifact": {
+    "creationBytes": 12165,
+    "creationSha256": "d4680a45ecd7c1c5ebbf0e4436c1e0e531438dad2e0635852db44ef36b2688b6",
+    "runtimeTemplateBytes": 11562
+  },
+  "limits": [
+    "gas depends on fixture state and compiler settings",
+    "runtime template has constructor-patched immutables",
+    "no public new-Core deployment or production audit"
+  ]
+}
