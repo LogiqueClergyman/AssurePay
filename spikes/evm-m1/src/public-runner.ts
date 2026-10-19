@@ -342,6 +342,13 @@ async function runPublicExecutionInner(options: PublicExecutionOptions): Promise
   if (!Number.isSafeInteger(polls) || polls < 1 || polls > 20 || !Number.isSafeInteger(delay) || delay < 0 || delay > 5_000) {
     return fail('INVALID_POLL_BUDGET');
   }
+  // RPC receipt/transaction/state views can converge at different times.
+  // These retries only read proofs; they never prepare or submit transactions.
+  const proofRead = async <T>(read: () => Promise<T>, accepted: (result:T) => boolean): Promise<T> => {
+    let result = await read();
+    for(let i=1;i<polls&&!accepted(result);i++) { await sleep(delay); result=await read(); }
+    return result;
+  };
   const reader = createPublicPreflightAdapter(client);
   const preflight = await (options.preflight ?? (async () => runPreflight(reader)))(client);
   if (!preflight.ok) return fail('PREFLIGHT_FAILED');
@@ -397,8 +404,8 @@ async function runPublicExecutionInner(options: PublicExecutionOptions): Promise
     return fail('DEPLOYMENT_UNCONFIRMED', [{ kind: 'deploy', transaction: deployment.hash, ok: false, code: 'RECEIPT_UNAVAILABLE' }]);
   }
   const core = deployment.receipt.contractAddress as Address;
-  const deploymentProof = await verifyPublicDeployment(client, { transaction: deployment.hash,
-    relayer: relayer.address, providerPayout: config.providerPayout });
+  const deploymentProof = await proofRead(()=>verifyPublicDeployment(client, { transaction: deployment.hash,
+    relayer: relayer.address, providerPayout: config.providerPayout }), result=>result.ok);
   results.push({ kind: 'deploy', transaction: deployment.hash, ok: deploymentProof.ok, code: deploymentProof.code,
     publicMetadata: await publicMetadata(client, deployment.hash, (creation.length - 2) / 2) });
   if (!deploymentProof.ok) return fail('DEPLOYMENT_PROOF_FAILED', results);
@@ -431,16 +438,20 @@ async function runPublicExecutionInner(options: PublicExecutionOptions): Promise
       return driver.prepareCall(call);
     },
       async verifySuccess(receipt, call, payment) {
-        const proof = await verifyPublicSuccess(client, { transaction: receipt.transactionHash, core,
+        const proof = await proofRead(()=>verifyPublicSuccess(client, { transaction: receipt.transactionHash, core,
           payer: config.payer, relayer: config.relayer, providerPayout: config.providerPayout,
-          calldataHash: keccak256(call.data) });
+          calldataHash: keccak256(call.data) }), result=>result.ok);
         if (!proof.ok) throw new Error('M1_PUBLIC_PROOF_PENDING');
         return true;
       },
     }, createSalt: options.createSalt ?? (() => `0x${randomBytes(32).toString('hex')}` as Hex),
   });
   const payment = await flow.purchase();
-  const settled = await flow.settleBeforeService(payment);
+  let settled = await flow.settleBeforeService(payment);
+  for(let i=1;i<polls&&!settled.success&&settled.transaction;i++) {
+    await sleep(delay);
+    settled=await flow.settleBeforeService(payment);
+  }
   if (!settled.success) return fail('SUCCESS_SETTLEMENT_UNCONFIRMED', settled.transaction ? [
     { kind: 'success', transaction: settled.transaction as Hex, ok: false, code: settled.errorReason ?? 'PENDING' },
   ] : results);
@@ -454,7 +465,7 @@ async function runPublicExecutionInner(options: PublicExecutionOptions): Promise
     relayer, wallet, client, journalPath, polls, pollDelayMs: delay, checkBudget, expectedNonce: nonce, advanceNonce, ...feeOptions });
   if (!admission.receipt || admission.receipt.status !== 'success') return fail('ADMISSION_UNCONFIRMED', results);
   const admissionRecord = (await readSession(journalPath)).transactions.find(record => record.kind === 'admission');
-  if (!admissionRecord || !await verifyAdminDisable(client, session, core, admissionRecord)) return fail('ADMISSION_PROOF_FAILED', results);
+  if (!admissionRecord || !await proofRead(()=>verifyAdminDisable(client, session, core, admissionRecord), result=>result)) return fail('ADMISSION_PROOF_FAILED', results);
   results.push({ kind: 'admission', transaction: admission.hash, ok: true, code: 'PUBLIC_ADMISSION_DISABLED_VERIFIED',
     publicMetadata: await publicMetadata(client, admission.hash, (adminData.length - 2) / 2) });
 
@@ -467,8 +478,8 @@ async function runPublicExecutionInner(options: PublicExecutionOptions): Promise
     relayer, wallet, client, journalPath, intentHash: payload.intentHash, polls, pollDelayMs: delay,
     checkBudget, expectedNonce: nonce, advanceNonce, ...feeOptions });
   if (!reverted.receipt || reverted.receipt.status !== 'reverted') return fail('ADMISSION_REVERT_UNCONFIRMED', results);
-  const rollback = await verifyPublicAdmissionRevert(client, { transaction: reverted.hash, core, payer: config.payer,
-    relayer: config.relayer, providerPayout: config.providerPayout, calldataHash: keccak256(revertData) });
+  const rollback = await proofRead(()=>verifyPublicAdmissionRevert(client, { transaction: reverted.hash, core, payer: config.payer,
+    relayer: config.relayer, providerPayout: config.providerPayout, calldataHash: keccak256(revertData) }), result=>result.ok);
   results.push({ kind: 'revert', transaction: reverted.hash, ok: rollback.ok, code: rollback.code,
     publicMetadata: await publicMetadata(client, reverted.hash, (revertData.length - 2) / 2) });
   if (!rollback.ok) return fail('ROLLBACK_PROOF_FAILED', results);

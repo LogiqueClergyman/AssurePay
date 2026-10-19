@@ -246,3 +246,16 @@ measured shortfall back to the relayer so it holds exactly
 delete or recreate that journal to retry. If a result is pending or uncertain,
 reconcile its recorded hash before any further funding action. Keys and signed
 transaction bytes are not printed or stored in the journal.
+
+
+## Public gate completed
+
+M1 was accepted on2026-10-19 after actual Base Sepolia native USDC settlement
+and included admission rollback. Independent signer-free recovery passed all
+four recorded transactions. See `evidence/public-native-usdc-proof.json`,
+`evidence/public-native-usdc-verification.json` and the root M1 results. Earlier
+pending statements above describe historical preparation checkpoints.
+The existing `.local-public-run` is a completed proof journal, not a fresh run
+template; retain it and both private wallet files. Vault normalization is also
+complete. Future funding needs a separately recorded purpose; do not rerun it
+to top up a relayer that has since paid protocol fees.

@@ -286,3 +286,34 @@ Never output or persist raw receipts or calldata. Missing/unsupported fee fields
 remain explicitly unavailable; do not guess an operator-fee formula. Wire this
 read-only enrichment into public run/recovery so measured L1 publication fees
 are retained without changing settlement or signing behavior.
+
+## EVM-014 — Bounded read-only reconciliation inside the public attempt
+
+Status: ACCEPTED for M1. Date: 2026-10-19.
+
+The real vault transfers demonstrated temporary disagreement between receipt
+availability and transaction/state reads: immediate proof failed, then the same
+recorded hash verified without replacement. During the authorized protocol run,
+allow bounded read-only proof retries after inclusion and registered settlement
+retries only for the identical payload with an existing transaction hash. Reuse
+the configured receipt poll count/delay; no new signature, salt, broadcast or
+replacement is permitted to recover a submitted payment. Exhaustion preserves
+the journal and stops the run for signer-free reconciliation.
+
+
+## EVM-015 — M1 mechanism acceptance
+
+Status: ACCEPTED for feasibility. Date: 2026-10-19.
+
+Actual Base Sepolia native USDC settlement through the registered self-hosted
+x402 flow proves receive-authorization nonce commitment, atomic payment/coverage
+and100/93/7 split. A second valid-signature included revert proves unchanged
+financial state and unused nonce with admission disabled. Independent signer-free
+recovery reconciles all four bounded transactions. Primary accepts Gates A/B/C.
+EVM-003's candidate is now demonstrated for this EOA/USDC profile; fixed demo
+terms and fixtures do not define M2 collateral or refund economics.
+
+Evidence and exact hashes/costs are in M1 results and public-native-usdc evidence
+JSON. One canonical inclusion, no finality claim, no traced revert cause and no
+production audit. M2 may now be prepared; unresolved requirements in proposed
+EVM-004/005 must be recorded before dependent financial implementation.

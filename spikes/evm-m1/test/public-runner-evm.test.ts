@@ -40,12 +40,29 @@ test('bounded four-step runner and signer-free recovery execute against actual l
         catch { stages.push('sign-failed'); throw new Error('LOCAL_SIGN_FAILED'); }
       },
     };
-    const result = await runPublicExecution({ config, payer: evm.payer, relayer: evm.owner,
-      client: evm.publicClient, wallet, journalPath: path,
+    // Model receipt/transaction propagation lag without repeating any broadcast.
+    const receiptReads = new Set<string>(), transactionReads = new Set<string>();
+    let broadcasts=0,payerSignatures=0;
+    const client = { ...evm.publicClient,
+      async sendRawTransaction(args:any) { broadcasts++; return evm.publicClient.sendRawTransaction(args); },
+      async getTransactionReceipt(args:any) {
+        if(!receiptReads.has(args.hash)) { receiptReads.add(args.hash); throw new Error('LOCAL_RECEIPT_LAG'); }
+        return evm.publicClient.getTransactionReceipt(args);
+      },
+      async getTransaction(args:any) {
+        if(!transactionReads.has(args.hash)) { transactionReads.add(args.hash); throw new Error('LOCAL_TRANSACTION_LAG'); }
+        return evm.publicClient.getTransaction(args);
+      },
+    };
+    const payer={...evm.payer,async signTypedData(data:any) { payerSignatures++;return evm.payer.signTypedData(data); }};
+    const result = await runPublicExecution({ config, payer, relayer: evm.owner,
+      client, wallet, journalPath: path,
       preflight: async () => ({ ok: true }), receiptPolls: 2, pollDelayMs: 0 });
     const recorded = await readSession(path);
     assert.equal(result.ok, true, JSON.stringify({code:result.code,stages,kinds:recorded.transactions.map(record=>record.kind)}));
     assert.equal(result.transactions.length, 4);
+    assert.equal(broadcasts,4);
+    assert.equal(payerSignatures,2);
     assert.equal(stages.filter(stage => stage === 'prepare').length, 4);
     assert.equal(stages.filter(stage => stage === 'sign').length, 4);
     const session = await readSession(path);

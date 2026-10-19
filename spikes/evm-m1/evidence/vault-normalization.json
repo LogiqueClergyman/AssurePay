@@ -1,0 +1,50 @@
+{
+  "code": "VAULT_NORMALIZATION_VERIFIED",
+  "chainId": 84532,
+  "vault": "0x7a776d8f819b33f50ef85d37effcb5bdd2714756",
+  "relayer": "0xc6643871078fd90c1a94528369c2443f53b9762a",
+  "targetWei": "410000000000000",
+  "relayerBalanceWei": "410000000000000",
+  "vaultBalanceWei": "99154640689918186",
+  "observedBlock": {
+    "number": "48327647",
+    "hash": "0x6fea25c8159dbd7ac5ac17c576238919311f36ee0a5501c17c543eedf1cdafa7"
+  },
+  "confirmationPolicy": "canonical-inclusion-minimum-1",
+  "transfers": [
+    {
+      "kind": "excess",
+      "transaction": "0x71f5bc03cce85bd72287f9a0c2c94d8e0e160f051649c863eb77396412783739",
+      "from": "0xc6643871078fd90c1a94528369c2443f53b9762a",
+      "to": "0x7a776d8f819b33f50ef85d37effcb5bdd2714756",
+      "nonce": "0",
+      "valueWei": "99154892689918374",
+      "blockNumber": "48327564",
+      "blockHash": "0xd75ce67c06b1a78d1c73cf2a0da30d51714ce774fd8bad631a2f61a788297408",
+      "status": "success",
+      "gasUsed": "21000",
+      "effectiveGasPrice": "6000000",
+      "executionFeeWei": "126000000000",
+      "l1FeeWei": "94",
+      "operatorFeeWei": "unavailable",
+      "actualTotalFeeWei": "126000000094"
+    },
+    {
+      "kind": "top-up",
+      "transaction": "0x83d724335290864d8578ffe9081ffe024d687eca1e984fc7ac0665110bcad73a",
+      "from": "0x7a776d8f819b33f50ef85d37effcb5bdd2714756",
+      "to": "0xc6643871078fd90c1a94528369c2443f53b9762a",
+      "nonce": "0",
+      "valueWei": "126000000094",
+      "blockNumber": "48327588",
+      "blockHash": "0x76b32cf4abbfedd1fb755e7756a271c3887e5fe3ed788ef05b16d2a85bbd3032",
+      "status": "success",
+      "gasUsed": "21000",
+      "effectiveGasPrice": "6000000",
+      "executionFeeWei": "126000000000",
+      "l1FeeWei": "94",
+      "operatorFeeWei": "unavailable",
+      "actualTotalFeeWei": "126000000094"
+    }
+  ]
+}

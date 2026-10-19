@@ -1,0 +1,140 @@
+{
+  "code": "PUBLIC_NATIVE_USDC_M1_PROVEN",
+  "chainId": 84532,
+  "token": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "roles": {
+    "core": "0x35e6a35b68869bbe8548d41ac75ddd8e4bf6cfce",
+    "payer": "0x6671c66c40133c62f3442baa91f6868f1d7769fd",
+    "relayer": "0xc6643871078fd90c1a94528369c2443f53b9762a",
+    "providerPayout": "0x2ccf71ae890f9fe8c85d97086ffe145ddcc3bc29"
+  },
+  "coverageId": "0xaefbc2348d535ed26b1ec2ad3e7379269ab66439167113fa4334824804bb8e13",
+  "rollbackAuthorizationNonce": "0xaa9166b243c6f06b07ccf7f7f9cd6daa39def409cf35887f76af8abe444bedf3",
+  "deployment": {
+    "ok": true,
+    "code": "PUBLIC_DEPLOYMENT_VERIFIED",
+    "transaction": "0x1afb8f58e57b6dfb48552a84219648131ab94fe4ecf1415bd40fd967eb948b12",
+    "core": "0x35e6a35b68869bbe8548d41ac75ddd8e4bf6cfce",
+    "blockNumber": "48327655",
+    "blockHash": "0x3e1ed4e80ca7e9bab7079b784f4caca99c887d3f6ebfd93ad88751042cc23ec8",
+    "gasUsed": "1248153"
+  },
+  "success": {
+    "ok": true,
+    "code": "VERIFIED",
+    "transaction": "0xb4bfdb4cd70eaa97d9b215fc7455e16d8649d22bb06c21ed0d2a608beb9012e9",
+    "calldataBytes": 484,
+    "blockNumber": "48327660",
+    "blockHash": "0x573f1a7c57160ca2914ff17e9f2af5614da29cd5a015fc6d18bea35f56faba59",
+    "gasUsed": "275146",
+    "effectiveGasPrice": "6000000",
+    "tokenDeltas": [
+      "-100",
+      "7",
+      "93"
+    ],
+    "confirmationPolicy": "canonical-inclusion-with-configured-depth"
+  },
+  "rollback": {
+    "ok": true,
+    "code": "PUBLIC_ROLLBACK_WITH_ADMISSION_DISABLED_VERIFIED",
+    "transaction": "0x4c67c6f90741f10b9f769f13b0daa9153f3ad3aca4aabb2fd9a42a419ece9ae9",
+    "blockNumber": "48327668",
+    "blockHash": "0x47df9e46b8c97ec82ee1e60e6e40b04a78cf46ec176c38326fdf78e2b4c89b35",
+    "gasUsed": "34870",
+    "effectiveGasPrice": "6000000",
+    "authorizationNonceUnused": true,
+    "tokenBalancesUnchanged": true,
+    "revertCause": "not-traced; admission-disabled-at-block-boundaries"
+  },
+  "run": {
+    "ok": true,
+    "code": "PUBLIC_RUN_COMPLETE",
+    "transactions": [
+      {
+        "kind": "deploy",
+        "transaction": "0x1afb8f58e57b6dfb48552a84219648131ab94fe4ecf1415bd40fd967eb948b12",
+        "ok": true,
+        "code": "PUBLIC_DEPLOYMENT_VERIFIED",
+        "publicMetadata": {
+          "l1FeeWei": "2535",
+          "operatorFeeWei": "unavailable",
+          "confirmationPolicy": "canonical-inclusion-minimum-1",
+          "blockNumber": "48327655",
+          "blockHash": "0x3e1ed4e80ca7e9bab7079b784f4caca99c887d3f6ebfd93ad88751042cc23ec8",
+          "gasUsed": "1248153",
+          "effectiveGasPrice": "6000000",
+          "calldataBytes": 6093
+        }
+      },
+      {
+        "kind": "success",
+        "transaction": "0xb4bfdb4cd70eaa97d9b215fc7455e16d8649d22bb06c21ed0d2a608beb9012e9",
+        "ok": true,
+        "code": "VERIFIED",
+        "publicMetadata": {
+          "l1FeeWei": "222",
+          "operatorFeeWei": "unavailable",
+          "confirmationPolicy": "canonical-inclusion-minimum-1",
+          "blockNumber": "48327660",
+          "blockHash": "0x573f1a7c57160ca2914ff17e9f2af5614da29cd5a015fc6d18bea35f56faba59",
+          "gasUsed": "275146",
+          "effectiveGasPrice": "6000000",
+          "calldataBytes": 484
+        }
+      },
+      {
+        "kind": "admission",
+        "transaction": "0x1e6b07dfe3c4de5d581957edb433b5c3e4c5a9a358ce00870a047080260f7b63",
+        "ok": true,
+        "code": "PUBLIC_ADMISSION_DISABLED_VERIFIED",
+        "publicMetadata": {
+          "l1FeeWei": "92",
+          "operatorFeeWei": "unavailable",
+          "confirmationPolicy": "canonical-inclusion-minimum-1",
+          "blockNumber": "48327665",
+          "blockHash": "0x309cd6d3665b733cfd742233487086a9a980809852d82cbd6c18e58139f69a33",
+          "gasUsed": "21834",
+          "effectiveGasPrice": "6000000",
+          "calldataBytes": 36
+        }
+      },
+      {
+        "kind": "revert",
+        "transaction": "0x4c67c6f90741f10b9f769f13b0daa9153f3ad3aca4aabb2fd9a42a419ece9ae9",
+        "ok": true,
+        "code": "PUBLIC_ROLLBACK_WITH_ADMISSION_DISABLED_VERIFIED",
+        "publicMetadata": {
+          "l1FeeWei": "222",
+          "operatorFeeWei": "unavailable",
+          "confirmationPolicy": "canonical-inclusion-minimum-1",
+          "blockNumber": "48327668",
+          "blockHash": "0x47df9e46b8c97ec82ee1e60e6e40b04a78cf46ec176c38326fdf78e2b4c89b35",
+          "gasUsed": "34870",
+          "effectiveGasPrice": "6000000",
+          "calldataBytes": 484
+        }
+      }
+    ]
+  },
+  "finalSnapshot": {
+    "blockNumber": "48327714",
+    "blockHash": "0x3e75d7b6ebde7f0b9f89ad30b41aa4e3513b829b3b6e3ceba7923bf82e73856e",
+    "tokenBalancesAtomic": {
+      "payer": "19999900",
+      "core": "7",
+      "provider": "93"
+    },
+    "relayerBalanceWei": "400519981996929",
+    "actualProtocolFeeWei": "9480018003071"
+  },
+  "limits": {
+    "oneCanonicalInclusion": true,
+    "finalityClaimed": false,
+    "revertCauseTraced": false,
+    "selfHostedFacilitator": true,
+    "jsonWireHarness": true,
+    "httpService": false,
+    "fullFinancialCore": false
+  }
+}

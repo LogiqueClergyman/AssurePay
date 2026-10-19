@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-19",
+  "gate": "M1-C-public-native-usdc",
+  "result": "verified",
+  "verification": {
+    "command": "node --import tsx scripts/verify-public.ts --journal /Users/adi/AssurePay/spikes/evm-m1/.local-public-run",
+    "mode": "signer-free, read-only recovery",
+    "code": "PUBLIC_RUN_RECONCILED",
+    "confirmationPolicy": "canonical inclusion, minimum 1; no finality claim",
+    "token": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "settlement": {
+      "tokenDeltasAtomic": {
+        "payer": "-100",
+        "core": "7",
+        "providerPayout": "93"
+      },
+      "coverageIdentity": "intent hash equals authorization nonce and stored coverage ID",
+      "authorizationNonceConsumed": true
+    },
+    "admissionRollback": {
+      "code": "PUBLIC_ROLLBACK_WITH_ADMISSION_DISABLED_VERIFIED",
+      "includedRevert": true,
+      "validPayerAuthorization": true,
+      "balancesNonceCoverageUnchanged": true,
+      "revertCause": "not traced; admission disabled at block boundaries"
+    }
+  },
+  "transactions": [
+    {
+      "kind": "deploy",
+      "transaction": "0x1afb8f58e57b6dfb48552a84219648131ab94fe4ecf1415bd40fd967eb948b12",
+      "blockNumber": "48327655",
+      "blockHash": "0x3e1ed4e80ca7e9bab7079b784f4caca99c887d3f6ebfd93ad88751042cc23ec8",
+      "gasUsed": "1248153",
+      "effectiveGasPriceWei": "6000000",
+      "l1FeeWei": "2535",
+      "operatorFeeWei": "unavailable",
+      "calldataBytes": 6093,
+      "verification": "PUBLIC_DEPLOYMENT_VERIFIED"
+    },
+    {
+      "kind": "success",
+      "transaction": "0xb4bfdb4cd70eaa97d9b215fc7455e16d8649d22bb06c21ed0d2a608beb9012e9",
+      "blockNumber": "48327660",
+      "blockHash": "0x573f1a7c57160ca2914ff17e9f2af5614da29cd5a015fc6d18bea35f56faba59",
+      "gasUsed": "275146",
+      "effectiveGasPriceWei": "6000000",
+      "l1FeeWei": "222",
+      "operatorFeeWei": "unavailable",
+      "calldataBytes": 484,
+      "verification": "VERIFIED"
+    },
+    {
+      "kind": "admission",
+      "transaction": "0x1e6b07dfe3c4de5d581957edb433b5c3e4c5a9a358ce00870a047080260f7b63",
+      "blockNumber": "48327665",
+      "blockHash": "0x309cd6d3665b733cfd742233487086a9a980809852d82cbd6c18e58139f69a33",
+      "gasUsed": "21834",
+      "effectiveGasPriceWei": "6000000",
+      "l1FeeWei": "92",
+      "operatorFeeWei": "unavailable",
+      "calldataBytes": 36,
+      "verification": "PUBLIC_ADMISSION_DISABLED_VERIFIED"
+    },
+    {
+      "kind": "revert",
+      "transaction": "0x4c67c6f90741f10b9f769f13b0daa9153f3ad3aca4aabb2fd9a42a419ece9ae9",
+      "blockNumber": "48327668",
+      "blockHash": "0x47df9e46b8c97ec82ee1e60e6e40b04a78cf46ec176c38326fdf78e2b4c89b35",
+      "gasUsed": "34870",
+      "effectiveGasPriceWei": "6000000",
+      "l1FeeWei": "222",
+      "operatorFeeWei": "unavailable",
+      "calldataBytes": 484,
+      "verification": "PUBLIC_ROLLBACK_WITH_ADMISSION_DISABLED_VERIFIED"
+    }
+  ],
+  "costs": {
+    "totalGasUsed": "1580003",
+    "executionFeeWei": "9480018000000",
+    "l1FeeWei": "3071",
+    "totalObservedFeeWei": "9480018003071",
+    "note": "Native transaction fees are separate from the USDC transfer deltas. Operator fee fields were not supplied by the RPC and are recorded as unavailable."
+  },
+  "evidenceLimits": [
+    "One canonical inclusion was observed; no finality claim is made.",
+    "The revert receipt is included and rollback is verified; exact revert cause was not traced.",
+    "This is M1 feasibility evidence for Base Sepolia native test USDC, not production acceptance or an audit."
+  ]
+}

@@ -3,7 +3,7 @@
 Date: 2026-10-18. Branch: `evm/restart`.
 Starting commit: `0026c60` — clean EVM baseline.
 Packet: `planning/EVM_M1_SETTLEMENT_SPIKE.md`.
-M1 state: IN_PROGRESS. Gates A/B: COMPLETE. Gate C: local integration PASS; public proof pending.
+M1 state: ACCEPTED (2026-10-19). Gates A/B/C: PASS, including native public USDC proof. Earlier pending snapshots below are historical.
 
 ## Gate A scope and delegation
 
@@ -359,3 +359,63 @@ authorized funding transfers using the durable funding journal, independently
 verify exact relayer funding, then run the approved four-transaction native
 USDC proof. No public funding/protocol transaction has been submitted at this
 preparation checkpoint.
+
+
+### Public vault normalization
+
+The authorized excess transfer and shortfall top-up are confirmed on Base
+Sepolia, separately from the protocol proof. Vault:
+`0x7a776d8F819B33F50ef85d37EFFcB5BDD2714756`. It holds
+99154640689918186 wei; the relayer was restored to exactly410000000000000 wei.
+Each transfer used21000 gas at6000000 wei, plus94 wei measured L1 fee
+(total126000000094 wei). Both immediate transaction proofs initially failed
+while RPC views converged; read-only recovery of the same hashes then passed.
+No replacement was signed or broadcast.
+
+Public-only evidence: `spikes/evm-m1/evidence/vault-normalization.json`. Keys
+remain only in ignored mode0600 runtime files; existing payer/relayer identities
+were preserved. EVM-014 adds bounded read-only proof retries and identical
+known-hash settlement retries within the authorized public run. Actual local
+EVM tests inject receipt/transaction lag and prove exactly four broadcasts and
+two planned payer authorizations, with no retry signature. All105 tests and
+strict typecheck pass.
+
+
+## Final M1 acceptance — 2026-10-19
+
+Primary accepts M1 after independent signer-free verification returned
+`PUBLIC_RUN_RECONCILED` for all four public transactions. Native Circle USDC
+on Base Sepolia was used; the registered self-hosted x402 handler settled before
+service through the pinned SDK JSON-wire harness. This is not an HTTP application
+or the full financial core.
+
+Core: `0x35e6a35b68869bbe8548d41ac75ddd8e4bf6cfce`.
+
+| Step | Transaction | Block | Gas | Calldata bytes |
+|---|---|---|---|---|
+| Deploy | `0x1afb8f58e57b6dfb48552a84219648131ab94fe4ecf1415bd40fd967eb948b12` | 48327655 | 1248153 | 6093 |
+| Settlement | `0xb4bfdb4cd70eaa97d9b215fc7455e16d8649d22bb06c21ed0d2a608beb9012e9` | 48327660 | 275146 | 484 |
+| Admission disable | `0x1e6b07dfe3c4de5d581957edb433b5c3e4c5a9a358ce00870a047080260f7b63` | 48327665 | 21834 | 36 |
+| Included revert | `0x4c67c6f90741f10b9f769f13b0daa9153f3ad3aca4aabb2fd9a42a419ece9ae9` | 48327668 | 34870 | 484 |
+
+Successful canonical deltas were payer−100, Core+7, provider+93 atomic USDC.
+Coverage ID and consumed authorization nonce both equal
+`0xaefbc2348d535ed26b1ec2ad3e7379269ab66439167113fa4334824804bb8e13`.
+Final token balances were19999900/7/93. The included status0 transaction had
+a valid payer authorization and admission disabled at both block boundaries;
+token balances, unused authorization nonce, coverage count and premium reserve
+remained unchanged. Exact revert cause was not traced.
+
+Total protocol gas1580003; execution fee9480018000000 wei; L1 publication
+fee3071 wei; total9480018003071 wei (0.000009480018003071 test ETH), independently
+matching the relayer balance decrease. Relayer remaining400519981996929 wei.
+Operator fee RPC fields are unavailable; no operator formula was assumed.
+Vault normalization fees are separate.
+
+Public-only evidence: `evidence/public-native-usdc-proof.json` and independently
+recorded `evidence/public-native-usdc-verification.json` under the spike. The
+persistent public journal remains ignored; never restart it as a new attempt.
+One canonical inclusion is required/observed, with no finality claim. Local
+compile, strict typecheck and105/105 tests pass; no production audit is claimed.
+M1's fixed demo terms prove atomic feasibility, not collateral solvency or claims.
+Next: close M2 financial requirements before implementing dependent contracts.
