@@ -394,3 +394,32 @@ service idempotency, not exactly-once external effects or distributed failover.
 No public mutations, vault operations, role/economic changes or claims backend
 are included in M3. Real HTTP + registered x402 + actual local M2 Core execution
 is required; local ERC3009 fixtures do not substitute for later public acceptance.
+
+## EVM-020 — New service execution requires live coverage
+
+Status: ACCEPTED implementation safeguard. Date:2026-10-19.
+
+Historical payment inclusion remains verifiable after authorization/coverage
+expiry. It must not alone authorize starting a previously unexecuted handler
+after coverage has expired or become terminal/claim-pending. Before creating the
+service-start record, use a canonical current-state admission read requiring
+matching Active coverage and now<stored expiresAt. RPC uncertainty fails closed.
+Cached results may still be returned after expiry without rerunning anything.
+Add chain isServiceAdmissible(client,terms,call):Promise<boolean> and a required
+provider canServe(call) callback; this does not change on-chain policy/economics.
+Tests for expired token authorization recovery use a longer coverage duration,
+so recovery demonstrates live liability rather than serving after it ended.
+
+## EVM-021 — Bind one payment intent before settling a service request
+
+Status: ACCEPTED implementation refinement. Date:2026-10-20.
+
+A duplicate request must be rejected before a second charge, including when a
+provider restarts between payment confirmation and handler entry. Extend the
+public service journal with a reserved identity (coverageId/requestHash) before
+settlement, then started/completed transitions. The same identity may reconcile
+and proceed; a different payment intent for that request hash cannot settle.
+Reservation is not execution: a restarted reserved job can still confirm its
+known payment and start once, whereas a started job remains indeterminate.
+A new explicit purchase may use a new request ID; clients never do so to recover
+a response. This adds no new on-chain mechanism or economic rule.

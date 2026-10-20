@@ -1,7 +1,8 @@
 # M3 — policy-backed client/provider HTTP flow
 
-State: IN_PROGRESS. M2 ACCEPTED under EVM-018; interface boundary EVM-019.
-Read AGENTS.md, SESSION_HANDOFF.md, EVM-016..019 in DECISIONS.md and this packet.
+State: REVIEW. Local implementation and required checks pass; results:
+`planning/EVM_M3_RESULTS.md`. M2 ACCEPTED under EVM-018; interface boundary EVM-019.
+Read AGENTS.md, SESSION_HANDOFF.md, EVM-016..021 in DECISIONS.md and this packet.
 No `/docs` material is in scope. This packet is self-contained.
 
 ## Allowed scope and exit condition
@@ -107,11 +108,16 @@ uncertain reads never admit service. Engine reconcile should not need a signer.
 
 Provider handles unpaid request with402 and does not run handler. Paid request
 settles through registered resource server upfront flow, then handler only after
-verified confirmation. Pending returns202 with known transaction/coverage ID,
+verified confirmation. EVM-020 additionally requires a canonical current-state
+Active coverage with now<expiresAt before creating a new service-start record.
+Provider canServe(call) is required; uncertainty never starts the handler. Cached
+responses remain retrievable without re-execution after coverage expiry. Pending returns202 with known transaction/coverage ID,
 never a fresh authorization request. A failed/reverted payment never runs handler.
 
-Journal service identity by coverageId+requestHash before handler begins, with
-exclusive durable start record. Concurrent duplicate requests share one in-memory
+EVM-021 reserves service identity by coverageId+requestHash before settlement
+to reject a second payment for the same request before charging. Reservation
+transitions to an exclusive durable start record before handler entry; reserved
+restart can reconcile/start, started restart cannot rerun. Concurrent duplicate requests share one in-memory
 flight and response cache. Repeated exact payment does not pay or run twice.
 Changed URL/body/ID/policy/payment is rejected. Completed/failed public-only
 metadata records status/hash/time; bytes and receipt signature are in-memory
@@ -133,10 +139,12 @@ code; record substantive interface/assumption changes in DECISIONS before use.
 
 Protocol exports canonical request hash, response receipt sign/verify, strict
 requirements/payload/prepared-call validation and registered SDK adapter factories.
-Chain exports readTerms(client,trust,gross), verifier and settlement engine.
+Chain exports readTerms(client,trust,gross), verifier, settlement engine and
+isServiceAdmissible(client,terms,call):Promise<boolean>.
 HTTP client accepts opaque payer, trusted IDs/cap, readTerms/now/verify callbacks;
 creates one reusable purchase session with send/retry using the same payment.
-Provider accepts trusted terms, engine, owner receipt signer, injected handler,
+Provider accepts trusted terms, engine, required canServe(call) callback,
+owner receipt signer, injected handler,
 journal path and configured resource URL. HTTP wrappers never log raw payments,
 signatures, transactions, RPC errors or secrets. Safe fixed error codes only.
 
