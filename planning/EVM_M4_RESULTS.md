@@ -119,6 +119,7 @@ Stop at M4 REVIEW. Exact protocol next action: record acceptance, then create a
 self-contained M5 public MVP packet with concrete scenarios/deployment identities,
 cost bounds, durable transaction recovery and independent verification before
 any public mutation. Branch publishing is a separate repository operation: local
-main replaces EVM restart, old head remains archived. Push to configured GitHub
-main/archive awaits exact destination/branch approval following automatic review
-rejection; no push occurred during this checkpoint's preparation.
+main replaces EVM restart, old head remains archived. The user explicitly approved configured GitHub main/archive publication on
+2026-10-21. Atomic non-force push published checkpoint1f6566a to main and
+958f650 to archive/algorand-p1; the previous approval-review blocker is resolved.
+No push occurred during the original checkpoint preparation on2026-10-20.

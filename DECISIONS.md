@@ -487,6 +487,10 @@ Old local main and archive/algorand-p1 both pointed to
 Delete that local main reference and rename evm/restart to main, preserving
 working changes and the archive. Future verified checkpoint commits use main.
 No force push or history amendment is necessary. The configured remote is
-https://github.com/LogiqueClergyman/AssurePay. Remote publishing and optional
-archive preservation there await explicit destination/branch approval after
-automatic review rejected the original combined push command. No push occurred.
+https://github.com/LogiqueClergyman/AssurePay. The user explicitly approved
+"Push main and archive" on2026-10-21 after automatic review requested a specific
+destination/branch authorization. An atomic non-force push published main at
+1f6566ac2339ac5e2b6f3889ed3ad59cb286ddf1 and archive/algorand-p1 at the old
+main head958f65002d6afd97e8cbb86bae63ecabe5abb024. main now tracks origin/main;
+future verified checkpoint commits may be pushed there under the user instruction.
+Keep existing remote evm/restart unless separately instructed.

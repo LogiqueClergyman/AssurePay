@@ -1,6 +1,6 @@
 # Session handoff
 
-Date:2026-10-20. Active branch:`main`, renamed from evm/restart by user instruction.
+Date:2026-10-21. Active branch:`main`, renamed from evm/restart by user instruction.
 M1 ACCEPTED EVM-015; M2 ACCEPTED EVM-018; M3 ACCEPTED EVM-022.
 Active packet:`planning/EVM_M4_EVIDENCE_CLAIMS.md`. M4 REVIEW: implementation,
 primary verification and cross-component Luna(high) review complete. Results:
@@ -37,16 +37,15 @@ M5 public MVP packet with explicit deployment/scenario/budget/recovery/verifier
 scope before public mutations. Stop at M4 REVIEW as required. No implementation
 blocker remains for this local gate.
 
-Repository operation EVM-025: old local main and archive/algorand-p1 both pointed
-to958f65002d6afd97e8cbb86bae63ecabe5abb024; current EVM work descends from it.
-Old main reference was deleted and EVM branch renamed locally to main. Archive
-is preserved. Configured origin is https://github.com/LogiqueClergyman/AssurePay;
-observed remote main was958f650 and remote evm/restart was63afbb6. No force push
-is needed. User requests publishing verified checkpoints to main, but automatic
-review rejected the original combined push as unverified destination/extra archive
-export. No push occurred. Exact repository next action: obtain specific approval
-for that destination and main plus optional archive/algorand-p1, then push those
-refs without rewriting history. Keep existing remote evm/restart unless instructed.
+Repository operation EVM-025 completed: old main is preserved locally and on
+origin at archive/algorand-p1=958f65002d6afd97e8cbb86bae63ecabe5abb024. EVM
+branch is main, tracking origin/main. The user explicitly approved publishing
+main and archive to https://github.com/LogiqueClergyman/AssurePay on2026-10-21.
+Atomic non-force push published M4 checkpoint1f6566a and the archive. This
+session also commits/pushes this publication record; verify latest origin/main
+against local HEAD. Earlier approval-review rejection is resolved. No remote
+branch was deleted; keep remote evm/restart unless instructed. Publish future
+verified main checkpoints under the user's continuing instruction.
 
 M1 public proof unchanged: actual Base Sepolia native USDC registered settlement,
 included valid-signature admission rollback and signer-free PUBLIC_RUN_RECONCILED.
