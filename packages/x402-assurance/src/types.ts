@@ -53,7 +53,11 @@ export interface PaymentResult {
   blockNumber?: string;
   blockHash?: Hex;
 }
-export interface SettlementEngine { settle(call: PreparedCall): Promise<PaymentResult> }
+export interface SettlementEngine {
+  settle(call: PreparedCall): Promise<PaymentResult>;
+  /** Verify an existing durable identity only; never sign or submit. */
+  reconcile?(call: PreparedCall): Promise<PaymentResult>;
+}
 export interface PayerSigner {
   address: Address;
   signTypedData(data: any): Promise<Hex>;
@@ -68,6 +72,14 @@ export interface ReceiptMessage {
   completedAt: string;
 }
 export interface SignedReceipt { message: ReceiptMessage; signature: Hex }
+export interface DurableServiceResult {
+  coverageId: Hex; requestHash: Hex; transaction: Hex; blockNumber: string; blockHash: Hex;
+  status: number; body: Uint8Array; receipt: SignedReceipt;
+}
+export interface ResultStore {
+  put(context: string, result: DurableServiceResult): Promise<void>;
+  get(context: string, coverageId: Hex, requestHash: Hex): Promise<DurableServiceResult | undefined>;
+}
 export interface CanonicalRequest {
   url: string;
   method: 'POST';

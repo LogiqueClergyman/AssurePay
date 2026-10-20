@@ -79,6 +79,11 @@ export function createSettlementEngine(options: SettlementEngineOptions): Settle
   }
 
   return {
+    async reconcile(input: PreparedCall): Promise<PaymentResult> {
+      let call: PreparedCall;
+      try { call = snapshot(input); } catch { return noResult('', '0x' as Hex); }
+      return enqueue(() => run(call, true));
+    },
     async settle(input: PreparedCall): Promise<PaymentResult> {
       let call: PreparedCall;
       try { call = snapshot(input); } catch { return noResult('', '0x' as Hex); }
@@ -93,7 +98,7 @@ export function createSettlementEngine(options: SettlementEngineOptions): Settle
     },
   };
 
-  async function run(input: PreparedCall): Promise<PaymentResult> {
+  async function run(input: PreparedCall, recoveryOnly = false): Promise<PaymentResult> {
     let call: PreparedCall;
     try {
       const { validateCall } = await import('./protocol.js');
@@ -115,6 +120,7 @@ export function createSettlementEngine(options: SettlementEngineOptions): Settle
           prior.calldataHash.toLowerCase() !== calldataHash.toLowerCase() || prior.termsHash !== termsHash) return noResult(prior.transaction, call.intentHash);
       return reconcile(prior, call);
     }
+    if (recoveryOnly) return noResult('', call.intentHash);
 
     // A new authorization must still be valid now; an expired known transaction is recovery-only.
     let observed;

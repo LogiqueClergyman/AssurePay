@@ -10,7 +10,7 @@ import { createSettlementEngine } from '../../src/engine.js';
 import { createPurchase, type PurchaseOptions } from '../../src/http-client.js';
 import { startProvider, type StartedProvider } from '../../src/http-provider.js';
 import { prepareCall } from '../../src/protocol.js';
-import type { SettlementEngine, Trust } from '../../src/types.js';
+import type { ResultStore, SettlementEngine, Trust } from '../../src/types.js';
 
 export const H=(n:number)=>`0x${n.toString(16).padStart(64,'0')}` as Hex;
 async function availableUrl(){
@@ -22,7 +22,7 @@ async function availableUrl(){
     return `http://127.0.0.1:${address.port}/assured`;
   }catch{throw new Error('M3_LOCAL_PORT_UNAVAILABLE');}
 }
-export async function integration(options:{pool?:bigint;stake?:bigint;handler?:(body:Uint8Array)=>Uint8Array|Promise<Uint8Array>}={}){
+export async function integration(options:{pool?:bigint;stake?:bigint;handler?:(body:Uint8Array)=>Uint8Array|Promise<Uint8Array>;resultStore?:ResultStore}={}){
   const f=await coreFixture({pool:options.pool??1_000_000n,providerStake:options.stake??1_000_000n});
   const directory=await mkdtemp(join(tmpdir(),'assurepay-m3-'));
   let server:StartedProvider|undefined;
@@ -45,7 +45,7 @@ export async function integration(options:{pool?:bigint;stake?:bigint;handler?:(
     phase='SERVER';const url=await availableUrl();
     const start=async(nextEngine:SettlementEngine=engine)=>{
       engine=nextEngine;
-      server=await startProvider({terms,engine,signer:f.evm.provider,resourceUrl:url,journalPath:join(directory,'service.jsonl'),
+      server=await startProvider({terms,engine,signer:f.evm.provider,resourceUrl:url,journalPath:join(directory,'service.jsonl'),resultStore:options.resultStore,
         prepareCall:(payment,requestHash)=>prepareCall(payment,terms,requestHash,0n,{allowExpired:true}),
         canServe:call=>isServiceAdmissible(f.evm.publicClient,terms,call),
         handler:async body=>{handlers++;const opened=(await f.globals()).coverageCount;if(opened<BigInt(handlers))throw new Error('HANDLER_BEFORE_PAYMENT');return options.handler?options.handler(body):new Uint8Array([...body,42]);},

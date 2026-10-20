@@ -423,3 +423,70 @@ Reservation is not execution: a restarted reserved job can still confirm its
 known payment and start once, whereas a started job remains indeterminate.
 A new explicit purchase may use a new request ID; clients never do so to recover
 a response. This adds no new on-chain mechanism or economic rule.
+
+## EVM-022 — M3 local composition acceptance
+
+Status: ACCEPTED. Date:2026-10-20. Source: primary verified results and user
+instruction to proceed after reviewing the M3 checkpoint summary.
+
+Accept M3 at commit 975bd76: strict typecheck, 28 tests including actual local
+HTTP/registered x402/M2 EVM execution, same-hash recovery, service idempotency,
+receipt verification, negative cases and closed independent review findings.
+Results and limitations are in planning/EVM_M3_RESULTS.md. This is local
+composition acceptance, not public native-USDC acceptance of the combined stack.
+M4 may now be specified before implementation; preserve M1/M2 contracts and
+M3 default behavior except explicitly scoped durable-result integration.
+
+## EVM-023 — M4 local backend interfaces and privacy boundary
+
+Status: ACCEPTED for implementation. Date:2026-10-20.
+
+Freeze planning/EVM_M4_EVIDENCE_CLAIMS.md before dependent code. Use an isolated
+programmatic claims-backend library: immutable AES256GCM objects with runtime
+key injection; optional M3 ResultStore, written before public completed marker;
+strict canonical receipt/payment-anchor verification on retrieval; bounded full
+canonical chain projection rebuilds instead of incremental rollback machinery.
+No contracts or economics change. Preserve M3's memory-only default.
+
+Backend authentication uses service-scoped EIP712 operation/coverage/payload/
+actor/nonce/deadline binding and durable nonce consumption. One opaque evidence
+bundle per proposed claim, with salted encrypted commitment to exact bytes and
+canonical opening. Prepare unsigned payer claim and explicit configured-
+adjudicator decision calls only; no transaction sender or evidence classifier.
+The caller's on-chain role/state remains final. Backend signatures are not
+persisted, and response signatures persist only encrypted. Missing artifacts
+for direct on-chain claims fail backend preparation without altering Core rights.
+
+Single process, trusted local durable filesystem/RPC and runtime key custody.
+Crash between result persistence and completed marker recovers only verified
+archived bytes; interrupted start without result never reruns. Replay consumes
+before side effects and may require a new nonfinancial authorization after a
+lost response. Key rotation/KMS, retention, distributed failover, public deployment
+and native USDC combined-stack acceptance remain outside this local gate.
+
+## EVM-024 — Durable result recovery is read-only at the engine boundary
+
+Status: ACCEPTED implementation safeguard. Date:2026-10-20.
+
+Add optional SettlementEngine.reconcile(call), implemented by the real engine
+without any signing/submission path. Configuring a durable result store requires
+this capability. Retrieval must not call settle(): if a payment journal were
+missing, settle could prepare a transaction. Reconcile only validates the same
+call, loads an existing matching journal identity and verifies its known hash.
+Missing identity fails closed. M3 no-store adapters remain compatible. Extend
+M4's narrow write scope to src/engine.ts and exercise journal-loss recovery.
+
+## EVM-025 — Active main branch and checkpoint publishing
+
+Status: ACCEPTED local branch policy. Date:2026-10-20. Source: user explicitly
+requests renaming the EVM branch to main, deleting old main already archived,
+and publishing subsequent checkpoints to main.
+
+Old local main and archive/algorand-p1 both pointed to
+958f65002d6afd97e8cbb86bae63ecabe5abb024; it is an ancestor of the EVM head.
+Delete that local main reference and rename evm/restart to main, preserving
+working changes and the archive. Future verified checkpoint commits use main.
+No force push or history amendment is necessary. The configured remote is
+https://github.com/LogiqueClergyman/AssurePay. Remote publishing and optional
+archive preservation there await explicit destination/branch approval after
+automatic review rejected the original combined push command. No push occurred.

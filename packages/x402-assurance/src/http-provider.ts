@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { encodePaymentRequiredHeader, decodePaymentSignatureHeader, encodePaymentResponseHeader } from '@x402/core/http';
 import { keccak256, type Hex } from 'viem';
-import type { Terms, SettlementEngine, PaymentResult, SignedReceipt, ReceiptMessage, PreparedCall } from './types.js';
-import { canonicalRequestUrl, hashRequest, signReceipt } from './protocol.js';
-import { ServiceStore } from './service-store.js';
+import type { Terms, SettlementEngine, PaymentResult, SignedReceipt, ReceiptMessage, PreparedCall, ResultStore } from './types.js';
+import { canonicalRequestUrl, hashRequest, signReceipt, verifyReceipt } from './protocol.js';
+import { ServiceStore, type ServiceRecord } from './service-store.js';
 
 const MAX_BODY = 65_536;
 const MAX_PAYMENT_HEADER = 16_384;
@@ -20,11 +20,12 @@ export interface ProviderOptions {
   canServe(call: PreparedCall): Promise<boolean>;
   prepareCall(payment: unknown, requestHash: Hex): Promise<PreparedCall>;
   now?: () => number;
+  resultStore?: ResultStore;
 }
 export interface StartedProvider { url: string; server: Server; close(): Promise<void> }
 type CachedResponse = { status: number; body: Uint8Array; receipt: SignedReceipt; paymentResponse: unknown };
 type PendingResponse = { code: 'PAYMENT_PENDING' | 'SERVICE_INDETERMINATE'; transaction: Hex; coverageId: Hex };
-type Outcome = { kind: 'response'; response: CachedResponse } | { kind: 'pending'; value: PendingResponse } | { kind: 'rejected' } | { kind: 'unknown' } | { kind: 'not-live' } | { kind: 'admission-unknown' };
+type Outcome = { kind: 'response'; response: CachedResponse } | { kind: 'pending'; value: PendingResponse } | { kind: 'rejected' } | { kind: 'unknown' } | { kind: 'not-live' } | { kind: 'admission-unknown' } | { kind: 'unavailable' } | { kind: 'storage-unknown' };
 
 function headerValues(req: IncomingMessage, name: string): string[] {
   const found: string[] = [];
@@ -68,6 +69,11 @@ function snapshotTerms(input: Terms): Terms {
 export async function startProvider(options: ProviderOptions): Promise<StartedProvider> {
   const configuredUrl = canonicalRequestUrl(options.resourceUrl);
   const terms = snapshotTerms(options.terms);
+  const engine = options.engine;
+  const resultStore = options.resultStore && Object.freeze({
+    put: options.resultStore.put.bind(options.resultStore), get: options.resultStore.get.bind(options.resultStore),
+  });
+  if (resultStore && typeof engine.reconcile !== 'function') throw new Error('READ_ONLY_RECOVERY_REQUIRED');
   if (!options.signer || typeof options.signer.signTypedData !== 'function' || options.signer.address.toLowerCase() !== terms.providerOwner.toLowerCase()) throw new Error('PROVIDER_SIGNER_MISMATCH');
   const signer: OwnerSigner = Object.freeze({ address: options.signer.address.toLowerCase() as OwnerSigner['address'], signTypedData: options.signer.signTypedData.bind(options.signer) });
   const canServe = options.canServe;
@@ -75,9 +81,10 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
   const handler = options.handler;
   const now = options.now ?? (() => Math.floor(Date.now() / 1000));
   if (typeof canServe !== 'function' || typeof prepareCall !== 'function' || typeof handler !== 'function') throw new Error('INVALID_PROVIDER_CONFIG');
-  const store = await ServiceStore.open(options.journalPath, serviceContext(terms, configuredUrl));
+  const context = serviceContext(terms, configuredUrl);
+  const store = await ServiceStore.open(options.journalPath, context);
   const { createRegisteredServer } = await import('./protocol.js');
-  const adapter = await createRegisteredServer(terms, options.engine);
+  const adapter = await createRegisteredServer(terms, engine);
   const cache = new Map<string, CachedResponse>();
   const flights = new Map<string, { intentHash: Hex; promise: Promise<Outcome> }>();
   const pathname = new URL(configuredUrl).pathname;
@@ -112,13 +119,27 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
 
       const serviceKey = `${call.intentHash.toLowerCase()}:${requestHash.toLowerCase()}`;
       const cached = cache.get(serviceKey);
-      if (cached) return sendCached(res, cached);
+      if (cached && !resultStore) return sendCached(res, cached);
       const old = store.getByRequest(requestHash);
       if (old && old.coverageId.toLowerCase() !== call.intentHash.toLowerCase()) return fixed(res, 409, 'REQUEST_ALREADY_RESERVED');
       const running = flights.get(requestHash.toLowerCase());
       if (running) {
         if (running.intentHash.toLowerCase() !== call.intentHash.toLowerCase()) return fixed(res, 409, 'REQUEST_ALREADY_RESERVED');
         return sendOutcome(res, await running.promise);
+      }
+      if (resultStore && (old?.state === 'started' || old?.state === 'completed')) {
+        const promise = (async (): Promise<Outcome> => {
+          try {
+            const recovered = await recoverStored(old, call, requestHash);
+            if (recovered) return { kind: 'response', response: recovered };
+            if (old.state === 'completed') return { kind: 'unavailable' };
+            if (!validHex(old.transaction)) return { kind: 'storage-unknown' };
+            return { kind: 'pending', value: { code: 'SERVICE_INDETERMINATE', transaction: old.transaction, coverageId: old.coverageId } };
+          } catch { return { kind: 'storage-unknown' }; }
+        })();
+        flights.set(requestHash.toLowerCase(), { intentHash: call.intentHash, promise });
+        try { return sendOutcome(res, await promise); }
+        finally { if (flights.get(requestHash.toLowerCase())?.promise === promise) flights.delete(requestHash.toLowerCase()); }
       }
       if (old?.state === 'started') {
         if (!validHex(old.transaction)) return fixed(res, 500, 'SERVICE_JOURNAL_CORRUPT');
@@ -163,6 +184,11 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
           const responseHash = keccak256(responseBody);
           const message: ReceiptMessage = { chainId: '84532', core: terms.core, coverageId: result.coverageId, requestHash, responseHash, status, completedAt };
           const receipt = await signReceipt(message, signer);
+          if (resultStore) {
+            if (!result.blockNumber || !/^[1-9][0-9]*$/.test(result.blockNumber) || !validHex(result.blockHash)) return { kind: 'unknown' };
+            await resultStore.put(context, { coverageId: result.coverageId, requestHash, transaction: result.transaction,
+              blockNumber: result.blockNumber, blockHash: result.blockHash, status, body: responseBody, receipt });
+          }
           await store.complete(result.coverageId, requestHash, result.transaction, status, responseHash, completedAt);
           const response: CachedResponse = { status, body: responseBody, receipt, paymentResponse: resultHeader(result) };
           cache.set(serviceKey, response);
@@ -179,6 +205,24 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
       else res.destroy();
     }
   };
+  async function recoverStored(old: ServiceRecord, call: PreparedCall, requestHash: Hex): Promise<CachedResponse | undefined> {
+    const archived = await resultStore!.get(context, call.intentHash, requestHash);
+    if (!archived) return undefined;
+    if (archived.coverageId !== call.intentHash || archived.requestHash !== requestHash || archived.transaction !== old.transaction ||
+        !(archived.body instanceof Uint8Array) || archived.body.length > MAX_BODY || !validHex(archived.blockHash) ||
+        !/^[1-9][0-9]*$/.test(archived.blockNumber) ||
+        !await verifyReceipt(archived.receipt, { terms, coverageId: call.intentHash, requestHash, response: archived.body, status: archived.status })) {
+      throw new Error('STORED_RESPONSE_INVALID');
+    }
+    if (old.state === 'completed' && (old.status !== archived.status || old.responseHash !== keccak256(archived.body) ||
+        old.completedAt !== archived.receipt.message.completedAt)) throw new Error('STORED_RESPONSE_INVALID');
+    const proof = await engine.reconcile!(call);
+    if (proof.state !== 'confirmed' || proof.coverageId !== call.intentHash || proof.transaction !== archived.transaction ||
+        proof.blockNumber !== archived.blockNumber || proof.blockHash !== archived.blockHash) throw new Error('STORED_PAYMENT_UNCONFIRMED');
+    if (old.state === 'started') await store.complete(call.intentHash, requestHash, archived.transaction, archived.status,
+      keccak256(archived.body), archived.receipt.message.completedAt);
+    return { status: archived.status, body: Uint8Array.from(archived.body), receipt: archived.receipt, paymentResponse: resultHeader(proof) };
+  }
   function sendCached(res: ServerResponse, cached: CachedResponse): void {
     send(res, cached.status, cached.body, {
       'assurepay-receipt': Buffer.from(JSON.stringify(cached.receipt)).toString('base64'),
@@ -195,6 +239,8 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
     if (outcome.kind === 'unknown') return fixed(res, 503, 'PAYMENT_UNAVAILABLE');
     if (outcome.kind === 'not-live') return fixed(res, 409, 'COVERAGE_NOT_LIVE');
     if (outcome.kind === 'admission-unknown') return fixed(res, 503, 'SERVICE_ADMISSION_UNAVAILABLE');
+    if (outcome.kind === 'unavailable') return fixed(res, 409, 'RESPONSE_UNAVAILABLE');
+    if (outcome.kind === 'storage-unknown') return fixed(res, 503, 'STORED_RESPONSE_UNAVAILABLE');
     return fixed(res, 402, 'PAYMENT_REJECTED');
   }
   const server = createServer((req, res) => { void listener(req, res); });
