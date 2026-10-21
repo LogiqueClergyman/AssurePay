@@ -1,0 +1,27 @@
+{
+  "name": "@assurepay/evm-acceptance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "rehearse": "node --import tsx scripts/rehearse.ts",
+    "check": "node --import tsx scripts/check.ts",
+    "verify": "node --import tsx scripts/verify.ts",
+    "setup": "node --import tsx scripts/setup.ts",
+    "public:run": "node --import tsx scripts/public-run.ts",
+    "check:signers": "node --import tsx scripts/check-signers.ts",
+    "reconcile": "node --import tsx scripts/reconcile.ts",
+    "funding": "node --import tsx scripts/funding.ts"
+  },
+  "dependencies": {
+    "viem": "2.57.7",
+    "@x402/core": "2.28.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

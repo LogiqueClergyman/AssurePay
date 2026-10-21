@@ -494,3 +494,73 @@ destination/branch authorization. An atomic non-force push published main at
 main head958f65002d6afd97e8cbb86bae63ecabe5abb024. main now tracks origin/main;
 future verified checkpoint commits may be pushed there under the user instruction.
 Keep existing remote evm/restart unless separately instructed.
+
+## EVM-026 — M4 local backend acceptance
+
+Status: ACCEPTED. Date:2026-10-21. Source: verified M4 results, closed independent
+cross-component reviews and user instruction to continue to the next phase.
+
+Accept M4 checkpoint1f6566a: backend typecheck/16tests and M3 typecheck/28tests,
+actual local EVM financial transitions, canonical reorg tests, durable response
+recovery, encrypted evidence and role-bound unsigned claim/decision preparation.
+M4 results record single-process/storage/RPC/key assumptions and scope limits.
+No production audit or combined-stack public native-USDC proof is inferred.
+M5 preparation may proceed; public execution requires its own concrete scope
+and spending approval after local preparation/rehearsal gates.
+
+## EVM-027 — M5 bounded campaign and independent proof boundary
+
+Status: ACCEPTED for local preparation only. Date:2026-10-21.
+
+Freeze planning/EVM_M5_PUBLIC_ACCEPTANCE.md: two actual HTTP purchases on one new
+M2 Core/policy, encrypted result recovery, ProviderFault partial3100 and PoolOnly
+full10003 explicit refunds, then paused admission included revert. Four distinct
+EOAs; relayer also admin, separate provider/payer/adjudicator.14 protocol txs,
+7050000 gas caps,100000000wei max fee,200000000000000wei auxiliary allowance.
+Protocol funding targets total905000000000000wei; optional three separately
+approved vault transfers add at most9300000000000wei fee allowance.43514 atomic
+test USDC allocated. No public execution or transfer is authorized by this design.
+
+New isolated evm-acceptance package composes unchanged M2/M3/M4; strict one-attempt
+public journal before broadcast, exact role/nonce/call/fee binding, no replacement
+on uncertain RPC. Independent signer-free verifier reconstructs signatures only
+in memory from public calldata; artifacts omit them. It proves on-chain financial
+facts/canonical anchors, not private HTTP/evidence truth or encryption. Rehearsed
+transport observations are recorded separately. Paused revert is before receive;
+no claim of deterministic post-receive native-USDC rollback in M2. Stage A local
+rehearsal/review and concrete public budget precede Stage B approval; Stage C
+native public proof remains mandatory for M5 acceptance.
+Persist public transport counters/hashes after each successful repeat/restart
+check, before later financial steps or final chain verification. A later RPC
+failure must not erase already observed HTTP evidence; it cannot turn that
+evidence into independently proven chain facts.
+
+## EVM-028 — M5 vault funding and signer-free recovery interface
+
+Status: ACCEPTED for local preparation only. Date:2026-10-21.
+
+The isolated funding component proposes at most three exact shortfall transfers
+from the recorded managed vault to the relayer, payer and adjudicator targets.
+Public execution requires the campaign scope plus the separate literal
+`m5-fund-campaign-roles-once`. A canonical public plan precedes signing; each
+transfer's hash, nonce, value and destination are durably recorded before its
+single broadcast. Reconciliation reads only known identities without a signer;
+it never fills missing steps or rebroadcasts. A later explicitly authorized
+execution may continue only unprepared funding steps after known hashes reconcile.
+
+Use measured included execution/auxiliary fees to reconcile vault balance changes;
+gas caps and preflight L1 estimates are allowances, not actual expenditure.
+When public receipt fee components are unavailable, an anchored vault balance
+delta may measure aggregate auxiliary expenditure: prior measured balance minus
+exact value minus included execution fee minus new balance. Preserve unavailable
+component fields honestly and label the aggregate balance-delta observation.
+Require a nonnegative residual at least as large as exposed components and no
+larger than the fixed reserve. This depends on the explicit no-concurrent-use/
+incoming-funds assumption, distinct from receipt-based fee attribution. Missing
+or inconsistent measurements stop funding; an estimate never becomes an actual
+fee. No public transfer is authorized by this interface.
+
+Public mutation CLIs acquire one exclusive campaign-directory run lock before
+journal initialization. Funding and protocol execution share that lock. Concurrent
+starts fail closed; stale locks require explicit local inspection, never automatic
+takeover. Programmatic adapters retain the single-instance-per-journal assumption.
