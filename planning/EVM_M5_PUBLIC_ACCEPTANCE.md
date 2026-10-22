@@ -1,7 +1,8 @@
 # M5 — combined-stack public MVP acceptance
 
-State: IN_PROGRESS (Stage A PREPARED; Stage B approval pending). M4 accepted EVM-026; interfaces
-EVM-027/028. Read AGENTS.md, SESSION_HANDOFF.md, DECISIONS.md, IMPLEMENTATION_PLAN.md,
+State: IN_PROGRESS (first public campaign PARTIAL/EXPIRED; second proposal needs approval).
+M4 accepted EVM-026; interfaces EVM-027..031.
+Read AGENTS.md, SESSION_HANDOFF.md, DECISIONS.md, IMPLEMENTATION_PLAN.md,
 planning/EVM_M4_RESULTS.md and this packet. No `/docs` access.
 
 ## Scope and stage gates
@@ -16,14 +17,30 @@ Compiler's existing faithful M1 fixture imports are allowed read-only. Installed
 pinned dependency API types may be inspected. Never manually inspect populated
 environments/private wallet files or completed private journals.
 
+EVM-030 narrow correction adds write scope for
+packages/claims-backend/src/projection.ts and its projection tests: validate the
+original numbered head remains canonical while allowing normal tip advancement.
+Test both advancement success and canonical-anchor replacement failure. The
+approved public run stopped after exactly seven confirmed steps; a separate
+explicit continuation may verify that prefix and submit only the seven remaining
+steps. No repeat purchaseA/payment/handler or additional budget is permitted.
+
 A: implement/rehearse isolated pinned campaign runner, bounded sender/journal,
 public-only manifest, independent signer-free verifier, check-only CLI and
 read-only public preflight. Pass local actual M2/HTTP/x402/M4 integration and
 adversarial recovery tests. B: present exact roles/funding/transaction/budget
 scope for public approval after A. C: only then execute one approved campaign,
 reconcile unknown hashes, independently verify native USDC evidence and costs.
-M5 is NOT accepted until C passes. No public mutation currently authorized.
+M5 is NOT accepted until C passes. EVM-029 authorizes the exact proposed scope
+at checkpoint922947f; no larger public mutation is authorized.
 M1 approval/normalization is completed and cannot be reused as M5 allowance.
+
+EVM-031 supersedes continuation as the next public action: the first purchase's
+one-hour claim window expired before a claim was filed. Its seven confirmed
+transactions and paid result remain preserved. Do not submit any further
+transaction to complete that campaign or create a new payment under EVM-029.
+Local corrections and second-experiment preparation are authorized; public
+second-experiment funding/execution require a new exact approval.
 
 No new contracts, policy/economic changes, production hosting/UI, external
 commerce, subjective adjudication, multiple chains/assets, mainnet, role rotation
@@ -75,7 +92,7 @@ fee feasibility before any proposed vault shortfall top-up. Up to3 funding
 transfers may be proposed separately:21000gas each with same fees, aggregate
 aux reserve3000000000000wei, maximum funding-fee allowance9300000000000wei.
 Maximum campaign+funding allowance914300000000000wei (0.0009143 test ETH).
-No actual transfer is approved yet. Account insufficiency/fee change stops;
+EVM-029 approves the recorded exact top-ups and campaign. Account insufficiency/fee change stops;
 no fee escalation, replacement or automatic retry/top-up.
 
 Base has separate L2 execution and L1 publication fees; maxFeePerGas does not cap
@@ -194,3 +211,30 @@ public-proof limits in M5 results. Commit/push verified checkpoints to main.
 After Stage A stop before public mutations, present exact Stage B request. Stage C
 remains pending until approval/funding/public execution/independent proof. No M5
 acceptance from local rehearsal, mockUSDC, read-only state or code review alone.
+
+## Isolated second experiment proposal (EVM-031)
+
+Use public `evidence/second-attempt-proposal.json` with fresh runId
+0x28daab42bd847baae99a50c2ac97666cc9f2117add83540527b0815e8a37e58b and
+derived fresh provider/policy/service IDs, same four EOAs/token/URL and all frozen
+policy/economic parameters above. Fourteen new protocol transactions, same gas
+caps/fees and43514atomic initial USDC allocation. Only separate `.local-m5-r2/`
+journals/data may be written; original runtime config/data/journals remain intact.
+Runtime data key reuse is permitted with new Core namespace/fresh IVs.
+
+Canonical proposal block48614729 pins vault nonce4 and spending role nonces9/3/0.
+Exact top-ups:19674564006637wei to recorded relayer and1701102000276wei to payer;
+none to adjudicator/provider. Two21000gas transfers, each maxFee100000000wei,
+priority1000000wei and auxiliary reserve1000000000000wei. Funding fee allowance
+6200000000000wei; top-up values total21375666006913wei; maximum new vault outflow
+27575666006913wei. New protocol plus funding fee allowance911200000000000wei
+(0.0009112 test ETH). No cleanup transaction or old collateral withdrawal included.
+
+The separate second-attempt CLI defaults to read-only. Explicit funding/execution
+needs its exact `m5-second-campaign-after-expired-first` scope plus original M5
+scope, approved proposal and unchanged identity/nonce/balance/fee conditions.
+Read-only funding/campaign reconciliation and verification have no signer path.
+No new key generation, populated environment overwrite, automatic fresh attempt,
+resend or increased fee/budget. Required local tests: strict proposal/context
+validation, namespace isolation, guard failure before signing, existing campaign
+and expired-continuation failure behavior. Primary review/checks precede approval.

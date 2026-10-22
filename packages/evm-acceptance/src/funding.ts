@@ -267,6 +267,12 @@ function validatePlanContext(input: FundingPlan, config: RunConfig, vault: Addre
   return input;
 }
 
+/** Validate a detached public plan using the same rules as the bounded sender. */
+export function validateFundingPlan(input: unknown, configInput: RunConfig, vault: Address): FundingPlan {
+  const config=validateConfig(configInput);
+  return freezePlan(validatePlanContext(structuredClone(input) as FundingPlan,config,vault));
+}
+
 /** Builds an exact, read-only plan for funding only the three gas-spending EOAs. */
 export async function buildFundingPlan(options: BuildFundingPlanOptions): Promise<FundingPlan> {
   let config: RunConfig;

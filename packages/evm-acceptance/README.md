@@ -5,6 +5,12 @@ results/evidence backend. This is a bounded test campaign, not a production
 deployment. The authoritative scope is
 [`planning/EVM_M5_PUBLIC_ACCEPTANCE.md`](../../planning/EVM_M5_PUBLIC_ACCEPTANCE.md).
 
+Current public state: the first experiment has seven confirmed transactions and
+one completed paid200 case. Its claim window expired during an interruption;
+the complete refund proof is still pending. Preserve that journal and result.
+Do not restart it or submit an expired claim. Results and the proposed distinct
+second experiment are in planning/EVM_M5_RESULTS.md; EVM-029 covers only the first.
+
 Use Node24.18.0 and the pinned lockfile. Install the existing M1–M4 package
 dependencies first; the campaign reuses their compiler and local Anvil helper.
 
@@ -107,3 +113,50 @@ Public fee fields are reported only after matching receipt identity; unavailable
 fields stay unavailable. Evidence establishes canonical inclusion, not finality,
 private HTTP truth, production security or a post-receive rollback: the paused
 negative case fails before the token receive call.
+
+## Second experiment (new approval required)
+
+`evidence/second-attempt-proposal.json` pins fresh IDs and exact funding amounts.
+Default check, recovery and verification require no wallet environment:
+
+```sh
+node --import tsx scripts/second-attempt.ts
+node --import tsx scripts/second-attempt.ts --reconcile-funding
+node --import tsx scripts/second-attempt.ts --reconcile
+node --import tsx scripts/second-attempt.ts --verify
+```
+
+Recovery commands require existing second-experiment journals. All state stays
+under `.local-m5-r2/`; the first environment, journals and encrypted objects remain
+preserved. Read-only checks pin amounts, role/vault nonces and proposal anchors.
+Known hashes are reconciled before any explicitly authorized missing funding step.
+
+Only after separate second-experiment approval, use the exact public scope in
+both the runtime variable and CLI flag. No populated environment file is edited:
+
+```sh
+M5_SECOND_ATTEMPT_SCOPE=m5-second-campaign-after-expired-first node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --env-file=../../spikes/evm-m1/.env.vault.local --import tsx scripts/second-attempt.ts --fund --scope m5-second-campaign-after-expired-first
+M5_SECOND_ATTEMPT_SCOPE=m5-second-campaign-after-expired-first node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --import tsx scripts/second-attempt.ts --execute --scope m5-second-campaign-after-expired-first
+```
+
+The original `M5_PUBLIC_SCOPE` must also match. Execution refuses existing run
+state, changed balances/nonces or fees and never creates another fresh attempt.
+The optional first-experiment continuation CLI only supports its exact seven-row
+prefix while coverage is timely; it rejects this expired public coverage before
+signing. No second-experiment transaction has been approved or sent yet.
+
+After approved funding, save its reconciliation before protocol accounts spend
+gas. After the approved campaign, save its separate independent proof and costs:
+
+```sh
+node --import tsx scripts/second-attempt.ts --reconcile-funding > evidence/second-public-funding.json
+# Run the approved --execute command above only after funding is confirmed.
+node --import tsx scripts/second-attempt.ts --reconcile > evidence/second-public-reconciliation.json
+node --import tsx scripts/second-attempt.ts --verify > evidence/second-public-verification.json
+node --import tsx scripts/costs.ts --second > evidence/second-public-costs.json
+```
+
+The cost reporter requires a complete successful independent verifier report;
+the first partial campaign cannot satisfy it. It checks historical funded role
+balances and canonical receipt anchors, reports aggregate native expenditure,
+and leaves unavailable receipt fee components explicitly unavailable.

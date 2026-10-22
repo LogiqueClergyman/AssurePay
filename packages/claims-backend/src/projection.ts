@@ -320,10 +320,11 @@ export function createProjection(options: ProjectionOptions): Projection {
           });
         } catch (error) { throw safeCode(error); }
 
-        let lastHead: any;
-        try { lastHead = await client.getBlock({ blockTag: 'latest' }); }
+        let canonicalHead: any;
+        try { canonicalHead = await client.getBlock({ blockNumber: firstHead.number }); }
         catch { fail('PROJECTION_RPC_FAILED'); }
-        if (!lastHead?.hash || lastHead.number !== firstHead.number || asHex(lastHead.hash) !== asHex(firstHead.hash)) {
+        if (!canonicalHead?.hash || canonicalHead.number !== firstHead.number ||
+            asHex(canonicalHead.hash) !== asHex(firstHead.hash)) {
           fail('PROJECTION_HEAD_CHANGED');
         }
         const snapshot: Snapshot = {

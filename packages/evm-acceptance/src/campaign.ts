@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, open } from 'node:fs/promises';
+import { lstat, mkdir, open, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { encodeDeployData, encodeFunctionData, keccak256, toBytes, toHex, type Hex } from 'viem';
+import { decodeFunctionData, encodeDeployData, encodeFunctionData, keccak256, toBytes, toHex, type Hex } from 'viem';
 import { createCampaignSender } from './sender.js';
 import { ECONOMICS, GAS_CAPS, validateConfig } from './plan.js';
 import { verifyCampaign } from './verify.js';
@@ -11,17 +11,19 @@ import { readTerms, verifySettlement, isServiceAdmissible } from '../../x402-ass
 import { createPurchase } from '../../x402-assurance/src/http-client.js';
 import { startProvider, type StartedProvider } from '../../x402-assurance/src/http-provider.js';
 import { createPayment, prepareCall } from '../../x402-assurance/src/protocol.js';
-import type { PreparedCall, Terms } from '../../x402-assurance/src/types.js';
+import type { Intent, PreparedCall } from '../../x402-assurance/src/types.js';
 import { EncryptedVault, createResultStore, createProjection, createClaimsBackend, operationPayloadHash, operationTypedData, contextNamespace } from '../../claims-backend/src/index.js';
 import type { Authorization, BackendContext, Operation, PreparedAction } from '../../claims-backend/src/types.js';
+import { CORE_ABI } from '../../x402-assurance/src/core-abi.js';
+import { hashIntent } from '../../x402-assurance/src/protocol.js';
 
 const TOKEN_ABI=[{type:'function',name:'approve',stateMutability:'nonpayable',inputs:[{name:'spender',type:'address'},{name:'amount',type:'uint256'}],outputs:[{type:'bool'}]}] as const;
-import { requestIdFor, requestBodyFor, rollbackRequestHashFor } from './fixtures.js';
+import { requestIdFor, requestBodyFor, requestHashFor, rollbackRequestHashFor } from './fixtures.js';
 const fixedError=(error:unknown)=>new Error(error instanceof Error&&/^[A-Z][A-Z0-9_]{0,100}$/.test(error.message)?error.message:'M5_CAMPAIGN_FAILED');
 export interface CampaignOptions {
  config:RunConfig;client:any;wallet:any;accounts:Record<Actor,any>;journalPath:string;
  dataDirectory:string;dataKey:Uint8Array;artifact:{abi:any;bytecode:Hex;deployedBytecode:Hex};
- executePublic?:boolean;polls?:number;delay?:number;
+ executePublic?:boolean;continueAfterPurchaseA?:true;polls?:number;delay?:number;
 }
 export interface TransportCheck {status:number;bodyHash:Hex;receiptHash:Hex;retryMatches:boolean;paymentSignatures:number;relayerSignatures:number;broadcasts:number;handlers:number}
 export async function runCampaign(input:CampaignOptions):Promise<{manifest:CampaignManifest;transport:Record<string,TransportCheck>;verification:Awaited<ReturnType<typeof verifyCampaign>>}>{
@@ -32,7 +34,12 @@ export async function runCampaign(input:CampaignOptions):Promise<{manifest:Campa
  if(dataKey.length!==32)throw new Error('M5_DATA_KEY_INVALID');
  const sender=await createCampaignSender({config,client,wallet,accounts,journalPath:input.journalPath,polls:input.polls,delay:input.delay});
  const existing=await sender.read();
- if(existing.transactions.length)throw new Error('M5_EXISTING_CAMPAIGN_RECONCILE_ONLY');
+ const continuing=input.continueAfterPurchaseA===true;
+ if(continuing){
+  if(existing.transactions.length!==7||existing.core===null||existing.transactions.some((row,index)=>row.kind!==(['deploy','provider','policy','approve','stake','pool','purchaseA'] as const)[index]||row.status!=='success'||row.attempted!==true))throw new Error('M5_CONTINUATION_PREFIX_INVALID');
+  if(JSON.stringify(existing.config)!==JSON.stringify(config))throw new Error('M5_CONTINUATION_CONTEXT_INVALID');
+  for(const row of existing.transactions){const observed=await sender.observe(row.kind);if(observed.status!=='success'||observed.transaction!==row.transaction||observed.blockHash!==row.blockHash||observed.blockNumber!==row.blockNumber)throw new Error('M5_CONTINUATION_RECONCILIATION_FAILED');}
+ }else if(existing.transactions.length)throw new Error('M5_EXISTING_CAMPAIGN_RECONCILE_ONLY');
  const transport:Record<string,TransportCheck>={};
  let provider:StartedProvider|undefined;
  let currentKind:'purchaseA'|'purchaseB'='purchaseA',expectedCall:PreparedCall|undefined;
@@ -49,13 +56,16 @@ export async function runCampaign(input:CampaignOptions):Promise<{manifest:Campa
    const manifest=await sender.read();if(!manifest.core)throw new Error('M5_CORE_UNAVAILABLE');
    return sender.submit({kind,actor,to:manifest.core,data:encodeFunctionData({abi:artifact.abi,functionName,args})});
   };
-  await sender.submit({kind:'deploy',actor:'relayer',to:null,data:encodeDeployData({abi:artifact.abi,bytecode:artifact.bytecode,args:[config.token,config.roles.relayer,config.roles.adjudicator]})});
+  if(!continuing){
+   await sender.submit({kind:'deploy',actor:'relayer',to:null,data:encodeDeployData({abi:artifact.abi,bytecode:artifact.bytecode,args:[config.token,config.roles.relayer,config.roles.adjudicator]})});
+   const createdCore=(await sender.read()).core;if(!createdCore)throw new Error('M5_CORE_UNAVAILABLE');
+   await call('provider','relayer','registerProvider',[config.providerId,config.roles.provider,config.roles.provider]);
+   await call('policy','relayer','registerPolicy',[config.policyId,config.providerId,777,3500,2200,3600n,true]);
+   await sender.submit({kind:'approve',actor:'payer',to:config.token,data:encodeFunctionData({abi:TOKEN_ABI,functionName:'approve',args:[createdCore,23508n]})});
+   await call('stake','payer','depositStake',[config.providerId,3502n]);
+   await call('pool','payer','fundPool',[20006n]);
+  }
   const core=(await sender.read()).core;if(!core)throw new Error('M5_CORE_UNAVAILABLE');
-  await call('provider','relayer','registerProvider',[config.providerId,config.roles.provider,config.roles.provider]);
-  await call('policy','relayer','registerPolicy',[config.policyId,config.providerId,777,3500,2200,3600n,true]);
-  await sender.submit({kind:'approve',actor:'payer',to:config.token,data:encodeFunctionData({abi:TOKEN_ABI,functionName:'approve',args:[core,23508n]})});
-  await call('stake','payer','depositStake',[config.providerId,3502n]);
-  await call('pool','payer','fundPool',[20006n]);
   const trust={chainId:84532 as const,core,token:config.token,providerId:config.providerId,policyId:config.policyId};
   const terms=await readTerms(client,trust,'10003');
   const context:BackendContext={chainId:84532,core,token:config.token,adjudicator:config.roles.adjudicator,serviceId:config.serviceId};
@@ -63,6 +73,42 @@ export async function runCampaign(input:CampaignOptions):Promise<{manifest:Campa
   const resultStore=createResultStore(vault);
   const projection=createProjection({client,context,journalPath:join(input.dataDirectory,'projection.json'),fromBlock:BigInt((await sender.read()).transactions[0].blockNumber!)});
   const backend=await createClaimsBackend({context,projection,vault,replayPath:join(input.dataDirectory,'replay.jsonl')});
+  const aRow=continuing?(await sender.read()).transactions[6]:undefined;
+  let recoveredA:PreparedCall|undefined;
+  if(continuing){
+   const observationPath=join(input.dataDirectory,'transport-purchaseA.json');const observationInfo=await lstat(observationPath);
+   if(!observationInfo.isFile()||observationInfo.isSymbolicLink()||observationInfo.size>4096)throw new Error('M5_CONTINUATION_TRANSPORT_INVALID');
+   const publicObservation=JSON.parse(await readFile(observationPath,'utf8')) as any;
+   const observed=publicObservation?.observed;
+   if(!publicObservation||Object.keys(publicObservation).sort().join(',')!=='case,core,observed,runId,version'||publicObservation.version!==1||publicObservation.runId!==config.runId||publicObservation.case!=='purchaseA'||publicObservation.core!==core||!observed||Object.keys(observed).sort().join(',')!=='bodyHash,broadcasts,handlers,paymentSignatures,receiptHash,relayerSignatures,retryMatches,status'||observed.status!==200||observed.retryMatches!==true||observed.paymentSignatures!==1||observed.relayerSignatures!==1||observed.broadcasts!==1||observed.handlers!==1||!/^0x[0-9a-f]{64}$/.test(observed.bodyHash)||!/^0x[0-9a-f]{64}$/.test(observed.receiptHash))throw new Error('M5_CONTINUATION_TRANSPORT_INVALID');
+   const expectedPrefix=[
+    encodeDeployData({abi:artifact.abi,bytecode:artifact.bytecode,args:[config.token,config.roles.relayer,config.roles.adjudicator]}),
+    encodeFunctionData({abi:artifact.abi,functionName:'registerProvider',args:[config.providerId,config.roles.provider,config.roles.provider]}),
+    encodeFunctionData({abi:artifact.abi,functionName:'registerPolicy',args:[config.policyId,config.providerId,777,3500,2200,3600n,true]}),
+    encodeFunctionData({abi:TOKEN_ABI,functionName:'approve',args:[core,23508n]}),
+    encodeFunctionData({abi:artifact.abi,functionName:'depositStake',args:[config.providerId,3502n]}),
+    encodeFunctionData({abi:artifact.abi,functionName:'fundPool',args:[20006n]}),
+   ];
+   for(let index=0;index<expectedPrefix.length;index++)if((await sender.read()).transactions[index]?.calldataHash!==keccak256(expectedPrefix[index]!))throw new Error('M5_CONTINUATION_PREFIX_INVALID');
+   const tx=await client.getTransaction({hash:aRow!.transaction});
+   if(!tx||tx.hash!==aRow!.transaction||tx.from?.toLowerCase()!==config.roles.relayer||tx.to?.toLowerCase()!==core||typeof tx.input!=='string'||keccak256(tx.input).toLowerCase()!==aRow!.calldataHash)throw new Error('M5_CONTINUATION_PURCHASE_INVALID');
+   const decoded=decodeFunctionData({abi:CORE_ABI,data:tx.input});
+   if(decoded.functionName!=='settleAssured')throw new Error('M5_CONTINUATION_PURCHASE_INVALID');
+   const raw=decoded.args[0] as any;const intent:Intent={chainId:String(raw.chainId),core:String(raw.core).toLowerCase() as `0x${string}`,token:String(raw.token).toLowerCase() as `0x${string}`,payer:String(raw.payer).toLowerCase() as `0x${string}`,providerId:raw.providerId,policyId:raw.policyId,policyHash:raw.policyHash,requestHash:raw.requestHash,gross:String(raw.gross),payerSalt:raw.payerSalt,validAfter:String(raw.validAfter),validBefore:String(raw.validBefore)};
+   const v=Number(decoded.args[1]),r=decoded.args[2],s=decoded.args[3];
+   if(intent.chainId!=='84532'||intent.core!==core||intent.token!==config.token||intent.payer!==config.roles.payer||intent.providerId!==config.providerId||intent.policyId!==config.policyId||intent.requestHash!==requestHashFor(config,'purchaseA')||intent.gross!=='10003'||(v!==27&&v!==28)||typeof r!=='string'||typeof s!=='string')throw new Error('M5_CONTINUATION_PURCHASE_INVALID');
+   const signature=`0x${r.slice(2)}${s.slice(2)}${v.toString(16).padStart(2,'0')}` as Hex;const intentHash=hashIntent(intent);
+   const encoded=encodeFunctionData({abi:CORE_ABI,functionName:'settleAssured',args:decoded.args as any});
+   if(encoded.toLowerCase()!==tx.input.toLowerCase())throw new Error('M5_CONTINUATION_PURCHASE_INVALID');
+   if(intent.policyHash!==terms.policyHash)throw new Error('M5_CONTINUATION_PURCHASE_INVALID');
+   const verified=await verifySettlement(client,terms,{intent,intentHash,signature,to:core,data:tx.input},aRow!.transaction,config.roles.relayer,1,BigInt(aRow!.nonce));
+   if(verified.state!=='confirmed'||verified.coverageId!==intentHash||verified.blockNumber!==aRow!.blockNumber||verified.blockHash!==aRow!.blockHash)throw new Error('M5_CONTINUATION_PURCHASE_INVALID');
+   recoveredA={intent,intentHash,signature,to:core,data:tx.input};
+   transport.purchaseA=observed as TransportCheck;
+   const coverage=await client.readContract({address:core,abi:CORE_ABI,functionName:'coverages',args:[intentHash]}) as readonly unknown[];
+   const now=(await client.getBlock({blockTag:'latest'})).timestamp;
+   if(typeof coverage[11]!=='bigint'||coverage[11]<=now||Number(coverage[13])!==1)throw new Error('M5_CONTINUATION_CLAIM_WINDOW_CLOSED');
+  }
   const engineClient={...client,async sendRawTransaction({serializedTransaction}:any){broadcasts++;return sender.broadcast(currentKind,serializedTransaction);}};
   const engineWallet={...wallet,async signTransaction(args:any){
    if(!expectedCall||args.data!==expectedCall.data||args.to?.toLowerCase()!==core||args.value!==0n||args.gas!==GAS_CAPS[currentKind]||
@@ -85,7 +131,17 @@ export async function runCampaign(input:CampaignOptions):Promise<{manifest:Campa
    if(action.chainId!==84532||action.to!==core||action.from!==config.roles[actor]||action.value!=='0')throw new Error('M5_ACTION_MISMATCH');
    return sender.submit({kind,actor,to:core,data:action.data});
   };
-  for(const name of ['purchaseA','purchaseB'] as const){
+  const claimAndResolve=async(name:'purchaseA'|'purchaseB',id:Hex)=>{
+   const body=toBytes(`synthetic ${name} acceptance evidence`);
+   const evidenceHash=await backend.uploadEvidence(id,body,await authorization('payer','uploadEvidence',id,{bodyHex:toHex(body)}));
+   const claim=await backend.prepareClaim(id,evidenceHash,await authorization('payer','prepareClaim',id,{evidenceHash}));
+   await submitAction(name==='purchaseA'?'claimA':'claimB','payer',claim);
+   const decision={outcome:(name==='purchaseA'?1:2) as 1|2,refundAmount:name==='purchaseA'?'3100':'10003',reason:`explicit ${name} test adjudication`};
+   const prepared=await backend.prepareDecision(id,decision,await authorization('adjudicator','prepareDecision',id,decision));
+   await submitAction(name==='purchaseA'?'resolveA':'resolveB','adjudicator',prepared.action);
+  };
+  if(continuing){if(!recoveredA)throw new Error('M5_CONTINUATION_PURCHASE_INVALID');await claimAndResolve('purchaseA',recoveredA.intentHash);}
+  for(const name of (continuing?['purchaseB'] as const:['purchaseA','purchaseB'] as const)){
    currentKind=name;const before={paymentSignatures,relayerSignatures,broadcasts,handlers};
    await start();
    const session=await createPurchase({url:config.resourceUrl,body:requestBodyFor(name),payer:{address:config.roles.payer,async signTypedData(data:any){paymentSignatures++;return accounts.payer.signTypedData(data);}},trust,maxGross:'10003',readTerms:(ids,gross)=>readTerms(client,ids,gross),now:async()=>(await client.getBlock({blockTag:'latest'})).timestamp,
@@ -103,13 +159,7 @@ export async function runCampaign(input:CampaignOptions):Promise<{manifest:Campa
    if(Object.values(counts).some(value=>value!==1))throw new Error('M5_HTTP_DUPLICATE_EXECUTION');
    transport[name]={status:first.status,bodyHash:keccak256(first.body),receiptHash:keccak256(toBytes(JSON.stringify(first.receipt))),retryMatches:true,...counts};
    await saveObservation(`transport-${name}.json`,{version:1,runId:config.runId,core,case:name,observed:transport[name]});
-   const id=session.call.intentHash,body=toBytes(`synthetic ${name} acceptance evidence`);
-   const evidenceHash=await backend.uploadEvidence(id,body,await authorization('payer','uploadEvidence',id,{bodyHex:toHex(body)}));
-   const claim=await backend.prepareClaim(id,evidenceHash,await authorization('payer','prepareClaim',id,{evidenceHash}));
-   await submitAction(name==='purchaseA'?'claimA':'claimB','payer',claim);
-   const decision={outcome:(name==='purchaseA'?1:2) as 1|2,refundAmount:name==='purchaseA'?'3100':'10003',reason:`explicit ${name} test adjudication`};
-   const prepared=await backend.prepareDecision(id,decision,await authorization('adjudicator','prepareDecision',id,decision));
-   await submitAction(name==='purchaseA'?'resolveA':'resolveB','adjudicator',prepared.action);
+   await claimAndResolve(name,session.call.intentHash);
   }
   await call('pause','relayer','setPaused',[true]);
   const rollbackRequestHash=rollbackRequestHashFor(config);

@@ -1,6 +1,6 @@
 # AssurePay EVM implementation plan
 
-Updated 2026-10-21. Target: Base Sepolia, native test USDC, EOA first.
+Updated 2026-10-22. Target: Base Sepolia, native test USDC, EOA first.
 
 | Phase | State | Work packet | Gate |
 |---|---|---|---|
@@ -9,7 +9,7 @@ Updated 2026-10-21. Target: Base Sepolia, native test USDC, EOA first.
 | M2 Solidity financial core | ACCEPTED | `planning/EVM_M2_FINANCIAL_CORE.md` | Implemented; pinned compile/typecheck, 15 actual-EVM scenarios, solvency/isolation invariants and independent scoped review pass; results in `planning/EVM_M2_RESULTS.md` |
 | M3 Client/provider flow | ACCEPTED | `planning/EVM_M3_HTTP_FLOW.md` | Typecheck and 28 tests pass, including actual local EVM/HTTP recovery, receipt and failure cases; results in `planning/EVM_M3_RESULTS.md` |
 | M4 Evidence and claims backend | ACCEPTED | `planning/EVM_M4_EVIDENCE_CLAIMS.md` | Encrypted results/evidence, authenticated claim/decision prep and canonical/reorg-safe projection; 16 backend + 28 M3 regression tests pass; results in `planning/EVM_M4_RESULTS.md` |
-| M5 Public MVP acceptance | Stage A PREPARED; public approval pending | `planning/EVM_M5_PUBLIC_ACCEPTANCE.md` | Local typecheck/26 tests/rehearsal and scoped review pass; results in `planning/EVM_M5_RESULTS.md`. Native public combined-stack proof remains required |
+| M5 Public MVP acceptance | IN_PROGRESS; first public campaign partial/expired | `planning/EVM_M5_PUBLIC_ACCEPTANCE.md` | First seven transactions confirmed; projection fix and safe continuation tested. Second isolated proposal requires new approval. Full native public refund/proof gate still pending; `planning/EVM_M5_RESULTS.md` |
 
 Only one phase is active. The baseline design has been reviewed with the user;
 its mechanism candidates still require feasibility evidence. M1 may choose a

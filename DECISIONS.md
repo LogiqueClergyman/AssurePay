@@ -564,3 +564,87 @@ Public mutation CLIs acquire one exclusive campaign-directory run lock before
 journal initialization. Funding and protocol execution share that lock. Concurrent
 starts fail closed; stale locks require explicit local inspection, never automatic
 takeover. Programmatic adapters retain the single-instance-per-journal assumption.
+
+## EVM-029 — Approved M5 public campaign
+
+Status: ACCEPTED execution authorization. Date:2026-10-21.
+Source: user selected "Approve M5 funding and execution" for checkpoint922947f
+and the concrete funding/transaction scope in planning/EVM_M5_RESULTS.md.
+
+Approve three exact managed-vault top-ups:302480018003071wei to relayer,
+108000000000000wei to payer and94000000000000wei to adjudicator, then the frozen
+fourteen Base Sepolia/native-USDC protocol transactions. Maximum initial USDC
+allocation43514atomic; campaign plus funding fee allowance914300000000000wei;
+maximum additional vault outflow513780018003071wei including funding fees at
+the approved snapshot. Fixed per-step gas/fee settings and auxiliary reserves
+remain unchanged. No mainnet, external recipients or larger scope is authorized.
+
+Refresh read-only balances/nonces/fees before execution. Changed amounts or
+uncertain hashes stop and reconcile without replacement, fee escalation or
+fresh purchase. Approval is not execution proof; M5 acceptance still requires
+the complete public campaign and independent signer-free verification.
+
+For reproducible read-only cost reporting, compare each protocol role's native
+balance immediately before deployment and at the final included revert. Validate
+canonical anchors and initial funding targets; native-value-zero campaign calls
+make the difference aggregate gas expenditure under no concurrent account use.
+Keep measured aggregate fees distinct from independently identity-matched receipt
+components; do not attribute an unavailable operator component from a residual.
+
+## EVM-030 — Canonical projection anchor and bounded campaign continuation
+
+Status: ACCEPTED scoped M5 correction. Date:2026-10-21.
+
+The approved campaign included its first seven transactions, including purchaseA,
+then stopped before claimA with PROJECTION_UNAVAILABLE. Signer-free reconciliation
+confirmed all seven hashes. A read-only public diagnostic reproduced the precise
+PROJECTION_HEAD_CHANGED cause: Base advanced from48418450 to48418451 while
+refreshing. The old final latest-tip equality rejects ordinary chain progress.
+All projection reads are already pinned to the initial numbered head. Replace
+only its final check with a canonical re-read of that same numbered block/hash;
+retain opening-anchor checks, pinned state, range limits and reorg rejection.
+Allow the narrow change to claims-backend/src/projection.ts and its tests under
+M5; this changes neither financial rules nor contract/role interfaces.
+
+Continue only the exact seven-confirmed-step prefix of the same campaign/Core,
+after verifying existing call identities and the original successful settlement.
+Reuse its persisted public HTTP counters/hashes and encrypted backend storage;
+never sign/broadcast or execute the purchaseA handler again. A distinct explicit
+continuation scope may submit only the seven remaining EVM-029 transactions:
+claimA/resolveA/purchaseB/claimB/resolveB/pause/revert. The original fourteen-step
+total, approved values/roles, gas/fee caps and run identity remain unchanged.
+Read-only reconciliation stays incapable of signing; continuation is a separate
+explicit execution action, with actual local failure/continuation tests before
+public use. Other prefixes and another completed campaign must fail closed.
+
+## EVM-031 — Expired first campaign and isolated second proposal
+
+Status: ACCEPTED local preparation; new public execution NOT AUTHORIZED.
+Date:2026-10-22.
+
+Canonical read-only coverage evidence shows the first campaign's purchaseA
+opened1792605100 and expired1792608700 (2026-10-22 00:21:40 IST); at observed
+timestamp1792644642 it remained Active with refund0 and could no longer file a
+timely claim. Do not backdate, modify policy, submit a doomed claim or represent
+this partial campaign as M5 acceptance. The original paid HTTP result remains
+valid; the first seven transactions and all journals must remain preserved.
+
+Prepare a distinct proposed second experiment: fresh public run/provider/policy/
+service IDs and Core, separate `.local-m5-r2/` journals/data, same four test EOAs
+and unchanged fourteen-step policy/economics. Existing runtime data key may be
+reused with the new Core namespace and fresh encryption IVs; never overwrite
+or manually read the populated original runtime environment. Runtime original
+config stays intact; checked-in public proposal overrides only public IDs.
+
+Read-only planning fixes the new exact shortfalls, role nonces, vault and fee
+allowances before approval. A separate guarded second-attempt CLI defaults to
+check-only; funding/reconciliation/execution operate only on the new journal.
+It pins the proposal's config/roles/top-up values, fails on changed nonce/balance/
+fee conditions, and keeps same-hash recovery separate from missing-step execution.
+No automatic second payment/new campaign follows an interruption or failed test.
+New public approval is required because the original fourteen-transaction scope
+cannot be completed after expiry; EVM-029 does not authorize this extra campaign.
+The proposal reuses the funding component's strict derived-plan validator via a
+public detached/frozen validation wrapper; do not maintain weaker economic or
+unknown-field validation in the new CLI. IDs must equal the runtime derivation
+from the approved fresh runId, not merely differ from the first campaign.
