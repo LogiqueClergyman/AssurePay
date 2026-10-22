@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { createPublicClient, http, type Address, type Hex } from 'viem';
 import { baseSepolia } from 'viem/chains';
+import { withReadQueue } from '../src/read-queue.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const EVIDENCE = join(ROOT, 'evidence');
@@ -144,7 +145,7 @@ async function main(): Promise<void> {
   const finalBlockNumber = decimal(lastVerified.blockNumber);
   if (startBlockNumber < 0n || lastVerified.kind !== 'revert' || !hash(lastVerified.blockHash)) return fail();
 
-  const client = createPublicClient({ chain: baseSepolia, transport: http(baseSepolia.rpcUrls.default.http[0]!, { retryCount: 0, timeout: 15000 }), cacheTime: 0 });
+  const client = withReadQueue(createPublicClient({ chain: baseSepolia, transport: http(baseSepolia.rpcUrls.default.http[0]!, { retryCount: 0, timeout: 15000 }), cacheTime: 0 }));
   if (await client.getChainId() !== 84532) return fail();
   const [startHeader, finalHeader] = await Promise.all([
     client.getBlock({ blockNumber: startBlockNumber }), client.getBlock({ blockNumber: finalBlockNumber }),

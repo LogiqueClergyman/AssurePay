@@ -12,7 +12,7 @@ import { CampaignStore } from '../src/store.js';
 import { createCampaignSender } from '../src/sender.js';
 import { checkPublic, MANAGED_TEST_VAULT } from '../src/preflight.js';
 import { buildFundingPlan, fundCampaign, reconcileFunding, PUBLIC_FUNDING_SCOPE } from '../src/funding.js';
-import { validateConfig } from '../src/plan.js';
+import { validateConfig, ECONOMICS } from '../src/plan.js';
 import { verifyCampaign } from '../src/verify.js';
 import {
   assertFundingPlanMatchesProposal,
@@ -24,6 +24,8 @@ import {
 } from '../src/second-attempt.js';
 import { runtimeAccounts, runtimeConfig, runtimeDataKey, runtimeRpc, safeCode, PUBLIC_SCOPE } from '../src/runtime.js';
 import { withBaseReceiptFees } from '../../../spikes/evm-m1/src/base-receipt-fees.js';
+import { withReadQueue } from '../src/read-queue.js';
+import { withLogChunks } from '../src/log-chunks.js';
 
 const SCOPE_ENV = 'M5_SECOND_ATTEMPT_SCOPE';
 const directory = fileURLToPath(new URL('../.local-m5-r2/', import.meta.url));
@@ -34,12 +36,13 @@ const proposalPath = fileURLToPath(new URL('../evidence/second-attempt-proposal.
 const originalPublicEvidencePath = fileURLToPath(new URL('../evidence/public-reconciliation.json', import.meta.url));
 let release: (() => Promise<void>) | undefined;
 
-function parseMode(args: string[]): 'check' | 'fund' | 'reconcile-funding' | 'execute' | 'reconcile' | 'verify' {
+function parseMode(args: string[]): 'check' | 'fund' | 'reconcile-funding' | 'execute' | 'continue' | 'reconcile' | 'verify' {
   if (args.length === 0) return 'check';
   if (args.length === 1 && args[0] === '--reconcile-funding') return 'reconcile-funding';
   if (args.length === 1 && args[0] === '--reconcile') return 'reconcile';
   if (args.length === 1 && args[0] === '--verify') return 'verify';
   if (args.length === 3 && args[0] === '--fund' && args[1] === '--scope' && args[2] === SECOND_ATTEMPT_SCOPE) return 'fund';
+  if (args.length === 3 && args[0] === '--continue' && args[1] === '--scope' && args[2] === SECOND_ATTEMPT_SCOPE) return 'continue';
   if (args.length === 3 && args[0] === '--execute' && args[1] === '--scope' && args[2] === SECOND_ATTEMPT_SCOPE) return 'execute';
   throw new Error('M5_SECOND_ARGUMENTS_INVALID');
 }
@@ -114,17 +117,17 @@ async function ensureFundingComplete(config: ReturnType<typeof runtimeConfig>, c
 
 try {
   const mode = parseMode(process.argv.slice(2));
-  if (mode === 'fund' || mode === 'execute') requireNewApproval();
+  if (mode === 'fund' || mode === 'execute' || mode === 'continue') requireNewApproval();
   const original = await loadOriginalPublicConfig();
   const proposal = await loadProposal(original);
   assertOriginalRuntimeMatches(proposal, original);
-  if (mode === 'fund' || mode === 'execute') {
+  if (mode === 'fund' || mode === 'execute' || mode === 'continue') {
     const runtimeOriginal = runtimeConfig(process.env);
     if (JSON.stringify(runtimeOriginal) !== JSON.stringify(original)) throw new Error('M5_SECOND_ORIGINAL_RUNTIME_MISMATCH');
   }
   const rpc = runtimeRpc(process.env);
   const publicClient = createPublicClient({ chain: baseSepolia, transport: http(rpc, { retryCount: 0, timeout: 15_000 }), cacheTime: 0 });
-  const client = withBaseReceiptFees(publicClient);
+  const client = withLogChunks(withReadQueue(withBaseReceiptFees(publicClient)));
 
   if (mode === 'check') {
     const [preflight, observedPlan] = await Promise.all([
@@ -208,6 +211,31 @@ try {
     const result = await runCampaign({ config: proposal.config, client, wallet, accounts, dataKey, journalPath: campaignPath,
       dataDirectory, artifact: compileContracts().AssuranceCore, executePublic: true, polls: 20, delay: 1_000 });
     process.stdout.write(JSON.stringify({ ok: result.verification.ok, code: 'M5_SECOND_CAMPAIGN_RESULT',
+      transport: result.transport, verification: result.verification }) + '\n');
+    if (!result.verification.ok) process.exitCode = 1;
+  } else if (mode === 'continue') {
+    await acquireMutationLock();
+    await assertProposalAnchor(client, proposal.fundingPlan);
+    if (!await existingRegularFile(campaignPath, 'M5_SECOND_CAMPAIGN_JOURNAL_INVALID')) throw new Error('M5_SECOND_CAMPAIGN_JOURNAL_MISSING');
+    const dataInfo = await lstat(dataDirectory).catch(() => { throw new Error('M5_SECOND_DATA_DIRECTORY_INVALID'); });
+    if (!dataInfo.isDirectory() || dataInfo.isSymbolicLink()) throw new Error('M5_SECOND_DATA_DIRECTORY_INVALID');
+    const sender = await createCampaignSender({ config: proposal.config, client, journalPath: campaignPath });
+    const prefix = sender.read();
+    if (prefix.transactions.length !== 7 || prefix.transactions[6]?.kind !== 'purchaseA' ||
+        prefix.transactions.some(row => row.status !== 'success')) throw new Error('M5_CONTINUATION_PREFIX_INVALID');
+    for (const row of prefix.transactions) await sender.observe(row.kind);
+    const block = await client.getBlock({ blockTag: 'latest' });
+    if (block.baseFeePerGas === null || block.baseFeePerGas + 1_000_000n > BigInt(proposal.config.maxFeePerGas)) throw new Error('M5_CONTINUATION_FEE_PREFLIGHT_FAILED');
+    const payerUsdc = await client.readContract({ address: proposal.config.token,
+      abi: [{ type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] }],
+      functionName: 'balanceOf', args: [proposal.config.roles.payer] });
+    if (typeof payerUsdc !== 'bigint' || payerUsdc < BigInt(ECONOMICS.gross)) throw new Error('M5_CONTINUATION_USDC_INSUFFICIENT');
+    const accounts = runtimeAccounts(process.env, proposal.config);
+    const dataKey = runtimeDataKey(process.env);
+    const wallet = createWalletClient({ chain: baseSepolia, transport: http(rpc, { retryCount: 0, timeout: 15_000 }) });
+    const result = await runCampaign({ config: proposal.config, client, wallet, accounts, dataKey, journalPath: campaignPath,
+      dataDirectory, artifact: compileContracts().AssuranceCore, executePublic: true, continueAfterPurchaseA: true, polls: 20, delay: 1_000 });
+    process.stdout.write(JSON.stringify({ ok: result.verification.ok, code: 'M5_SECOND_CONTINUATION_RESULT',
       transport: result.transport, verification: result.verification }) + '\n');
     if (!result.verification.ok) process.exitCode = 1;
   } else if (mode === 'reconcile') {

@@ -1,18 +1,70 @@
 # Combined-stack acceptance campaign
 
-M5 composes the unchanged M2 Core, M3 registered x402 flow and M4 encrypted
-results/evidence backend. This is a bounded test campaign, not a production
-deployment. The authoritative scope is
-[`planning/EVM_M5_PUBLIC_ACCEPTANCE.md`](../../planning/EVM_M5_PUBLIC_ACCEPTANCE.md).
+M5 composes the M2 assurance Core, M3 registered x402 flow and M4 encrypted
+results/evidence backend on Base Sepolia with native test USDC. The bounded
+acceptance scope is in
+[`EVM_M5_PUBLIC_ACCEPTANCE.md`](../../planning/EVM_M5_PUBLIC_ACCEPTANCE.md); the
+recorded outcome and decisions are in [`EVM_M5_RESULTS.md`](../../planning/EVM_M5_RESULTS.md).
 
-Current public state: the first experiment has seven confirmed transactions and
-one completed paid200 case. Its claim window expired during an interruption;
-the complete refund proof is still pending. Preserve that journal and result.
-Do not restart it or submit an expired claim. Results and the proposed distinct
-second experiment are in planning/EVM_M5_RESULTS.md; EVM-029 covers only the first.
+## Result
 
-Use Node24.18.0 and the pinned lockfile. Install the existing M1–M4 package
-dependencies first; the campaign reuses their compiler and local Anvil helper.
+M5 is accepted on the fresh second campaign. Its independent signer-free
+verification matched all fourteen ordered transactions to canonical receipts
+and checked the calls, state transitions, refunds and final revert. The earlier
+first campaign remains partial and expired; preserve its `.local-m5` journal
+and result. The accepted campaign has a separate `.local-m5-r2/` namespace.
+
+Public proof:
+
+- [Funding reconciliation](evidence/second-public-funding.json)
+- [Campaign continuation and HTTP observations](evidence/second-public-continuation.json)
+- [Independent chain verification](evidence/second-public-verification.json)
+- [Measured public costs](evidence/second-public-costs.json)
+- [Final Core state](evidence/second-final-state.json)
+
+The campaign deployed a fresh Core and completed both purchase cases. The
+ProviderFault and PoolOnly claims refunded 3,100 and 10,003 atomic USDC. Final
+state records 16,017 atomic USDC in the Core, comprising 4,460 stake and 11,557
+pool assets, zero locked stake and pool reserves, no active coverage, and a
+paused Core. The distinct valid receive intent reverted while paused, leaving
+its nonce unused and financial state unchanged. The measured aggregate native
+fee was 27,730,062,008,778 wei under the no-concurrent-account-use assumption.
+Unavailable operator-fee components remain labeled unavailable.
+
+The HTTP evidence records one payment signature, relay signature, broadcast
+and handler for each paid case, with exact repeat retrieval. This is
+runner-observed transport evidence, not independent proof of private HTTP or
+evidence truth. Public evidence establishes canonical inclusion, not finality
+or post-receive rollback.
+
+## Read-only follow-up
+
+Use Node 24.18.0 and the pinned lockfile. The accepted run's funding and
+execution allowances are consumed; do not run `--fund` or `--execute`, and do
+not create another campaign under this approval. Signer-free reconciliation,
+verification and cost reporting are:
+
+```sh
+node --import tsx scripts/second-attempt.ts --reconcile
+node --import tsx scripts/second-attempt.ts --verify
+node --import tsx scripts/costs.ts --second
+```
+
+The `--continue` recovery mode is reserved for an explicitly approved,
+prepared campaign with exactly seven successful transactions through
+`purchaseA`. It reconciles that exact prefix and can submit only the remaining
+seven approved steps. It refuses any different or complete prefix and expired
+claim coverage. This accepted run has all fourteen steps, so continuation must
+refuse it. Never use the expired first campaign for continuation.
+
+The bounded read queue retries only allowlisted idempotent reads; it never
+retries signing, sending or other writes. M5 log requests are split into
+contiguous chunks of at most 100 blocks. That adapter limit does not establish
+the network's maximum accepted range. Projection scans use a 25,000-block
+horizon and retain their deployment anchor; the horizon does not extend claim
+expiry.
+
+## Local checks
 
 ```sh
 npm ci
@@ -21,142 +73,8 @@ npm test
 npm run rehearse
 ```
 
-The rehearsal executes fourteen real transactions on isolated Anvil using the
-faithful ERC3009 fixture. It exercises HTTP200 and signed500 responses, exact
-repeat/restart retrieval, authenticated encrypted evidence, two explicit refunds
-and paused admission rejection. `M5_LOCAL_REHEARSAL_VERIFIED` never substitutes
-for native public USDC proof. Temporary accounts and directories are discarded.
-
-Public configuration is loaded through Node's runtime environment handling.
-Never display populated configuration files. `setup` creates an exclusive ignored
-mode0600 `.env.m5.local` once; preserve the existing file and never regenerate it
-to recover a transaction. Existing M1 accounts/vault and completed journals remain
-unchanged. The checked-in `.env.example` contains only empty placeholders.
-
-Run these from this package directory:
-
-```sh
-node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --import tsx scripts/check.ts
-node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --import tsx scripts/check-signers.ts
-```
-
-`check` reads chain/token/domain, balances, fees and funding shortfalls without
-creating a signer or journal. `check-signers` derives public addresses from opaque
-runtime keys without signing or submitting. Public execution additionally needs
-Stage B authorization recorded in the packet. No M1 allowance carries forward.
-
-The funding entry point defaults to a public-only plan and needs no vault key:
-
-```sh
-node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --import tsx scripts/funding.ts
-```
-
-Only after Stage B approval, load the vault runtime file as well and pass the
-separate exact funding scope. The CLI pins the managed vault, three role targets
-and the reviewed top-up amounts; changed shortfalls stop the operation.
-
-```sh
-node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --env-file=../../spikes/evm-m1/.env.vault.local --import tsx scripts/funding.ts --execute --scope m5-fund-campaign-roles-once
-```
-
-Signer-free funding reconciliation reads only `.local-m5/funding.json` and known
-public hashes. It cannot submit unfinished transfers:
-
-```sh
-node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --import tsx scripts/funding.ts --reconcile
-```
-
-Funding measures aggregate fees from canonical vault balance changes, checking
-known receipt components and the fixed reserve. Missing receipt components stay
-labelled unavailable; estimates remain separate. This assumes no concurrent
-vault/account use or incoming funds. Reconciliation checks funding targets before
-protocol execution; once protocol roles spend their gas, their current balances
-will no longer equal those initial targets.
-
-The protocol campaign is fixed: one new Core/provider/policy, exact23508 USDC
-approval,3502 stake and20006 pool donations, two10003-unit purchases, payer
-claims,3100 ProviderFault and10003 PoolOnly refunds, pause and a distinct valid
-receive intent with an included revert. Total initial allocation43514 atomic
-USDC; protocol gas allowance7050000 and auxiliary reserve200000000000000wei.
-Maximum campaign plus three funding transfer fees914300000000000wei test ETH.
-The L1 reserve is an allowance, not an enforceable transaction-format fee cap.
-
-After authorization and exact funding, the execution entry point is:
-
-```sh
-node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --import tsx scripts/public-run.ts --execute
-```
-
-It requires the exact `M5_PUBLIC_SCOPE` from the template and refuses an existing
-nonempty campaign journal. Fixed public identities are persisted under ignored
-`.local-m5/campaign.json` before broadcasting; raw signed transactions stay in
-memory. HTTP/encryption observations are distinct from independent chain proof.
-Public HTTP counters/hashes are fsynced after each repeat/restart check, so a
-later verification outage preserves those observations. They contain no receipt
-signature or private request/result bytes.
-
-Recovery never signs, broadcasts, changes fees or makes a replacement purchase:
-
-```sh
-node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --import tsx scripts/reconcile.ts
-node --import tsx scripts/verify.ts
-```
-
-`verify` needs no wallet environment; optional RPC configuration can be provided
-through the process environment. It independently fetches all fourteen known
-transactions, canonical anchors, exact calls, financial state and refund facts.
-A prepared transaction lost before broadcast remains stranded. An incomplete
-campaign cannot produce complete acceptance. Preserve journals and reconcile
-unknown hashes before deciding any further action.
-
-Public fee fields are reported only after matching receipt identity; unavailable
-fields stay unavailable. Evidence establishes canonical inclusion, not finality,
-private HTTP truth, production security or a post-receive rollback: the paused
-negative case fails before the token receive call.
-
-## Second experiment (new approval required)
-
-`evidence/second-attempt-proposal.json` pins fresh IDs and exact funding amounts.
-Default check, recovery and verification require no wallet environment:
-
-```sh
-node --import tsx scripts/second-attempt.ts
-node --import tsx scripts/second-attempt.ts --reconcile-funding
-node --import tsx scripts/second-attempt.ts --reconcile
-node --import tsx scripts/second-attempt.ts --verify
-```
-
-Recovery commands require existing second-experiment journals. All state stays
-under `.local-m5-r2/`; the first environment, journals and encrypted objects remain
-preserved. Read-only checks pin amounts, role/vault nonces and proposal anchors.
-Known hashes are reconciled before any explicitly authorized missing funding step.
-
-Only after separate second-experiment approval, use the exact public scope in
-both the runtime variable and CLI flag. No populated environment file is edited:
-
-```sh
-M5_SECOND_ATTEMPT_SCOPE=m5-second-campaign-after-expired-first node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --env-file=../../spikes/evm-m1/.env.vault.local --import tsx scripts/second-attempt.ts --fund --scope m5-second-campaign-after-expired-first
-M5_SECOND_ATTEMPT_SCOPE=m5-second-campaign-after-expired-first node --env-file=../../spikes/evm-m1/.env.local --env-file=.env.m5.local --import tsx scripts/second-attempt.ts --execute --scope m5-second-campaign-after-expired-first
-```
-
-The original `M5_PUBLIC_SCOPE` must also match. Execution refuses existing run
-state, changed balances/nonces or fees and never creates another fresh attempt.
-The optional first-experiment continuation CLI only supports its exact seven-row
-prefix while coverage is timely; it rejects this expired public coverage before
-signing. No second-experiment transaction has been approved or sent yet.
-
-After approved funding, save its reconciliation before protocol accounts spend
-gas. After the approved campaign, save its separate independent proof and costs:
-
-```sh
-node --import tsx scripts/second-attempt.ts --reconcile-funding > evidence/second-public-funding.json
-# Run the approved --execute command above only after funding is confirmed.
-node --import tsx scripts/second-attempt.ts --reconcile > evidence/second-public-reconciliation.json
-node --import tsx scripts/second-attempt.ts --verify > evidence/second-public-verification.json
-node --import tsx scripts/costs.ts --second > evidence/second-public-costs.json
-```
-
-The cost reporter requires a complete successful independent verifier report;
-the first partial campaign cannot satisfy it. It checks historical funded role
-balances and canonical receipt anchors, reports aggregate native expenditure,
-and leaves unavailable receipt fee components explicitly unavailable.
+The local rehearsal uses isolated Anvil and a faithful ERC3009 fixture. It
+checks the campaign's success and failure paths but does not replace public
+native-USDC proof. Keep populated runtime configuration and private keys
+private; never regenerate an existing environment or journal to recover a
+transaction.

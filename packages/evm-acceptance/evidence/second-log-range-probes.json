@@ -1,0 +1,29 @@
+{
+  "chainId": 84532,
+  "core": "0x36e4f1080719a12af93e2d7a33940e81671af3b1",
+  "fromBlock": "48751023",
+  "fromBlockHash": "0xc41c141db1171d498934702d053336c36ba4753bc6d573abb1f5f5dfdb91de6f",
+  "basis": "Observed read-only raw getLogs requests; exact maximum not established",
+  "probes": [
+    {
+      "blocks": 500,
+      "ok": false,
+      "code": -32614
+    },
+    {
+      "blocks": 100,
+      "ok": true,
+      "logs": 2
+    },
+    {
+      "blocks": 10,
+      "ok": true,
+      "logs": 0
+    },
+    {
+      "blocks": 1,
+      "ok": true,
+      "logs": 0
+    }
+  ]
+}

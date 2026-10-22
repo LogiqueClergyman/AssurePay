@@ -71,7 +71,7 @@ export async function runCampaign(input:CampaignOptions):Promise<{manifest:Campa
   const context:BackendContext={chainId:84532,core,token:config.token,adjudicator:config.roles.adjudicator,serviceId:config.serviceId};
   const vault=new EncryptedVault({directory:join(input.dataDirectory,'objects'),namespace:contextNamespace(context),keyId:'m5-v1',key:dataKey});
   const resultStore=createResultStore(vault);
-  const projection=createProjection({client,context,journalPath:join(input.dataDirectory,'projection.json'),fromBlock:BigInt((await sender.read()).transactions[0].blockNumber!)});
+  const projection=createProjection({client,context,journalPath:join(input.dataDirectory,'projection.json'),fromBlock:BigInt((await sender.read()).transactions[0].blockNumber!),maxBlocks:25_000});
   const backend=await createClaimsBackend({context,projection,vault,replayPath:join(input.dataDirectory,'replay.jsonl')});
   const aRow=continuing?(await sender.read()).transactions[6]:undefined;
   let recoveredA:PreparedCall|undefined;

@@ -1,199 +1,175 @@
-# M5 combined-stack acceptance results
+# M5 combined-stack public acceptance results
 
-Updated:2026-10-22. Branch:`main`. State:first public campaign PARTIAL/EXPIRED;
-second experiment is local preparation only, awaiting new approval.
-Packet:`planning/EVM_M5_PUBLIC_ACCEPTANCE.md`. Decisions:EVM-026..031.
-M5 is NOT accepted: complete native public combined-stack proof remains pending.
+Updated:2026-10-22. Branch:`main`. State:ACCEPTED under EVM-037; complete public
+proof, costs and independent scoped review pass. Packet:`planning/EVM_M5_PUBLIC_ACCEPTANCE.md`.
+Decisions:EVM-027..037. The first campaign remains partial/expired; the separately
+approved second campaign supplies the complete native-USDC proof.
 
-## Delivered scope
+## Public result
 
-New isolated `packages/evm-acceptance` composes the unchanged M2 financial Core,
-M3 registered x402 HTTP flow and M4 encrypted results/evidence/claims backend.
-The campaign fixes fourteen ordered steps, exact roles, calldata/economics,
-nonces, fee/gas allowances and one-attempt public journals. Its sender derives
-and persists public transaction identity before broadcast; raw signed bytes
-remain in memory. A separate signer-free verifier fetches transactions, receipts,
-code and canonical state itself, reconstructing public receive signatures only
-in memory. Reports never serialize signature/calldata/raw transaction material.
+The second Base Sepolia campaign completed exactly14 ordered protocol transactions:
+13 successes and the expected included revert. Core:
+`0x36e4f1080719a12af93e2d7a33940e81671af3b1`; native test USDC:
+`0x036cbd53842c5426634e7929541ec2318f3dcf7e`. Four distinct EOAs serve as
+relayer/admin, payer, provider/receipt signer and adjudicator. No M2 contract or
+financial rule changed during M5.
 
-Both successful200 and signed500 HTTP cases settle before handler execution.
-Each repeated request and provider restart retrieves the exact archived result
-with one payment signature, relay signature, broadcast and handler. Synthetic
-authenticated encrypted evidence leads to direct payer claims and explicit
-adjudicator refunds:3100 ProviderFault and10003 PoolOnly. These fixed fixtures
-do not classify evidence or infer service quality. The final distinct valid
-receive intent reverts after pause; the nonce remains unused and all financial
-state unchanged. This is admission failure before receive, not post-receive
-native-USDC rollback proof.
+| Evidence in packages/evm-acceptance/evidence | Result |
+|---|---|
+| second-public-funding.json | Two exact top-ups confirmed before protocol spending |
+| second-public-continuation.json | Complete runner result; HTTP observations and full verifier pass |
+| second-public-reconciliation.json | Signer-free reconciliation of14 original hashes |
+| second-public-verification.json | Separate process without wallet environment: M5_PUBLIC_CHAIN_VERIFIED |
+| second-public-costs.json | M5_SECOND_PUBLIC_COSTS_RECONCILED; canonical balance deltas within allowance |
+| second-final-state.json | Actual pinned final balances, refunded coverages and solvency equality |
 
-## Local evidence
+The independent verifier fetches transactions/receipts/code/state itself. It checks
+exact creation bytecode/immutables, roles, nonces, calls, policy, native-USDC logs,
+per-step financial deltas, claim commitments, refund waterfalls, unused negative
+nonce and unchanged financial state across the final revert. Every inclusion
+anchor is re-read for canonicality at the end. Public calldata signatures are
+reconstructed only in memory; artifacts do not duplicate signatures or raw calls.
 
-`packages/evm-acceptance/evidence/local-rehearsal.json` records an actual
-fourteen-transaction Anvil execution with the faithful ERC3009 fixture:
+## Product behavior exercised
 
-- Independent result:`M5_LOCAL_REHEARSAL_VERIFIED`; thirteen successes and the
-  final included revert. Total gas4499026 versus7050000 aggregate gas caps.
-- Local execution fees19403010205875wei; calldata14649bytes. Anvil L1/operator
-  fee fields are unavailable. These are local observations, not public estimates.
-- Exact approval/funding, purchase/refund token deltas, coverage claim pins,
-  provider-fault waterfall, pool-only payment and solvency/isolation checks pass.
-- HTTP200/500 repeat/restart bodies and receipt hashes match; each case records
-  one payer signature, relay signature, broadcast and handler.
+Registered x402 client/server/facilitator composition settles before the handler.
+PurchaseA returns HTTP200; PurchaseB intentionally throws and returns a signed500.
+Both retry and provider restart return matching archived body/receipt hashes.
+Each case observes one payer payment signature, relay signature, broadcast and
+handler execution. Original A observations are recovered during continuation;
+A is never paid or executed a second time. These are actual runner observations,
+separate from what the chain can independently prove about private HTTP bytes.
 
-Primary `npm test` passed26/26, no skips/failures, including actual EVM financial
-execution and real HTTP sockets. Typecheck passed. Local tests also cover signer
-field substitutions, request/config/manifest/schema tampering, lost responses,
-prepared-no-broadcast crashes, signer-free known-hash recovery, exclusive run
-locking and verifier rejection of wrong chain, missing receipt/RPC, changed
-canonical anchors, excessive fees/gas, altered refund state and missing events.
-The original primary suite passed after funding fee corrections and durable
-transport observation changes. A subsequent focused funding rerun covers
-confirmed measurement tampering. Unchanged M1–M4 packages were not rerun.
+Authenticated synthetic encrypted evidence prepares direct payer claims and
+explicit adjudicator decisions. A refunds3100atomic USDC through ProviderFault;
+B refunds10003atomic through permitted PoolOnly. These are fixed test decisions,
+not service-quality judgments or evidence classification. Both pay the stored
+payer. Admin then pauses and submits a distinct valid receive authorization:
+included revert, no token authorization consumption/coverage, no financial change.
+The failure precedes USDC receive; it does not prove post-receive native rollback.
 
-Three Luna(high) agents completed bounded funding, adversarial verifier tests
-and independent review/run locking. Primary and cross-component review closed
-fee-allowance/actual-spending confusion, strict plan derivation, concurrent CLI
-starts, stale inner locks, canonical receipt anchors and immutable measured fees.
-The reviewer reports no remaining financial blocker. Initial empty-journal crash
-availability is retained as an explicit limit below. This is development review,
-not a production security audit. At that checkpoint no contracts or M1–M4
-source were changed; the later EVM-030 projection correction is described below.
+| Critical step | Transaction hash |
+|---|---|
+| Deployment | 0xaa64bc785db862ce5f7c3a95221e657a73050e3618447d8db5f2f947d035cf11 |
+| PurchaseA | 0xa966cc94877d8f9921ad5e11e19e21af56f0e8b3ede8975ac62d74f39304e291 |
+| RefundA | 0xa94c165e0c5c4a4133f5cd42beffa16ac72205420239fbaa1f620038462eed05 |
+| PurchaseB | 0x69b38b59ca963335ccd8c432fad0db0dfdfa6c986c396ad852b6434976a3381e |
+| RefundB | 0xb05f10b334e9c7211fc31a675489c9452930a2b5937f98dfb71e5c543eddb2dd |
+| Included negative | 0x6a87f649d57cddc326767b5f4444944eb53c6ce5e6384840a02f24b390188cdf |
 
-## Original public approval and preflight
+## Final public financial state
 
-`packages/evm-acceptance/evidence/public-preflight.json` is a read-only snapshot
-at Base Sepolia block48418077, hash
-`0x07c22ee43aa788eb7c07c4a26ee0f49a9db00192518dcc60824d54cd46fa92c0`.
-Native USDC has code, USDC/2/six-decimal domain matches, payer balance19999900
-atomic exceeds required43514. Base fee5000000 plus priority1000000wei fits the
-fixed max fee100000000wei. Runtime signer address/config check passed without
-signing or submitting. No public mutations occurred during Stage A.
+Pinned final block48756153, hash
+`0xe001bb55d043b245e118a445c26e1f962fe647f03d099b4c60631342caa93913`.
+All token amounts below are integer atomic USDC units (six decimals).
 
-The concrete signer-free funding plan is
-`packages/evm-acceptance/evidence/funding-plan.json`, observed at block48418067,
-hash`0xf4c8ff41cebfdca3f48958bf8fb3fdfcf6f0a61b50c8d19355a81318d8ffa277`.
-It proposes vault nonces1/2/3; relayer current nonce5, payer/adjudicator0. Balances
-and the separate preflight agree. No vault signer was loaded to build this plan.
+| Item | Observed value |
+|---|---:|
+| Core USDC |16017|
+| Provider stake |4460|
+| Pool assets |11557|
+| Locked stake / reserved pool |0 / 0|
+| Coverage count / active count |2 / 0|
+| Payer USDC |19935978|
+| Provider USDC |21684|
+| Payer allowance to Core |0|
 
-| Role | Address | Current wei | Target wei | Proposed top-up wei |
-|---|---|---:|---:|---:|
-| Relayer/admin | `0xc6643871078fd90c1a94528369c2443f53b9762a` |400519981996929|703000000000000|302480018003071|
-| Payer | `0x6671c66c40133c62f3442baa91f6868f1d7769fd` |0|108000000000000|108000000000000|
-| Adjudicator | `0xbd06d6bf0cc8e4099ffd16d65caa7346351ff8e8` |0|94000000000000|94000000000000|
-| Provider | `0x2ccf71ae890f9fe8c85d97086ffe145ddcc3bc29` |0|0|0|
+Core USDC equals stake plus pool:16017=4460+11557. Both coverages are Refunded;
+outcomes are ProviderFault1 and PoolOnly2, amounts3100 and10003, respectively.
+Core is paused. The final rejected authorization remains unused. Old-Core funds
+and the historical first campaign were not cleaned up or modified.
 
-Managed vault:`0x7a776d8f819b33f50ef85d37effcb5bdd2714756`, balance
-99154640689918186wei. Three top-ups total504480018003071wei; their fee allowance
-adds9300000000000wei, so maximum new vault outflow513780018003071wei at this
-snapshot. Each transfer uses21000gas, max fee100000000, priority1000000wei and
-1000000000000wei auxiliary reserve. Refresh balances/nonce/fees before execution;
-changed conditions stop rather than increase the approved values.
+## Funding and measured costs
 
-Fourteen protocol transactions use7050000 gas caps and200000000000000wei
-auxiliary reserve:905000000000000wei protocol allowance. Campaign plus funding
-fee allowance914300000000000wei (0.0009143 test ETH). Maximum initial USDC
-allocation43514 atomic (0.043514 test USDC), including23508 approval for stake/
-pool donations and two receive-authorized10003-unit purchases. All refunds go
-to the stored payer. The user approved this exact first-campaign scope under
-EVM-029 at checkpoint922947f. It does not authorize another campaign.
+EVM-032 records the user's explicit second-campaign approval at689703e. Initial
+USDC allocation43514atomic: exact23508approval for3502stake+20006pool donations,
+plus two10003gross purchases. Policy remains777premium/3500stake/2200withholding
+bps,3600seconds, poolOnlyAllowed=true. Each purchase quotes P777/W2029/net7197,
+stake lock3502 and pool reservation10003.
 
-## First public campaign: partial, no M5 acceptance
+Vault nonces4/5 funded exactly19674564006637wei to relayer and1701102000276wei
+to payer. Hashes:
+`0x9b0cf99fd592d3278226f66dc565991151e52229b852c13290278c0c8f412440` and
+`0x0c363068be6716d8f932e8a2ed9e459022f753a046afe2c5445cdb09d4724178`.
+No additional top-up, replacement, fee increase or third campaign was used.
 
-All three top-ups are canonically confirmed, with one distinct vault nonce each:
-1/2/3. `evidence/public-funding-reconciliation.json` reports funding_complete.
-Each used21000gas at6000000wei plus92wei auxiliary cost; total fees378000000276wei,
-total vault outflow504858018003347wei. Immediate receipt reads were unavailable;
-signer-free reconciliation observed each original hash before the next missing
-step. No transfer was rebroadcast or replaced.
+| Measurement | Actual wei | Approved allowance wei |
+|---|---:|---:|
+| Protocol native expenditure |27478062008522|905000000000000|
+| Funding fees |252000000256|6200000000000|
+| Combined fees |27730062008778|911200000000000|
+| New vault outflow, including transferred value |21627666007169|27575666006913|
 
-`evidence/public-reconciliation.json` records seven successful protocol steps:
-deployment, provider, policy, approval, stake, pool, purchaseA. Core:
-`0x615c52d5a4f98a04943f95d598b0128e74890d86`. PurchaseA:
-`0x34f1ca3d3836635e270516ad617f400bcf7c1ec7ddf9e9c7ec054a59e59d6b1b`,
-block48418406. `evidence/public-first-http-observation.json` preserves its200
-response hashes and exact repeat/restart observations: one payment signature,
-relay signature, broadcast and handler. This is observed transport evidence,
-separate from independent chain verification.
+Combined actual fees are0.000027730062008778 test ETH. Protocol gas4579677
+versus7050000gas caps, calldata14649bytes. Execution fees27478062000000wei;
+identity-matched reported L1 fees8522wei. Funding used42000gas and measured
+aggregate auxiliary fees256wei from canonical vault balance deltas. Matching
+funding receipts also expose256wei L1 fees. Operator fields remain unavailable;
+zero unattributed balance delta is not an independently reported operator fee.
+Balance-delta attribution assumes no concurrent account use or incoming funds.
+Amounts are measured testnet costs, not production estimates.
 
-The runner stopped before claimA with PROJECTION_UNAVAILABLE. Read-only diagnosis
-identified PROJECTION_HEAD_CHANGED: the tip advanced during otherwise pinned
-projection reads. EVM-030 changes only the final projection check to re-read the
-original numbered block/hash. It permits normal tip progress and still rejects
-replacement of that block. Backend typecheck and18actual/local tests pass,
-including advancement and reorg cases. A bounded seven-step-prefix continuation
-also checks exact calls/settlement and refuses expired claims before signing.
-Its typecheck and28M5 tests pass, including actual failure/recovery and zero-sign/
-zero-broadcast expiry rejection. No public continuation was executed.
-With the second-experiment proposal/nonce guards added, final primary M5
-typecheck and31tests pass, no failures/skips. Backend typecheck/18tests pass.
-The expired-case test also compares the full unchanged public journal snapshot.
+## Recovery corrections and historical first campaign
 
-During the work interruption the one-hour claim window expired.
-`evidence/public-continuation-status.json` reads canonical block48613869:
-opened1792605100, expires1792608700, observed1792644642, statusActive/refund0,
-canFileClaim=false. Expiry was2026-10-22 00:21:40 IST. No backdated claim, policy
-change, duplicate payment or doomed refund transaction was submitted. The original
-approved fourteen-step proof cannot now complete. Read-only reconciliation of
-seven known hashes is not full M5 verification; costs.ts rejects partial campaigns.
+The first EVM-029 campaign included seven steps and one paid200 result on Core
+`0x615c52d5a4f98a04943f95d598b0128e74890d86`. Its three funding transfers cost
+378000000276wei; total old vault outflow504858018003347wei. It stopped before
+claimA because the projection required latest tip equality. EVM-030, committed
+in689703e, validates the original numbered canonical head while permitting normal
+tip advancement. Backend typecheck/18tests pass, including actual advancement
+and replacement rejection. During interruption the first claim expired at
+1792608700 (2026-10-22 00:21:40 IST); no expired claim or duplicate payment was
+submitted. Its journals, result, collateral and public evidence remain preserved.
+That partial campaign never satisfied M5; it cannot be retried as a fresh run.
 
-Current role balances in `evidence/public-post-interruption-preflight.json`
-are683325435993363wei relayer,106298897999724wei payer,94000000000000wei adjudicator,
-provider0. Their native balance decrease from the funded targets is21375666006913wei
-under the documented no-concurrent-use assumption. Payer USDC is19966389atomic.
+The approved second run also stopped after its seventh step. Safe reconciliation
+preceded all recovery. This time diagnostic getLogs returned range-related
+RPC error-32614. Raw probes rejected500blocks while100/10/1 succeeded; the exact
+network maximum was not established. EVM-035 adds an M5-only adapter that divides
+the complete requested range into contiguous at-most100-block reads, preserves
+all filters/logs and rejects any failed chunk. EVM-033 retries only allowlisted
+idempotent reads; signing/sending/unknown methods are never retried.
 
-## Second experiment proposal: approval required
+EVM-036 sets M5's existing projection maxBlocks option to25000 (backend hard cap
+100000), retaining maxCoverages1000 and all canonical/state/range checks. It does
+not extend coverage expiry. A full public projection refreshed successfully at
+block48753926 with A still active. EVM-034 then routed the existing tested exact
+seven-prefix continuation to the second namespace; only the remaining seven
+approved steps were submitted. M4 source was not changed by these corrections.
 
-`evidence/second-attempt-proposal.json` fixes a distinct public runId:
-`0x28daab42bd847baae99a50c2ac97666cc9f2117add83540527b0815e8a37e58b`.
-Fresh provider/policy/service IDs and Core, same four EOAs/token/economics and
-fourteen protocol steps; separate ignored `.local-m5-r2/` journal/data. Original
-runtime config, paid result, collateral and all first-campaign journals remain
-preserved. There is no old-Core cleanup transaction in this proposal.
+## Verification and review
 
-At canonical funding-plan block48614729, vault nonce4 and role nonces9/3/0,
-proposed exact top-ups are19674564006637wei to relayer and1701102000276wei to payer;
-adjudicator needs none. Total21375666006913wei. Two transfers' fee allowance is
-6200000000000wei; maximum new vault outflow27575666006913wei
-(0.000027575666006913 test ETH). Predicted deployment Core, conditional on nonce9:
-`0x36e4f1080719a12af93e2d7a33940e81671af3b1`.
+Primary M5 `npm run typecheck` PASS; full `npm test` PASS, **48tests**, no failures,
+skips or cancellations. Actual local EVM/HTTP tests cover complete execution,
+signer-free same-hash recovery, continuation without repeating A, expired-claim
+rejection before signing, financial isolation/solvency and adversarial verifier
+state/log/fee/canonical evidence. New tests cover read serialization/retries,
+exactly-once write delegation, CLI scope guards, chunk boundaries/filter snapshots,
+fail-fast behavior and actual Anvil chunked/unchunked log equivalence.
 
-New initial allocation43514atomic native test USDC (0.043514); new fourteen-step
-protocol fee allowance905000000000000wei plus funding allowance6200000000000wei
-=911200000000000wei (0.0009112 test ETH). Existing vault/USDC balances suffice;
-no deposit is required. Fixed gas/fee/reserve settings remain unchanged. A separate
-guarded CLI defaults to read-only and pins the proposal; changed conditions stop.
-This is a new acceptance experiment, not recovery of the original paid response.
-EVM-029 does not authorize it; request approval after the verified checkpoint.
-`evidence/second-attempt-preflight.json` records the default CLI's successful
-signer-free public check (`M5_SECOND_PROPOSAL_CURRENT`). It created no second
-journal and sent no transaction. Three Luna(high) agents finished implementation,
-actual-EVM regression tests and independent scoped review; the new CLI review
-found no blocker. Funding plans reuse the strict derived-plan validator.
+Luna(high) agents implemented the bounded read/log helpers and independently
+reviewed funding, continuation guards, final public proof and costs. Primary
+verified the code, regression suite and separate signer-free public reports.
+No M1/M2/M3 contract/source changes; M4 only has the earlier EVM-030 projection
+correction. No `/docs` access or populated runtime environment inspection.
 
 ## Limits and next action
 
-Single process per trusted local journal/storage/RPC; exclusive public CLI run
-lock; no concurrent incoming funds/account use. Fee caps do not cap Base L1
-publication charges. Auxiliary reserves and preflight estimates are allowances;
-included fee fields must match receipt identity and unavailable data stays
-unavailable. Unknown public hashes are reconciled without rebroadcast/replacement;
-prepared-but-unsent transactions remain stranded. Incomplete campaigns cannot
-produce complete acceptance.
+Single process per trusted local journal/storage/RPC, runtime key custody and
+exclusive run lock. No automatic stale-lock takeover; prepared-but-unsent
+transactions stay stranded. An initial empty-journal crash can leave invalid JSON
+and requires inspection; recovery never silently recreates it. Unknown broadcast
+responses reconcile the same hash without replacement. Preserve both ignored
+namespaces and populated runtime files; never regenerate keys for recovery.
 
-The initial empty journal is created exclusively before signing. A process crash
-during that first write can leave invalid JSON and require local inspection;
-recovery fails closed and never deletes/recreates the journal automatically.
-Subsequent identity/receipt updates use fsynced temporary-file replacement.
+Evidence proves canonical inclusion, not finality, private evidence truth,
+production security, distributed availability or post-receive M2 rollback.
+No production hosting/UI, key rotation/KMS, subjective adjudication, mainnet,
+additional chains/assets or old-Core cleanup was authorized.
 
-No production audit, hosting/UI, key rotation/KMS, subjective adjudication,
-mainnet/multiple assets, finality or private HTTP/evidence truth proof. M1–M4
-contracts and M1–M3 source/evidence remain unchanged. M4's only scoped source
-change is the canonical projection check plus its two regression tests. Original
-completed private journals remain preserved.
-Preserve ignored `.env.m5.local` containing the fresh adjudicator/data key and
-runId`0xa753b52d7bef756487b10139573a51c28f49f0f1844d6222e9088a48e8ceae15`.
-Never display its populated contents or regenerate it for recovery.
-
-Next after checkpoint publication: request the exact new second-experiment funding/public
-scope. Execute only after approval. M5 remains
-incomplete until both public refunds and the full signer-free proof pass.
+All public campaign/funding allowances are consumed; do not run fund/execute or
+continuation again for this completed experiment. M1–M5 have no
+remaining implementation gate. Publish this verified checkpoint to authorized
+origin/main. Any next
+phase needs its own self-contained packet and explicit product requirements;
+this checkpoint does not infer scope for a production service or UI.

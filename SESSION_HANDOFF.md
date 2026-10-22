@@ -1,103 +1,119 @@
 # Session handoff
 
-Updated:2026-10-22. Branch:`main`, tracking origin/main. Last published checkpoint
-922947f (M5 Stage A). Active packet:`planning/EVM_M5_PUBLIC_ACCEPTANCE.md`.
-M1/M2/M3/M4 ACCEPTED under EVM-015/018/022/026. M5 IN_PROGRESS, NOT ACCEPTED.
-Read AGENTS.md, active packet, DECISIONS.md and IMPLEMENTATION_PLAN.md. No /docs.
+Updated:2026-10-22. Branch:`main`, tracking origin/main. This checkpoint completes
+M5 under EVM-037; predecessor689703e. Read AGENTS.md, active completed packet
+planning/EVM_M5_PUBLIC_ACCEPTANCE.md, DECISIONS.md, IMPLEMENTATION_PLAN.md and
+planning/EVM_M5_RESULTS.md. Do not access /docs.
 
-## Exact current state
+## Current outcome and exact next action
 
-User approved the exact first M5 funding/14-transaction campaign at checkpoint
-922947f; EVM-029 records that authorization. All three vault top-ups confirmed
-once, nonces1/2/3, total value504480018003071wei, measured fees378000000276wei.
-Public evidence:packages/evm-acceptance/evidence/public-funding-reconciliation.json.
-No transaction was replaced/rebroadcast after unavailable immediate RPC reads.
+M1/M2/M3/M4/M5 ACCEPTED under EVM-015/018/022/026/037. The bounded core MVP
+implementation and native public acceptance gates are complete. No dependent
+phase is active and no further campaign transaction is needed. Publish this
+verified checkpoint to the already authorized origin/main if not yet published.
+Then define the next self-contained packet from explicit product requirements
+before implementation. No requirements have been supplied for a next phase;
+do not infer production UI/hosting, governance, actuarial models, subjective
+adjudication, commerce integration, mainnet or multiple chains/assets.
 
-First public Core:0x615c52d5a4f98a04943f95d598b0128e74890d86. Seven confirmed
-steps:deploy/provider/policy/approve/stake/pool/purchaseA, recorded in
-public-reconciliation.json. PurchaseA tx:
-0x34f1ca3d3836635e270516ad617f400bcf7c1ec7ddf9e9c7ec054a59e59d6b1b.
-The HTTP200 case, exact retry and provider restart completed with one payer
-signature/relay signature/broadcast/handler; public-first-http-observation.json
-preserves hashes/counters without signatures or private response bytes.
+The user authorizes Luna(high) delegation, checkpoint commits and non-force
+pushes to https://github.com/LogiqueClergyman/AssurePay main. Preserve unrelated
+work and archive/algorand-p1 at958f65002d6afd97e8cbb86bae63ecabe5abb024 locally/
+remotely. Remote evm/restart remains preserved. Never amend/force push.
 
-The run stopped before claimA with PROJECTION_UNAVAILABLE. Read-only diagnostic
-reproduced PROJECTION_HEAD_CHANGED on normal Base tip progress. EVM-030 permits
-only the narrow M4 projection source/test change: final canonical re-read of the
-original numbered head, instead of requiring latest tip to remain unchanged.
-Backend typecheck/18 tests pass, including actual advancement/reorg cases.
+## Completed second public campaign
 
-During interruption purchaseA's one-hour claim window expired at2026-10-22
-00:21:40 IST (1792608700). public-continuation-status.json proves canonical
-head48613869 timestamp1792644642, statusActive/refund0/canFileClaim=false.
-DO NOT run public continuation, repeat the first payment/setup, backdate a claim,
-change old policy, close/withdraw old collateral or create another campaign under
-EVM-029. No such additional public transaction has been sent. Full M5 refund/
-negative-case acceptance is still unproven. Unused original scope is not a fresh
-campaign allowance.
+User explicitly approved the exact second campaign at689703e; EVM-032. Base
+Sepolia84532, native test USDC0x036cbd53842c5426634e7929541ec2318f3dcf7e.
+RunId0x28daab42bd847baae99a50c2ac97666cc9f2117add83540527b0815e8a37e58b.
+Core0x36e4f1080719a12af93e2d7a33940e81671af3b1.
 
-## Local corrections and next action
+Exactly two vault top-ups completed once, nonces4/5, value21375666006913wei,
+measured fees252000000256wei, total vault outflow21627666007169wei. Evidence:
+packages/evm-acceptance/evidence/second-public-funding.json, saved before protocol
+accounts spent gas. After spending, funding-target/default nonce preflights no
+longer describe live readiness; do not overwrite this pre-spend evidence.
 
-Bounded exact-seven-prefix continuation is implemented for timely future recovery:
-validates all prior identities/calls, reconciles known hashes, recovers the A
-intent in memory, preserves public observation, checks current claim eligibility
-before any signing, then can submit only remaining seven approved steps. It is
-not usable for this expired public coverage. Agent typecheck/28 M5 tests pass,
-including actual local recovery and expiry rejection with zero signing/broadcast.
-The isolated second-attempt guards are also implemented. Final primary M5
-typecheck/31tests and backend typecheck/18tests pass, no skips/failures; independent
-CLI review reports no blocker. Default second-attempt CLI passed public read-only
-checks without keys, journal creation or transactions. Evidence:second-attempt-preflight.json.
+Exactly14 protocol steps completed:13successes and final included revert. Both
+HTTP200/500 observations record one payer payment signature, relay signature,
+broadcast and handler with exact retry/restart recovery. Both explicit refunds
+3100/10003atomic USDC went to stored payer. Separate signer-free reconciliation,
+verification and costs pass; independent review finds no blocker. Evidence:
+second-public-continuation.json, second-public-reconciliation.json,
+second-public-verification.json, second-public-costs.json and second-final-state.json.
+These are public artifacts under packages/evm-acceptance/evidence.
 
-EVM-031 authorizes LOCAL preparation of a distinct second experiment only.
-Exact next action after this verified checkpoint is published: request NEW public
-approval. Do not execute second-attempt funding/campaign until user explicitly
-approves that concrete scope. No dependent phase begins before complete M5 proof.
+Final anchor48756153/hash
+0xe001bb55d043b245e118a445c26e1f962fe647f03d099b4c60631342caa93913.
+Core16017atomic USDC =4460provider stake+11557pool assets; locked stake/reserved
+pool/active coverages0, count2, both Refunded, payer Core allowance0, pausedtrue.
+Payer19935978/provider21684atomic USDC. Negative authorization unused, no financial
+change. Protocol gas4579677, measured fees27478062008522wei; with funding total
+27730062008778wei (0.000027730062008778test ETH), below911200000000000wei approved
+fee allowance. Operator fee fields remain unavailable; no-concurrent-use native
+balance-delta assumption applies. Canonical inclusion, not finality/private HTTP
+truth/evidence truth/post-receive native rollback or production audit.
 
-Public proposal:packages/evm-acceptance/evidence/second-attempt-proposal.json.
-Fresh runId:0x28daab42bd847baae99a50c2ac97666cc9f2117add83540527b0815e8a37e58b,
-fresh provider/policy/service IDs and predicted Core (relayer nonce9):
-0x36e4f1080719a12af93e2d7a33940e81671af3b1. Same four existing EOAs and unchanged
-14-step economics. Separate ignored .local-m5-r2 journals/data; preserve original
-.local-m5 and runtime configuration. Reuse runtime data key with new Core namespace
-and fresh IVs; no new key/environment generation or manual environment inspection.
+## Recovery and verification completed
 
-Proposed second funding:19674564006637wei relayer +1701102000276wei payer;
-adjudicator/provider need0. Vault nonces4/5; role nonces9/3/0. Total top-ups
-21375666006913wei; funding-fee allowance6200000000000wei; maximum new vault outflow
-27575666006913wei. New 14 protocol txs allocate43514atomic test USDC, protocol
-fee allowance905000000000000wei; combined new fee allowance911200000000000wei
-(0.0009112 test ETH). Existing funds suffice; changed conditions stop rather than
-enlarge scope. There is no old-Core cleanup transaction in this proposal.
+The second run initially stopped after purchaseA with PROJECTION_UNAVAILABLE.
+Signer-free reconciliation confirmed the original seven hashes before recovery.
+Diagnostic getLogs error-32614 was range-related; raw500-block request failed
+while100/10/1 worked. Exact network maximum was not established. EVM-033 bounds
+retries to allowlisted reads; sends/signing/unknown methods are never retried.
+EVM-035 adds an M5-only client adapter with contiguous <=100block getLogs chunks,
+retaining full filters/ranges/logs and fail-closed projection checks. EVM-036
+sets M5's existing maxBlocks option25000 (backend hard cap100000), retaining
+maxCoverages1000 and original financial expiry. No M4 source change this turn.
 
-## Wallet, journal and repository preservation
+A full canonical projection refreshed successfully at48753926, A active with
+expiry1792675751. EVM-034 guarded --continue recovered the exact seven-step prefix
+and submitted only the seven remaining approved steps. A was never paid or
+executed again. Complete-prefix continuation and --execute now refuse existing
+state. All funding/campaign allowances are consumed; no third campaign, top-up,
+fee escalation, replacement or old-Core cleanup is authorized.
 
-Managed vault:0x7a776d8f819b33f50ef85d37effcb5bdd2714756, latest balance
-98649782671914839wei. Relayer:0xc6643871078fd90c1a94528369c2443f53b9762a,
-683325435993363wei. Payer:0x6671c66c40133c62f3442baa91f6868f1d7769fd,
-106298897999724wei and19966389atomic USDC. Adjudicator:
-0xbd06d6bf0cc8e4099ffd16d65caa7346351ff8e8,94000000000000wei. Provider:
-0x2ccf71ae890f9fe8c85d97086ffe145ddcc3bc29,0native. Snapshot evidence:
-public-post-interruption-preflight.json. Amounts are atomic integers.
+Primary M5 typecheck and full48tests PASS, no failures/skips/cancellations. They
+include actual local EVM/HTTP, financial/verifier adversarial cases, same-prefix
+recovery, expired rejection before signing, read-only retries, exactly-once send,
+CLI scope guards and actual Anvil chunked/unchunked log equivalence. Earlier
+M4 projection fix typecheck/18tests passed at689703e. Unchanged M1–M3 not rerun.
+Final diff checks and12public-artifact sensitive-field/report-consistency checks
+PASS. Runtime environments and both live namespaces remain ignored by Git.
 
-Preserve ignored mode0600 spikes/evm-m1/.env.local and .env.vault.local;
-completed .local-public-run/.local-vault-funding journals remain untouched.
-Preserve packages/evm-acceptance/.env.m5.local and live .local-m5 journal/data.
-Original runId:0xa753b52d7bef756487b10139573a51c28f49f0f1844d6222e9088a48e8ceae15.
-NEVER rerun setup, display populated files/keys/signatures/signed blobs, delete
-journals or infer non-inclusion from an RPC timeout. Runtime Node env loading is
-allowed. Existing scopes/keys cannot authorize a fresh campaign implicitly.
-Exclusive run locks fail closed; stale locks require inspection, not takeover.
-Initial empty-journal truncation can block availability before signing; never
-silently recreate a corrupt journal. Funding aggregate fee observations use
-canonical balance deltas with no concurrent account use/incoming funds; unknown
-receipt components remain unavailable. One canonical inclusion, not finality.
+## Historical first campaign: preserve, do not continue
 
-M1 public proof remains accepted, Core0x35e6a35b68869bbe8548d41ac75ddd8e4bf6cfce;
-no M1/M2/M3 source or completed evidence changed. M4 only the scoped projection
-fix/tests. No production security audit/hosting/UI/subjective adjudication inferred.
+EVM-029 approved the first campaign at922947f. Its three vault top-ups completed
+once (nonces1/2/3), value504480018003071wei, fees378000000276wei. Core
+0x615c52d5a4f98a04943f95d598b0128e74890d86 included seven successful steps through
+purchaseA0x34f1ca3d3836635e270516ad617f400bcf7c1ec7ddf9e9c7ec054a59e59d6b1b,
+block48418406, plus original HTTP200/retry/restart observation. Its projection
+stopped on ordinary latest-tip progress. EVM-030 fixed only canonical numbered
+head validation. During interruption its claim expired1792608700 (2026-10-22
+00:21:40IST). No expired claim, duplicate payment, backdating or cleanup followed.
+Its evidence, result, collateral and ignored .local-m5 namespace remain intact.
+The partial first campaign never satisfied M5; only the separate approved
+second run does. No old-Core withdrawal/close/unpause transaction is authorized.
 
-User authorizes Luna(high) delegation, checkpoint commits and non-force pushes to
-https://github.com/LogiqueClergyman/AssurePay main. Preserve archive/algorand-p1 at
-958f65002d6afd97e8cbb86bae63ecabe5abb024 locally and remotely. Remote evm/restart
-is preserved. Never amend shared history or force push. No /docs was accessed.
+## Runtime and custody preservation
+
+Never manually read populated environments/private journals, print signatures,
+signed blobs, keys or mnemonics. Runtime Node --env-file loading is permitted.
+Preserve ignored mode0600 spikes/evm-m1/.env.local and .env.vault.local,
+packages/evm-acceptance/.env.m5.local, original .local-m5 and second .local-m5-r2.
+Second config overrides public IDs in memory; no new key generation or runtime
+file overwrite occurred. Never rerun setup or regenerate keys for recovery.
+Existing .local-public-run/.local-vault-funding journals remain untouched.
+
+Managed vault0x7a776d8f819b33f50ef85d37effcb5bdd2714756; relayer/admin
+0xc6643871078fd90c1a94528369c2443f53b9762a; payer
+0x6671c66c40133c62f3442baa91f6868f1d7769fd; provider/receipt signer
+0x2ccf71ae890f9fe8c85d97086ffe145ddcc3bc29; adjudicator
+0xbd06d6bf0cc8e4099ffd16d65caa7346351ff8e8. No account sweeping is authorized.
+
+Unknown transaction responses reconcile only the original hash; never resend or
+make a fresh payment to recover a response. Prepared-unsent identities remain
+stranded. Exclusive locks fail closed, with no automatic stale-lock takeover.
+A crash during exclusive initial empty-journal creation may leave invalid JSON;
+inspect rather than delete/recreate. Trusted durable filesystem/RPC and runtime
+key custody remain assumptions; no KMS/rotation/distributed availability guarantee.

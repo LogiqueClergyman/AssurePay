@@ -648,3 +648,111 @@ The proposal reuses the funding component's strict derived-plan validator via a
 public detached/frozen validation wrapper; do not maintain weaker economic or
 unknown-field validation in the new CLI. IDs must equal the runtime derivation
 from the approved fresh runId, not merely differ from the first campaign.
+
+## EVM-032 — Approved isolated second M5 campaign
+
+Status: ACCEPTED execution authorization. Date:2026-10-22.
+Source: user selected "Approve second campaign" for checkpoint689703e and
+the exact second-attempt proposal recorded under EVM-031.
+
+Authorize managed-vault top-ups19674564006637wei to the recorded relayer and
+1701102000276wei to payer, then fourteen new Base Sepolia/native-USDC protocol
+transactions with fresh runId0x28daab42bd847baae99a50c2ac97666cc9f2117add83540527b0815e8a37e58b
+and separate .local-m5-r2 journals/data. Same four EOAs and frozen economics.
+Initial USDC allocation43514atomic; protocol/funding fee allowance911200000000000wei;
+maximum additional vault outflow27575666006913wei including funding fees.
+Fixed per-step gas/fee/auxiliary limits remain unchanged. No old-Core cleanup,
+policy change, larger budget, replacement payment or third campaign is authorized.
+
+Refresh read-only proposal/nonce/balance/fee checks, reconcile uncertain hashes
+before progressing, and independently verify the complete native public result.
+Approval alone is not M5 acceptance. Preserve all first-campaign state/evidence.
+
+## EVM-033 — Bounded read-only RPC scheduling
+
+Status: ACCEPTED M5 execution safeguard. Date:2026-10-22.
+
+The approved second preflight has intermittent RPC read failures while successful
+reads still match the frozen plan. Allow a bounded single-flight queue and limited
+retries for an explicit allowlist of idempotent public reads only. Preserve all
+existing anchor/state/identity checks; retries do not imply canonicality or success.
+Never retry sendRawTransaction, a signing call, unknown methods or arbitrary RPC
+requests. A transaction submission error still reconciles the recorded hash.
+This changes no call, nonce, value, role, fee cap, allowance or transaction count;
+it is not a new public attempt authorization. Verify read retry/serialization and
+exactly-one send delegation before using the adapter.
+
+## EVM-034 — Same-campaign second-run continuation routing
+
+Status: ACCEPTED scoped recovery interface. Date:2026-10-22.
+
+The EVM-032 campaign stopped with PROJECTION_UNAVAILABLE after exactly seven
+successful included steps through purchaseA; signer-free reconciliation preserved
+all seven original hashes. Extend the isolated second-attempt CLI with an explicit
+--continue mode under the same second-campaign scope. It invokes the existing
+actual-EVM-tested exact-seven-prefix continuation, only for .local-m5-r2 and the
+approved proposal/runtime identity. Check canonical prefix, current fees, payer
+USDC and live claim eligibility before any new transaction. Recover the original
+A call/result without another payment, signature, broadcast or handler execution;
+submit only the seven remaining EVM-032 steps with unchanged caps and budgets.
+Starting funding targets/nonces cannot be reapplied after spending. Existing
+sender per-step nonce/budget checks remain mandatory. No third campaign, extra
+funding, old-Core cleanup or retry of a submitted transaction is authorized.
+Projection diagnosis and any correction must precede continuation; do not weaken
+canonical/state checks or claim M5 acceptance from a partial run.
+
+## EVM-035 — Preserve projection ranges through smaller RPC log requests
+
+Status: ACCEPTED scoped M5 transport correction. Date:2026-10-22.
+
+Second-campaign diagnostics identify getLogs RPC error-32614 as range-related.
+Read-only probes of the same Core/from-block reject500blocks while100,10 and1
+succeed. This demonstrates a usable100-block request, not the network's exact
+maximum or a financial failure. Add an M5-only client adapter that partitions
+explicit numeric getLogs ranges into contiguous, non-overlapping requests of at
+most100blocks and concatenates unchanged logs. Keep the original complete range,
+filters, projection event-count/state/hash/limit checks and fail if any chunk
+fails. Never shorten the scan, swallow a failed chunk or retry a transaction.
+The adapter delegates other methods unchanged and preserves queued bounded reads.
+Use actual-EVM log equivalence plus boundary/filter/failure tests before binding
+the approved continuation. M4 source and all financial rules stay unchanged.
+
+## EVM-036 — Explicit bounded M5 public projection horizon
+
+Status: ACCEPTED scoped M5 configuration. Date:2026-10-22.
+
+The campaign projection's implicit5000-block default can be exhausted during a
+still-live one-hour public claim, independently of its financial expiry. Configure
+M5's projection and diagnosis with maxBlocks25000, within the existing backend
+100000-block hard cap. Scan from the same deployment anchor to one pinned head;
+retain maxCoverages1000, canonical/log/state checks and explicit range rejection.
+EVM-035 retains at-most100-block RPC chunks. This widens only the finite historical
+read horizon; it cannot extend claim expiry, authorize another transaction or
+accept incomplete logs. M4 source/contracts and campaign economics remain fixed.
+
+## EVM-037 — M5 native public combined-stack acceptance
+
+Status: ACCEPTED. Date:2026-10-22.
+
+Accept the EVM-032 second campaign on Base Sepolia/native test USDC, Core
+0x36e4f1080719a12af93e2d7a33940e81671af3b1. Exactly14 protocol transactions
+are included (13successes and the expected revert); separate signer-free
+reconciliation and verification pass. Actual HTTP200/500 observations preserve
+one payment/broadcast/handler per case across retry/restart. Both explicit
+refunds3100/10003 reached the stored payer. Final Core16017atomic USDC equals
+4460stake+11557pool, with zero locks/reservations/active coverages, allowance0,
+paused admission and unused negative authorization. All canonical anchors and
+per-step financial invariants pass. Public reports are under
+packages/evm-acceptance/evidence/second-public-*.json and second-final-state.json.
+
+Primary typecheck/48actual-EVM/HTTP and adversarial tests pass; scoped independent
+review finds no remaining blocker. Measured protocol/funding fees27730062008778wei
+are within911200000000000wei allowance. Unavailable operator components remain
+unavailable; aggregate cost attribution retains the no-concurrent-use assumption.
+No duplicate A payment, extra funding, replacement, third campaign or old-Core
+cleanup occurred. Preserve the first partial/expired campaign and both namespaces.
+
+This accepts the bounded core MVP gate, not finality, private evidence truth,
+post-receive M2 rollback, production security or hosting/UI. M1–M5 implementation
+gates are complete. Further product work requires its own scoped packet; this
+record authorizes no additional public mutation or broader production phase.

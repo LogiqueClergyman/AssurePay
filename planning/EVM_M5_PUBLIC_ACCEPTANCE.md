@@ -1,7 +1,7 @@
 # M5 — combined-stack public MVP acceptance
 
-State: IN_PROGRESS (first public campaign PARTIAL/EXPIRED; second proposal needs approval).
-M4 accepted EVM-026; interfaces EVM-027..031.
+State: ACCEPTED under EVM-037 (second approved campaign complete; first preserved partial/expired).
+M4 accepted EVM-026; interfaces EVM-027..037.
 Read AGENTS.md, SESSION_HANDOFF.md, DECISIONS.md, IMPLEMENTATION_PLAN.md,
 planning/EVM_M4_RESULTS.md and this packet. No `/docs` access.
 
@@ -31,7 +31,7 @@ read-only public preflight. Pass local actual M2/HTTP/x402/M4 integration and
 adversarial recovery tests. B: present exact roles/funding/transaction/budget
 scope for public approval after A. C: only then execute one approved campaign,
 reconcile unknown hashes, independently verify native USDC evidence and costs.
-M5 is NOT accepted until C passes. EVM-029 authorizes the exact proposed scope
+Stage C passed under EVM-037; results/evidence are in planning/EVM_M5_RESULTS.md. EVM-029 authorizes the exact proposed scope
 at checkpoint922947f; no larger public mutation is authorized.
 M1 approval/normalization is completed and cannot be reused as M5 allowance.
 
@@ -40,7 +40,7 @@ one-hour claim window expired before a claim was filed. Its seven confirmed
 transactions and paid result remain preserved. Do not submit any further
 transaction to complete that campaign or create a new payment under EVM-029.
 Local corrections and second-experiment preparation are authorized; public
-second-experiment funding/execution require a new exact approval.
+second-experiment funding/execution now have exact approval under EVM-032.
 
 No new contracts, policy/economic changes, production hosting/UI, external
 commerce, subjective adjudication, multiple chains/assets, mainnet, role rotation
@@ -208,9 +208,10 @@ state/log mismatches. No evidence file includes sensitive fields. Primary verifi
 and independent scoped review. Report exact tests/rehearsal gas/budget and remaining
 public-proof limits in M5 results. Commit/push verified checkpoints to main.
 
-After Stage A stop before public mutations, present exact Stage B request. Stage C
-remains pending until approval/funding/public execution/independent proof. No M5
-acceptance from local rehearsal, mockUSDC, read-only state or code review alone.
+Stage A required stopping before public mutations and presenting the exact
+Stage B request. Stage C required approval, funding, public execution and
+independent proof; the EVM-032 second campaign passed it under EVM-037. Local
+rehearsal, mockUSDC, read-only state or code review alone cannot satisfy this gate.
 
 ## Isolated second experiment proposal (EVM-031)
 
@@ -238,3 +239,23 @@ No new key generation, populated environment overwrite, automatic fresh attempt,
 resend or increased fee/budget. Required local tests: strict proposal/context
 validation, namespace isolation, guard failure before signing, existing campaign
 and expired-continuation failure behavior. Primary review/checks precede approval.
+
+## Second-run same-prefix recovery and RPC compatibility
+
+EVM-034 permits --continue only under the second explicit scope and exact
+seven-successful-step prefix. Recover the original A result/call, check its live
+claim window and submit only the remaining seven approved steps. Never rerun
+--execute, top-ups, initial setup or purchaseA. Existing per-step financial guards
+and the fourteen-transaction total remain fixed.
+
+EVM-033 bounds queued retries to explicit idempotent public reads. EVM-035 allows
+an M5-only adapter to divide an explicit numeric log range into at most100-block
+contiguous requests, retaining every filter/log and all projection checks. Fail
+the entire read on any failed chunk; do not infer completeness from partial logs.
+Require boundary/failure/filter tests and actual EVM log equivalence, plus a
+successful signer-free projection refresh before the approved continuation.
+
+EVM-036 configures the M5 projection/diagnosis with the existing bounded
+maxBlocks25000 option (backend hard cap100000), retaining maxCoverages1000.
+This keeps a still-timely one-hour campaign readable as Base blocks advance;
+financial expiry, canonical anchors and complete-range checks stay mandatory.
