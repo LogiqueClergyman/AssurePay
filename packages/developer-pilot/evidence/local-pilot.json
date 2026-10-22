@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "code": "LOCAL_PILOT_VERIFIED",
+  "chainId": 84532,
+  "tokenKind": "LOCAL_ERC3009_FIXTURE",
+  "core": "0x4502e9e34d9a7f95b5e5cec0efb6d2fd5dfdfa18",
+  "requestId": "0x01513e77d9410e9a3140ca3bec01276ab8008e89b689d0a7b602ca2313a2241d",
+  "coverageId": "0xe65da3a8807e98a779ecfa332a754a173eac0c8f18a075475cf09c585a52229c",
+  "paidStatus": 200,
+  "retrievedStatus": 200,
+  "bodyHash": "0xdd3bd442804d6a2c7c9584221e50b1826b0893a44c9f4fd2bc773339b25a15a6",
+  "providerRestart": true,
+  "buyerProcessRestart": true,
+  "retrievalRelayerNonceUnchanged": true,
+  "refundAtomic": "3100",
+  "payerRefundDeltaAtomic": "3100",
+  "solvencyEquality": true,
+  "state": {
+    "totalProviderStake": "8929",
+    "poolAssets": "50777",
+    "totalLockedStake": "0",
+    "totalPoolReserved": "0",
+    "activeCoverageCount": "0"
+  },
+  "limits": {
+    "publicNativeUsdcProof": false,
+    "finality": false,
+    "subjectiveAdjudication": false
+  }
+}

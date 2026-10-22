@@ -102,6 +102,8 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
       const paymentHeaders = headerValues(req, 'payment-signature');
       if (paymentHeaders.length > 1) return fixed(res, 400, 'DUPLICATE_PAYMENT_HEADER');
       if (paymentHeaders[0] && paymentHeaders[0].length > MAX_PAYMENT_HEADER) return fixed(res, 413, 'PAYMENT_HEADER_TOO_LARGE');
+      const retrieveHeaders = headerValues(req, 'assurepay-retrieve-only');
+      if (retrieveHeaders.length > 1 || (retrieveHeaders.length === 1 && retrieveHeaders[0] !== '1')) return fixed(res, 400, 'INVALID_RETRIEVAL_MODE');
       if (headerValues(req, 'payment-required').length || headerValues(req, 'payment-response').length || headerValues(req, 'assurepay-receipt').length > 1) return fixed(res, 400, 'INVALID_FINANCIAL_HEADERS');
       const body = await readRequest(req);
       const requestHash = hashRequest('POST', configuredUrl, 'application/octet-stream', body, requestId);
@@ -119,6 +121,13 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
 
       const serviceKey = `${call.intentHash.toLowerCase()}:${requestHash.toLowerCase()}`;
       const cached = cache.get(serviceKey);
+      if (retrieveHeaders.length === 1) {
+        try {
+          const recovered = await retrieveExisting(call, requestHash, cached);
+          if (!recovered) return fixed(res, 409, 'RESPONSE_UNAVAILABLE');
+          return sendCached(res, recovered);
+        } catch { return fixed(res, 503, 'STORED_RESPONSE_UNAVAILABLE'); }
+      }
       if (cached && !resultStore) return sendCached(res, cached);
       const old = store.getByRequest(requestHash);
       if (old && old.coverageId.toLowerCase() !== call.intentHash.toLowerCase()) return fixed(res, 409, 'REQUEST_ALREADY_RESERVED');
@@ -222,6 +231,31 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
     if (old.state === 'started') await store.complete(call.intentHash, requestHash, archived.transaction, archived.status,
       keccak256(archived.body), archived.receipt.message.completedAt);
     return { status: archived.status, body: Uint8Array.from(archived.body), receipt: archived.receipt, paymentResponse: resultHeader(proof) };
+  }
+  async function retrieveExisting(call: PreparedCall, requestHash: Hex, cached?: CachedResponse): Promise<CachedResponse | undefined> {
+    const old = store.getByRequest(requestHash);
+    if (old && (old.coverageId.toLowerCase() !== call.intentHash.toLowerCase() || !['started','completed'].includes(old.state))) return undefined;
+    const archived = await resultStore?.get(context, call.intentHash, requestHash);
+    if (archived) {
+      if (archived.coverageId.toLowerCase() !== call.intentHash.toLowerCase() || archived.requestHash.toLowerCase() !== requestHash.toLowerCase() ||
+          !validHex(archived.transaction) || !(archived.body instanceof Uint8Array) || archived.body.length > MAX_BODY ||
+          !validHex(archived.blockHash) || !/^[1-9][0-9]*$/.test(archived.blockNumber) ||
+          !await verifyReceipt(archived.receipt, { terms, coverageId: call.intentHash, requestHash, response: archived.body, status: archived.status })) throw new Error('STORED_RESPONSE_INVALID');
+      if (old && (!validHex(old.transaction) || old.transaction.toLowerCase() !== archived.transaction.toLowerCase())) throw new Error('STORED_RESPONSE_INVALID');
+      if (old?.state === 'completed' && (old.status !== archived.status || old.responseHash !== keccak256(archived.body) || old.completedAt !== archived.receipt.message.completedAt)) throw new Error('STORED_RESPONSE_INVALID');
+      const proof = await engine.reconcile!(call);
+      if (proof.state !== 'confirmed' || proof.coverageId.toLowerCase() !== call.intentHash.toLowerCase() ||
+          proof.transaction.toLowerCase() !== archived.transaction.toLowerCase() || proof.blockNumber !== archived.blockNumber ||
+          !validHex(proof.blockHash) || proof.blockHash.toLowerCase() !== archived.blockHash.toLowerCase()) throw new Error('STORED_PAYMENT_UNCONFIRMED');
+      return { status: archived.status, body: Uint8Array.from(archived.body), receipt: archived.receipt, paymentResponse: resultHeader(proof) };
+    }
+    if (!cached || !old) return undefined;
+    if (!await verifyReceipt(cached.receipt, { terms, coverageId: call.intentHash, requestHash, response: cached.body, status: cached.status })) throw new Error('STORED_RESPONSE_INVALID');
+    const cachedTx = (cached.paymentResponse as any)?.transaction;
+    if (!validHex(cachedTx) || !validHex(old.transaction) || old.transaction.toLowerCase() !== cachedTx.toLowerCase()) throw new Error('STORED_RESPONSE_INVALID');
+    const proof = await engine.reconcile!(call);
+    if (proof.state !== 'confirmed' || proof.coverageId.toLowerCase() !== call.intentHash.toLowerCase() || proof.transaction.toLowerCase() !== cachedTx.toLowerCase()) throw new Error('STORED_PAYMENT_UNCONFIRMED');
+    return { ...cached, body: Uint8Array.from(cached.body), paymentResponse: resultHeader(proof) };
   }
   function sendCached(res: ServerResponse, cached: CachedResponse): void {
     send(res, cached.status, cached.body, {

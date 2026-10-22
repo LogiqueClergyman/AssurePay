@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { join } from 'node:path';
+import { keccak256 } from 'viem';
+import { createBuyer } from '../src/buyer.js';
+import { startPilotProvider } from '../src/provider.js';
+import { contextFor,trustFor } from '../src/config.js';
+import { createClaimsClient } from '../src/claims-client.js';
+import { createActionSender } from '../src/action-sender.js';
+import { authorize } from '../src/auth.js';
+import { createPilotFixture } from './helpers.js';
+
+test('signed500 restart retrieval is signer-free, HTTP authorization is role/replay bound, and explicit PoolOnly refund executes on EVM',async()=>{
+ const f=await createPilotFixture();let runtime:Awaited<ReturnType<typeof startPilotProvider>>|undefined,buyer:Awaited<ReturnType<typeof createBuyer>>|undefined;
+ let sender:Awaited<ReturnType<typeof createActionSender>>|undefined;
+ let paymentSignatures=0,relayerSignatures=0,broadcasts=0,handlers=0;
+ const client=new Proxy(f.evm.publicClient,{get(target,key){if(key==='sendRawTransaction')return async(args:any)=>{broadcasts++;return target.sendRawTransaction(args);};const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;}});
+ const options={config:f.config,directory:join(f.directory,'service'),key:f.keys.provider,client};
+ try{
+  runtime=await startPilotProvider({...options,wallet:{...f.evm.walletClient,async signTransaction(args:any){relayerSignatures++;return f.evm.walletClient.signTransaction(args);}},relayerAccount:f.accounts.relayer,receiptSigner:f.accounts.provider,handler:()=>{handlers++;throw Error('synthetic handler failure');}});
+  await assert.rejects(()=>startPilotProvider({...options,receiptSigner:f.accounts.provider,handler:body=>body}),/RUN_LOCK|LOCK_UNAVAILABLE/);
+  const binding={url:f.config.resourceUrl,trust:trustFor(f.config),maxGross:f.config.gross,payer:f.config.roles.payer};
+  buyer=await createBuyer({binding,directory:join(f.directory,'buyer'),key:f.keys.buyer,client,relayer:f.config.roles.relayer,payerSigner:{address:f.accounts.payer.address,async signTypedData(data:any){paymentSignatures++;return f.accounts.payer.signTypedData(data);}}});
+  const prepared=await buyer.prepare(new TextEncoder().encode('synthetic failure case'));
+  const paid=await buyer.send(prepared.requestId);assert.equal(paid.paid,true);assert.equal(paid.status,500);
+  assert.deepEqual({paymentSignatures,relayerSignatures,broadcasts,handlers},{paymentSignatures:1,relayerSignatures:1,broadcasts:1,handlers:1});
+  await buyer.close();buyer=undefined;await runtime.close();runtime=undefined;
+  runtime=await startPilotProvider({...options,receiptSigner:{address:f.accounts.provider.address,signTypedData:()=>{throw Error('retrieval cannot sign');}},handler:()=>{handlers++;throw Error('retrieval cannot run handler');}});
+  buyer=await createBuyer({binding,directory:join(f.directory,'buyer'),key:f.keys.buyer,client,relayer:f.config.roles.relayer});
+  const recovered=await buyer.retrieve(prepared.requestId);assert.equal(recovered.status,500);assert.equal(keccak256(recovered.body),keccak256(paid.body));
+  assert.deepEqual({paymentSignatures,relayerSignatures,broadcasts,handlers},{paymentSignatures:1,relayerSignatures:1,broadcasts:1,handlers:1});
+  const claims=createClaimsClient({url:f.config.claimsUrl});const evidence=new TextEncoder().encode('opaque local evidence'),payload={bodyHex:`0x${Buffer.from(evidence).toString('hex')}`};
+  await assert.rejects(()=>authorize(client,f.config,f.accounts.provider,'uploadEvidence',prepared.coverageId,payload).then(auth=>claims.uploadEvidence(prepared.coverageId,evidence,auth)),/AUTH_ROLE/);
+  const auth=await authorize(client,f.config,f.accounts.payer,'uploadEvidence',prepared.coverageId,payload);
+  const evidenceHash=await claims.uploadEvidence(prepared.coverageId,evidence,auth);
+  await assert.rejects(()=>claims.uploadEvidence(prepared.coverageId,evidence,auth),/AUTH_REPLAY/);
+  const claim=await claims.prepareClaim(prepared.coverageId,evidenceHash,await authorize(client,f.config,f.accounts.payer,'prepareClaim',prepared.coverageId,{evidenceHash}));
+  sender=await createActionSender({context:contextFor(f.config),actor:f.config.roles.payer,client:f.evm.publicClient,wallet:f.evm.walletClient,account:f.accounts.payer,journalPath:join(f.directory,'payer-actions.json'),polls:2,delay:0});
+  assert.equal((await sender.submit(claim)).status,'success');await sender.close();sender=undefined;
+  const decision={outcome:2 as const,refundAmount:'10003',reason:'explicit full PoolOnly fixture decision'};
+  await assert.rejects(()=>authorize(client,f.config,f.accounts.payer,'prepareDecision',prepared.coverageId,decision).then(auth=>claims.prepareDecision(prepared.coverageId,decision,auth)),/AUTH_ROLE/);
+  const preparedDecision=await claims.prepareDecision(prepared.coverageId,decision,await authorize(client,f.config,f.accounts.adjudicator,'prepareDecision',prepared.coverageId,decision));
+  sender=await createActionSender({context:contextFor(f.config),actor:f.config.roles.adjudicator,client:f.evm.publicClient,wallet:f.evm.walletClient,account:f.accounts.adjudicator,journalPath:join(f.directory,'adjudicator-actions.json'),polls:2,delay:0});
+  assert.equal((await sender.submit(preparedDecision.action)).status,'success');await sender.close();sender=undefined;
+  const status=await claims.status(prepared.coverageId);assert.equal(status.status,3);assert.equal(status.refundAmount,'10003');assert.equal(status.outcome,2);
+  const read=(name:string)=>f.evm.publicClient.readContract({address:f.config.core,abi:f.artifacts.AssuranceCore.abi,functionName:name});
+  assert.equal(await read('poolAssets'),40774n);assert.equal(await read('totalProviderStake'),12029n);assert.equal(await read('totalLockedStake'),0n);assert.equal(await read('totalPoolReserved'),0n);
+  const token=await f.evm.publicClient.readContract({address:f.config.token,abi:f.artifacts.AuthorizationTokenMock.abi,functionName:'balanceOf',args:[f.config.core]});assert.equal(token,52803n);
+ }finally{await sender?.close();await buyer?.close();await runtime?.close();await f.close();}
+});

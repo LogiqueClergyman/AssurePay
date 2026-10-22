@@ -1,20 +1,42 @@
 # Session handoff
 
-Updated:2026-10-22. Branch:`main`, tracking origin/main. This checkpoint completes
-M5 under EVM-037; predecessor689703e. Read AGENTS.md, active completed packet
-planning/EVM_M5_PUBLIC_ACCEPTANCE.md, DECISIONS.md, IMPLEMENTATION_PLAN.md and
-planning/EVM_M5_RESULTS.md. Do not access /docs.
+Updated:2026-10-22. Branch:`main`, tracking origin/main. M6 local developer pilot
+is ACCEPTED under EVM-039. M5 checkpointb018cf6 remains published and preserved.
+Read AGENTS.md, planning/EVM_M6_DEVELOPER_PILOT.md, planning/EVM_M6_RESULTS.md,
+DECISIONS.md and IMPLEMENTATION_PLAN.md. Do not access /docs.
 
 ## Current outcome and exact next action
 
-M1/M2/M3/M4/M5 ACCEPTED under EVM-015/018/022/026/037. The bounded core MVP
-implementation and native public acceptance gates are complete. No dependent
-phase is active and no further campaign transaction is needed. Publish this
-verified checkpoint to the already authorized origin/main if not yet published.
-Then define the next self-contained packet from explicit product requirements
-before implementation. No requirements have been supplied for a next phase;
-do not infer production UI/hosting, governance, actuarial models, subjective
-adjudication, commerce integration, mainnet or multiple chains/assets.
+M1–M6 are ACCEPTED. M6 delivers packages/developer-pilot provider/buyer SDKs,
+loopback claims API, restricted claim sender and CLI, plus real CLI-process demo
+and interactive isolated sandbox. Narrow M3 HTTP changes add strict retrieval-only
+restore; contracts/economics are unchanged. See package README for setup, demo
+and sandbox commands. No new public transaction/funding or existing private
+runtime environment/journal access occurred.
+
+Primary final typecheck/21M6tests and separate npm run demo PASS. Full M3/M4/M5
+regression typechecks and30/18/48tests PASS:117tests total, no failures/skips.
+Independent Luna(high) implementation/cross-review and primary review closed
+scoped blockers. Public local artifact:packages/developer-pilot/evidence/local-pilot.json.
+Demo proves200 purchase/retrieval after provider and buyer-process restarts,
+unchanged retrieval relayer nonce, explicit3100 refund to payer and solvency:
+Core59706=stake8929+pool50777; locks/reservations/active0. Separate signed500 test
+proves zero extra signatures/broadcasts/handlers and full10003 PoolOnly refund.
+Canonical included reverts and lost-send responses reconcile without replacement.
+
+Exact next action: scope the next product phase in a new self-contained packet,
+with its intended users, deployment/operations boundary and measurable gate,
+before implementation or public execution. No subsequent phase is active and
+no scoped M6 blocker remains. Production hosting/UI, subjective adjudication and
+new public experiments are outside the accepted packet. All M5 public scopes
+remain consumed; any new public campaign needs its own concrete approved budget.
+
+M6 tests/demo/sandbox use new ephemeral local accounts only. Completed fixtures
+are deleted; sandbox SIGTERM/SIGINT drains and deletes its temporary chain/data.
+No M6 long-lived wallet was introduced. Runtime locks do not take over after a
+crash; preserve uncertain identities and reconcile only known original hashes.
+The node_modules session symlink is ignored and is not a shipped dependency;
+clean setup uses the pinned package locks and README npm ci commands.
 
 The user authorizes Luna(high) delegation, checkpoint commits and non-force
 pushes to https://github.com/LogiqueClergyman/AssurePay main. Preserve unrelated

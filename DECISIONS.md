@@ -756,3 +756,51 @@ This accepts the bounded core MVP gate, not finality, private evidence truth,
 post-receive M2 rollback, production security or hosting/UI. M1–M5 implementation
 gates are complete. Further product work requires its own scoped packet; this
 record authorizes no additional public mutation or broader production phase.
+
+## EVM-038 — Local developer pilot and retrieval-only recovery boundary
+
+Status: ACCEPTED for implementation. Date:2026-10-22.
+Source: user approved the proposed M6 developer pilot and asked to continue.
+
+Freeze planning/EVM_M6_DEVELOPER_PILOT.md. Deliver reusable provider/buyer/claims
+HTTP/operator composition and restricted claim sender around unchanged contracts
+and financial rules. Local isolated EVM execution only; all M5 public allowances
+remain consumed. No UI/hosting or production/public rollout is inferred.
+
+New buyer state stores the exact original request/payment encrypted before its
+single paid attempt. Restore has no signer or createPayment path and uses a
+strict retrieval-only HTTP header. Provider recovery cannot reserve/settle/start
+a handler, even when journals are missing. Original receipt and exact canonical
+payment reconciliation remain mandatory. Extend only M3 HTTP client/provider
+and focused tests; absent the new mode, existing behavior stays unchanged.
+
+Claims HTTP prepares existing M4 role-authenticated actions, holding no chain
+signer. Payer/adjudicator submit only allowlisted claims/resolutions through a
+one-attempt durable public-identity sender with same-hash-only reconciliation.
+Single-process locks and local trusted storage/RPC/key custody remain explicit.
+Record further interface/assumption refinements before dependent implementation.
+
+## EVM-039 — Local developer pilot acceptance
+
+Status: ACCEPTED. Date:2026-10-22.
+
+Accept the EVM-038 M6 packet. Reusable provider/buyer SDKs, loopback claims HTTP
+and the restricted payer/adjudicator CLI execute the actual local Core flow from
+clean configuration. The real CLI example proves purchase, provider restart,
+signer-free buyer-process retrieval and explicit3100atomic ProviderFault refund,
+with exact payer delta, unchanged retrieval relayer nonce and Core solvency.
+The signed500 test proves zero additional payment/relayer signatures, broadcasts
+or handlers during retrieval and a full10003atomic PoolOnly refund.
+
+Primary M6 typecheck/21tests and npm run demo pass. Full M3/M4/M5 regressions
+pass30/18/48tests, with typechecks. Independent Luna(high) implementation and
+cross-review plus primary verification close scoped blockers. Canonical included
+reverts and lost-send responses reconcile the original hash without replacement;
+prepared-unsent state remains stranded. Evidence and limits are recorded in
+planning/EVM_M6_RESULTS.md and packages/developer-pilot/evidence/local-pilot.json.
+
+This accepts local composition only. Contracts, economics, native public M5
+proof, runtime custody and consumed public budgets remain unchanged. Trusted
+local RPC/durable storage and key custody are assumptions; no production UI,
+hosting, distributed recovery, subjective adjudication or further public mutation
+is authorized. Scope the next phase in a new packet before dependent work.

@@ -19,6 +19,35 @@ export interface PurchaseOptions {
 }
 export interface PurchaseResponse { status: number; body: Uint8Array; paid: boolean; receipt?: SignedReceipt; paymentResponse?: unknown }
 export interface PurchaseSession { requestId: `0x${string}`; requestHash: `0x${string}`; payment: PaymentPayload; call: PreparedCall; send(): Promise<PurchaseResponse>; retry(): Promise<PurchaseResponse> }
+export interface PurchaseSnapshot { version: 1; url: string; bodyHex: string; trust: Trust; maxGross: string; payer: `0x${string}`; terms: Terms; requestId: `0x${string}`; payment: PaymentPayload }
+
+function parsePaidResult(response: Response, bytes: Uint8Array, context: { terms: Terms; requestHash: `0x${string}`; call: PreparedCall; payment: PaymentPayload; verifyPayment: PurchaseOptions['verifyPayment'] }): Promise<PurchaseResponse> {
+  return (async () => {
+    const rawPaymentResponse = response.headers.get('payment-response');
+    const rawReceipt = response.headers.get('assurepay-receipt');
+    if (!rawPaymentResponse || rawPaymentResponse.length > MAX_PAYMENT_HEADER || !rawReceipt || rawReceipt.length > MAX_PAYMENT_HEADER) throw new Error('MISSING_PAID_RESPONSE_PROOF');
+    let paymentResponse: unknown;
+    let receipt: SignedReceipt;
+    try {
+      paymentResponse = decodePaymentResponseHeader(rawPaymentResponse);
+      receipt = JSON.parse(Buffer.from(rawReceipt, 'base64').toString('utf8')) as SignedReceipt;
+    } catch { throw new Error('INVALID_PAID_RESPONSE_PROOF'); }
+    if (response.status < 200 || response.status > 599 || !await verifyReceipt(receipt, { terms: context.terms, requestHash: context.requestHash, response: bytes, status: response.status, coverageId: context.call.intentHash })) throw new Error('INVALID_RESPONSE_RECEIPT');
+    if (!(paymentResponse && typeof paymentResponse === 'object' && Object.keys(paymentResponse).length === 3 && (paymentResponse as any).success === true &&
+          (paymentResponse as any).network === 'eip155:84532' && typeof (paymentResponse as any).transaction === 'string' &&
+          /^0x[0-9a-fA-F]{64}$/.test((paymentResponse as any).transaction) && !/^0x0{64}$/i.test((paymentResponse as any).transaction))) throw new Error('INVALID_PAYMENT_RESPONSE');
+    const paymentVerified = await context.verifyPayment({ payment: context.payment, call: context.call, requestHash: context.requestHash, paymentResponse });
+    if (paymentVerified.state !== 'confirmed' || !/^0x[0-9a-fA-F]{64}$/.test(paymentVerified.transaction) ||
+        paymentVerified.transaction.toLowerCase() !== (paymentResponse as any).transaction.toLowerCase() ||
+        paymentVerified.coverageId.toLowerCase() !== context.call.intentHash.toLowerCase()) throw new Error('PAYMENT_NOT_CONFIRMED');
+    return { status: response.status, body: bytes, paid: true, receipt, paymentResponse };
+  })();
+}
+
+function snapshotBody(hex: string): Uint8Array {
+  if (typeof hex !== 'string' || !/^([0-9a-f]{2})*$/.test(hex) || hex.length > MAX_BODY * 2) throw new Error('INVALID_PURCHASE_SNAPSHOT');
+  return Uint8Array.from(Buffer.from(hex, 'hex'));
+}
 
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
@@ -49,6 +78,16 @@ async function boundedBody(response: Response): Promise<Uint8Array> {
   let offset = 0;
   for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.byteLength; }
   return result;
+}
+
+function parsePendingResponse(bytes: Uint8Array, call: PreparedCall): PurchaseResponse {
+  let pending: any;
+  try { pending = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); } catch { throw new Error('INVALID_PENDING_RESPONSE'); }
+  if (!pending || typeof pending !== 'object' || Array.isArray(pending) || Object.getPrototypeOf(pending) !== Object.prototype || Object.keys(pending).length !== 3 ||
+      !['PAYMENT_PENDING', 'SERVICE_INDETERMINATE'].includes(pending.code) || typeof pending.transaction !== 'string' ||
+      !/^0x[0-9a-fA-F]{64}$/.test(pending.transaction) || /^0x0{64}$/i.test(pending.transaction) ||
+      typeof pending.coverageId !== 'string' || pending.coverageId.toLowerCase() !== call.intentHash.toLowerCase()) throw new Error('INVALID_PENDING_RESPONSE');
+  return { status: 202, body: bytes, paid: false };
 }
 
 /** Creates one SDK payment from an unpaid challenge; retries reuse the exact authorization and bytes. */
@@ -110,34 +149,65 @@ export async function createPurchase(options: PurchaseOptions): Promise<Purchase
         response = await fetcher(url, { method: 'POST', headers: { ...baseHeaders, 'payment-signature': encodePaymentSignatureHeader(payment) }, body: Buffer.from(body), redirect: 'error' });
       } catch { throw new Error('PAID_RESPONSE_UNAVAILABLE'); }
       const bytes = await boundedBody(response);
-      if (response.status === 202) {
-        let pending: any;
-        try { pending = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); } catch { throw new Error('INVALID_PENDING_RESPONSE'); }
-        if (!pending || typeof pending !== 'object' || Object.keys(pending).length !== 3 || !['PAYMENT_PENDING', 'SERVICE_INDETERMINATE'].includes(pending.code) ||
-            typeof pending.transaction !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(pending.transaction) || /^0x0{64}$/i.test(pending.transaction) ||
-            typeof pending.coverageId !== 'string' || pending.coverageId.toLowerCase() !== call.intentHash.toLowerCase()) throw new Error('INVALID_PENDING_RESPONSE');
-        return { status: 202, body: bytes, paid: false };
-      }
-      const rawPaymentResponse = response.headers.get('payment-response');
-      const rawReceipt = response.headers.get('assurepay-receipt');
-      if (!rawPaymentResponse || rawPaymentResponse.length > MAX_PAYMENT_HEADER || !rawReceipt || rawReceipt.length > MAX_PAYMENT_HEADER) throw new Error('MISSING_PAID_RESPONSE_PROOF');
-      let paymentResponse: unknown;
-      let receipt: SignedReceipt;
-      try {
-        paymentResponse = decodePaymentResponseHeader(rawPaymentResponse);
-        receipt = JSON.parse(Buffer.from(rawReceipt, 'base64').toString('utf8')) as SignedReceipt;
-      } catch { throw new Error('INVALID_PAID_RESPONSE_PROOF'); }
-      if (response.status < 200 || response.status > 599 || !await verifyReceipt(receipt, { terms, requestHash, response: bytes, status: response.status, coverageId: call.intentHash })) throw new Error('INVALID_RESPONSE_RECEIPT');
-      if (!(paymentResponse && typeof paymentResponse === 'object' && Object.keys(paymentResponse).length === 3 && (paymentResponse as any).success === true &&
-            (paymentResponse as any).network === 'eip155:84532' && typeof (paymentResponse as any).transaction === 'string' &&
-            /^0x[0-9a-fA-F]{64}$/.test((paymentResponse as any).transaction) && !/^0x0{64}$/i.test((paymentResponse as any).transaction))) throw new Error('INVALID_PAYMENT_RESPONSE');
-      const paymentVerified = await verifyPayment({ payment, call, requestHash, paymentResponse });
-      if (paymentVerified.state !== 'confirmed' || !/^0x[0-9a-fA-F]{64}$/.test(paymentVerified.transaction) ||
-          paymentVerified.transaction.toLowerCase() !== (paymentResponse as any).transaction.toLowerCase() ||
-          paymentVerified.coverageId.toLowerCase() !== call.intentHash.toLowerCase()) throw new Error('PAYMENT_NOT_CONFIRMED');
-      return { status: response.status, body: bytes, paid: true, receipt, paymentResponse };
+      if (response.status === 202) return parsePendingResponse(bytes, call);
+      return parsePaidResult(response, bytes, { terms, requestHash, call, payment, verifyPayment });
     })().finally(() => { flight = undefined; });
     return flight;
   };
   return { requestId: id, requestHash, payment, call, send, retry: send };
+}
+
+/** Reopens an encrypted buyer snapshot for retrieval. This path never signs or settles. */
+export async function restorePurchase(options: {
+  snapshot: PurchaseSnapshot; url: string; trust: Trust; maxGross: string; payer: `0x${string}`;
+  readTerms(trust: Trust, gross: string): Promise<Terms>;
+  now(): number | bigint | Promise<number | bigint>;
+  verifyPayment: PurchaseOptions['verifyPayment']; fetch?: typeof globalThis.fetch;
+}): Promise<PurchaseSession> {
+  const readTerms = options.readTerms;
+  const clock = options.now;
+  const verifyPayment = options.verifyPayment;
+  const fetcher = options.fetch ?? globalThis.fetch;
+  const url = canonicalRequestUrl(options.url);
+  const trust = Object.freeze({ ...options.trust });
+  const maxGross = options.maxGross;
+  const payerAddress = options.payer.toLowerCase();
+  let cloned: unknown;
+  try { cloned = structuredClone(options.snapshot); } catch { throw new Error('INVALID_PURCHASE_SNAPSHOT'); }
+  const s = cloned as any;
+  const keys = ['version','url','bodyHex','trust','maxGross','payer','terms','requestId','payment'];
+  if (!s || typeof s !== 'object' || Array.isArray(s) || Object.getPrototypeOf(s) !== Object.prototype || Object.keys(s).length !== keys.length || keys.some(k => !Object.hasOwn(s,k)) || s.version !== 1 ||
+      typeof s.url !== 'string' || typeof s.bodyHex !== 'string' || typeof s.maxGross !== 'string' || typeof s.payer !== 'string' ||
+      typeof s.requestId !== 'string' || !s.terms || typeof s.terms !== 'object' || !s.payment || typeof s.payment !== 'object') throw new Error('INVALID_PURCHASE_SNAPSHOT');
+  const body = snapshotBody(s.bodyHex);
+  if (body.byteLength > MAX_BODY || s.url !== url || s.maxGross !== maxGross || !/^(0|[1-9][0-9]*)$/.test(maxGross) ||
+      !/^0x[0-9a-fA-F]{40}$/.test(payerAddress) || s.payer.toLowerCase() !== payerAddress || !equalJson(s.trust, trust) ||
+      !/^0x[0-9a-f]{64}$/.test(s.requestId) || /^0x0{64}$/.test(s.requestId)) throw new Error('PURCHASE_SNAPSHOT_BINDING_MISMATCH');
+  const requestHash = hashRequest('POST', url, 'application/octet-stream', body, s.requestId);
+  const termsRead = await readTerms(trust, s.terms?.gross);
+  const terms: Terms = Object.freeze({ ...termsRead, core: termsRead.core.toLowerCase() as Terms['core'], token: termsRead.token.toLowerCase() as Terms['token'], providerOwner: termsRead.providerOwner.toLowerCase() as Terms['providerOwner'], providerPayout: termsRead.providerPayout.toLowerCase() as Terms['providerPayout'] });
+  if (!equalJson(terms, s.terms) || terms.chainId !== trust.chainId || terms.core.toLowerCase() !== trust.core.toLowerCase() ||
+      terms.token.toLowerCase() !== trust.token.toLowerCase() || terms.providerId.toLowerCase() !== trust.providerId.toLowerCase() ||
+      terms.policyId.toLowerCase() !== trust.policyId.toLowerCase() || !/^(0|[1-9][0-9]*)$/.test(maxGross) || BigInt(terms.gross) > BigInt(maxGross)) throw new Error('PURCHASE_SNAPSHOT_TERMS_MISMATCH');
+  const clockValue = await clock();
+  const nowSeconds = typeof clockValue === 'bigint' ? clockValue : BigInt(clockValue);
+  const call = await prepareCall(s.payment, terms, requestHash, nowSeconds, { allowExpired: true });
+  if (call.intent.payer.toLowerCase() !== payerAddress) throw new Error('PURCHASE_SNAPSHOT_PAYER_MISMATCH');
+  const payment = s.payment as PaymentPayload;
+  if (typeof fetcher !== 'function') throw new Error('FETCH_UNAVAILABLE');
+  const headers = { 'content-type': 'application/octet-stream', 'assurepay-request-id': s.requestId, 'assurepay-retrieve-only': '1', 'payment-signature': encodePaymentSignatureHeader(payment) };
+  let flight: Promise<PurchaseResponse> | undefined;
+  const retrieve = (): Promise<PurchaseResponse> => {
+    if (flight) return flight;
+    flight = (async () => {
+      let response: Response;
+      try { response = await fetcher(url, { method: 'POST', headers, body: Buffer.from(body), redirect: 'error' }); }
+      catch { throw new Error('PAID_RESPONSE_UNAVAILABLE'); }
+      const bytes = await boundedBody(response);
+      if (response.status === 202) return parsePendingResponse(bytes, call);
+      return parsePaidResult(response, bytes, { terms, requestHash, call, payment, verifyPayment });
+    })().finally(() => { flight = undefined; });
+    return flight;
+  };
+  return { requestId: s.requestId, requestHash, payment, call, send: retrieve, retry: retrieve };
 }
