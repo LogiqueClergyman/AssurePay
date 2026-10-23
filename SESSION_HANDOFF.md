@@ -1,9 +1,11 @@
 # Session handoff
 
-Updated:2026-10-22. Branch:`main`, tracking origin/main. M6 local developer pilot
+Updated:2026-10-23. Branch:`main`, tracking origin/main. M6 local developer pilot
 is ACCEPTED under EVM-039. M5 checkpointb018cf6 remains published and preserved.
-Read AGENTS.md, planning/EVM_M6_DEVELOPER_PILOT.md, planning/EVM_M6_RESULTS.md,
-DECISIONS.md and IMPLEMENTATION_PLAN.md. Do not access /docs.
+Read AGENTS.md, proposed planning/EVM_M7_EXTERNAL_PILOT.md and
+planning/EVM_M7_SCOPE_RESULTS.md, accepted planning/EVM_M6_DEVELOPER_PILOT.md
+and planning/EVM_M6_RESULTS.md, DECISIONS.md and IMPLEMENTATION_PLAN.md.
+Do not access /docs.
 
 ## Current outcome and exact next action
 
@@ -24,12 +26,28 @@ Core59706=stake8929+pool50777; locks/reservations/active0. Separate signed500 te
 proves zero extra signatures/broadcasts/handlers and full10003 PoolOnly refund.
 Canonical included reverts and lost-send responses reconcile without replacement.
 
-Exact next action: scope the next product phase in a new self-contained packet,
-with its intended users, deployment/operations boundary and measurable gate,
-before implementation or public execution. No subsequent phase is active and
-no scoped M6 blocker remains. Production hosting/UI, subjective adjudication and
-new public experiments are outside the accepted packet. All M5 public scopes
-remain consumed; any new public campaign needs its own concrete approved budget.
+M7 scoping checkpoint on2026-10-23: primary and three Luna(high) agents reviewed
+current HTTP, custody/storage and financial/public-operation boundaries. Proposed
+packet:planning/EVM_M7_EXTERNAL_PILOT.md; findings:planning/EVM_M7_SCOPE_RESULTS.md;
+EVM-040 is PROPOSED. This turn changes planning only, with no new implementation,
+runtime tests or public activity. M6 stays accepted at2057051; its test evidence
+is historical, not new M7 proof.
+
+Exact next action: obtain approval/revisions for the concrete M7 local HTTPS
+transport packet, record its frozen optional listenUrl interface before code,
+then delegate and verify actual local EVM/HTTPS restart retrieval. An optional
+hosting-target question is pending; no answer is assumed. Proposed default is
+one operator-owned host, CLI clients and private claims. The local transport
+rehearsal does not require a host choice or public signing budget.
+
+Requirements gaps for external execution: intended hosting/domain/RPC ownership,
+operator/custody and retention/recovery arrangement, pre-settlement invitation
+and durable spending limits, separate offline admin/online relayer, projection
+availability, and a concrete fresh native-USDC campaign with exact approved caps.
+Stop those affected portions until scoped and authorized. M3 canServe executes
+AFTER settlement and cannot supply pre-payment admission. Keep all M5 public
+scopes consumed; no unpause, cleanup, sweep, top-up or new campaign is authorized.
+No production UI, subjective adjudication or public claims exposure is inferred.
 
 M6 tests/demo/sandbox use new ephemeral local accounts only. Completed fixtures
 are deleted; sandbox SIGTERM/SIGINT drains and deletes its temporary chain/data.

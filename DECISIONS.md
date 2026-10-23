@@ -804,3 +804,26 @@ proof, runtime custody and consumed public budgets remain unchanged. Trusted
 local RPC/durable storage and key custody are assumptions; no production UI,
 hosting, distributed recovery, subjective adjudication or further public mutation
 is authorized. Scope the next phase in a new packet before dependent work.
+
+## EVM-040 — Proposed external-pilot preparation scope
+
+Status: PROPOSED; no implementation/public-execution approval. Date:2026-10-23.
+
+Following M6 acceptance, the user asked to continue with next-phase scoping.
+Primary and three Luna(high) reviews found that M6's local config/listeners,
+online admin/relayer coupling, post-settlement canServe callback and bounded
+projection do not establish an externally operable pilot. Preserve M1–M6 and
+the consumed M5 public scopes; do not simply expose the sandbox or relax its
+native-USDC rejection.
+
+Propose planning/EVM_M7_EXTERNAL_PILOT.md: a local HTTPS transport rehearsal
+that separates advertised canonical resource identity from a private loopback
+listener, preserves existing local mode, and keeps claims private. The proposed
+optional listenUrl interface is not yet frozen. Actual local Core/TLS execution,
+restart retrieval and adversarial transport tests are its intended gate.
+
+Deployment, admission/spend controls, separate offline admin, long-running
+projection/recovery and fresh native-USDC acceptance remain later prerequisites
+with their own scope. No hosting selection, public mutation, additional budget,
+secret migration or broader product phase is inferred. Review results and open
+input: planning/EVM_M7_SCOPE_RESULTS.md. Approve/revise the packet before code.
