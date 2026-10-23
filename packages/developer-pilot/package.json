@@ -8,7 +8,8 @@
     "test": "node --import tsx --test test/*.test.ts",
     "pilot": "node --import tsx scripts/pilot.ts",
     "demo": "node --import tsx scripts/demo.ts",
-    "sandbox": "node --import tsx scripts/sandbox.ts"
+    "sandbox": "node --import tsx scripts/sandbox.ts",
+    "transport:demo": "node --import tsx scripts/transport-demo.ts"
   },
   "dependencies": {
     "viem": "2.57.7",

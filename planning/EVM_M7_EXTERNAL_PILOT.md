@@ -1,9 +1,10 @@
-# M7 proposal — transport preparation for an invited developer pilot
+# M7 — local HTTPS transport rehearsal
 
-Date: 2026-10-23. State: PROPOSED, not approved for implementation or deployment.
-M1–M6 are accepted. This packet is the concrete next-phase proposal prepared in
-response to the user's instruction to continue. Review evidence is recorded in
-planning/EVM_M7_SCOPE_RESULTS.md. No public execution budget exists for M7.
+Date: 2026-10-23. State: ACCEPTED under EVM-042; results: planning/EVM_M7_RESULTS.md. The user selected
+"Keep the next phase local only" after the concrete M7 proposal. This authorizes
+the local rehearsal; no external deployment or public execution is included.
+M1–M6 are accepted. The local scope derives from the reviewed proposal.
+Historical scope review: planning/EVM_M7_SCOPE_RESULTS.md. No public execution budget exists for M7.
 
 ## Intended users and boundary
 
@@ -12,20 +13,21 @@ single operator running one provider instance. The proposed topology is one
 operator-owned Linux host, an HTTPS ingress for the paid resource, a loopback
 provider listener and a private claims API. Claims access stays operator-local
 for M7. Remote claims transport, including tunnels or private-network exposure,
-needs separate scope; no public claims exposure, browser UI or CORS is included. Hosting/vendor/domain selection remains open.
+needs separate scope; no public claims exposure, browser UI or CORS is included.
+Hosting/vendor/domain selection is deferred by the user's local-only direction.
 
 M7 proves only the transport prerequisite on an isolated local EVM. It does not
 make M6 publicly deployable. Spend/admission controls, public-chain runtime and
 operator readiness remain separate prerequisites listed below. They must pass
 under their own approved packets before an external financial pilot starts.
 
-## Proven baseline and gaps
+## Baseline and gaps before M7 (checkpoint2057051)
 
 | Code-grounded fact | Consequence |
 |---|---|
 | M6 config fixes local mode, loopback HTTP and a fixture token; it rejects native Base Sepolia USDC (`packages/developer-pilot/src/config.ts`) | Keep M6 defaults intact; external/native operation needs a separate explicit configuration and gate |
 | M3 binds its socket using resourceUrl, which also enters the request hash and archive context (`packages/x402-assurance/src/http-provider.ts`, `canonical.ts`) | Advertised HTTPS identity must be separated from the private listening address; proxy rewriting must not change signed identity |
-| M3 currently checks one Host header but not equality to the configured authority | The new transport path needs exact Host/path enforcement and tests |
+| At the M6 baseline, M3 checks one Host header but not equality to the configured authority | The new transport path needs exact Host/path enforcement and tests |
 | Claims server/client accept loopback only, and the server requires its exact local Host (`packages/developer-pilot/src/claims-http.ts`, `claims-client.ts`) | Keep claims private; do not claim that proxying it is supported |
 | M3 canServe runs after adapter.settle | It cannot be reused as a pre-payment invitation or spending guard |
 | M6 checkPilot requires admin=relayer, while Core settlement is permissionless (`provider.ts`, `packages/evm-core/contracts/AssuranceCore.sol`) | An eventual online relayer must be decoupled from the administrative key; no contract change is currently demonstrated necessary |
@@ -35,9 +37,9 @@ under their own approved packets before an external financial pilot starts.
 These are source observations and design requirements. No externally deployed
 HTTPS/native-USDC M6 service has been proven.
 
-## Proposed implementation scope
+## Implementation scope
 
-After approval, read AGENTS.md, this packet, its scope results, DECISIONS.md,
+Read AGENTS.md, this packet, its scope results, DECISIONS.md,
 IMPLEMENTATION_PLAN.md, planning/EVM_M6_DEVELOPER_PILOT.md and EVM_M6_RESULTS.md.
 Implementation references: packages/x402-assurance/{src,test,README.md,package.json,
 package-lock.json,tsconfig.json}; packages/developer-pilot/{src,test,scripts,
@@ -47,17 +49,17 @@ faithful ERC3009 fixture imported by the existing compiler. Installed pinned
 dependency types may be read. Do not access /docs, populated environments,
 private wallets or existing runtime journals. No historical campaign execution.
 
-Proposed write paths are packages/x402-assurance/src/http-provider.ts and a
+Write paths are packages/x402-assurance/src/http-provider.ts and a
 focused test/transport.test.ts; packages/developer-pilot local transport rehearsal
-source/script/tests, README and package scripts; this packet, EVM_M7_RESULTS.md,
+source/script/tests, README, package scripts and evidence/local-transport.json; this packet, EVM_M7_RESULTS.md,
 DECISIONS.md, IMPLEMENTATION_PLAN.md and SESSION_HANDOFF.md. Existing contracts,
 economic schemas, canonical request/receipt hashes, payment engine, financial
 journals, M4 claims and M5 code/evidence remain unchanged. Expand paths only via
 a recorded requirement/decision, not an implementation shortcut.
 
-### Interface to freeze before dependent code
+### Frozen interface under EVM-041
 
-Propose an optional ProviderOptions.listenUrl with these exact semantics:
+Use an optional ProviderOptions.listenUrl with these exact semantics:
 
 - Omitted: preserve the existing M3 listener behavior and accepted M6 flow.
 - Present: resourceUrl is the canonical advertised HTTPS URL; listenUrl is an
@@ -69,7 +71,8 @@ Propose an optional ProviderOptions.listenUrl with these exact semantics:
   reservation or handler work.
 - Use resourceUrl unchanged for request hashing, x402 resource identity, archive
   context, receipts and buyer snapshot bindings. Never derive signed identity
-  from Host, Forwarded or X-Forwarded-* headers. Ignore Forwarded and X-Forwarded-* values; changing them must not change the
+  from Host, Forwarded or X-Forwarded-* headers. Ignore Forwarded and
+  X-Forwarded-* values; changing them must not change the
   resource identity, request hash or listener selection. No redirect, path/body
   decoding, re-encoding, compression or financial-header rewriting is supported.
 - The ingress forwards the exact Host, path, bytes and financial headers. TLS
@@ -77,11 +80,13 @@ Propose an optional ProviderOptions.listenUrl with these exact semantics:
   to expose the plain HTTP listener. The operator/proxy are within the trust
   boundary. Host comparison is routing validation, not caller authentication.
 
-Existing M6 local config/CLI restrictions stay unchanged. The new example directly composes lower-level M3 startProvider and its
+Existing M6 local config/CLI restrictions stay unchanged. The new example
+directly composes lower-level M3 startProvider and its
 settlement engine with the isolated fixture, durable result store and M6 buyer
 SDK. Existing M6 startPilotProvider does not accept advertised HTTPS URLs and
 is not changed or presented as the new composition. The example must not
-quietly enable a public-mode CLI. Claims API and EIP712 authorization stay on their existing private origin.
+quietly enable a public-mode CLI. Claims API and EIP712 authorization stay
+on their existing private origin.
 No new payer/relayer/admin/adjudicator key is stored on an ingress process.
 
 ### Local rehearsal deliverable
@@ -100,7 +105,7 @@ broadcast or handler during retrieval, and independently check actual Core
 solvency/coverage state. A local fixture report must label itself local and
 must not claim public native-USDC proof, hosted availability or finality.
 
-## Proposed acceptance gate
+## Acceptance gate
 
 1. Primary typecheck and full M3/M6 suites pass; the new local HTTPS rehearsal
    command passes from documented setup without editing internal source.
@@ -141,8 +146,7 @@ packets covering all of the following:
   The old M5 Core is paused and its allowances consumed. Do not unpause, sweep,
   reuse its campaign approvals or create another run from existing journals.
 
-Open user input: deployment target and desired operator/custody arrangement.
-The suggested starting point is one operator-managed host, CLI clients and
-private claims. M7 local transport preparation can be implemented before a host
-is chosen once this packet's scope is approved. No hosting purchase, remote
-account provisioning, deployment or blockchain mutation follows from it.
+User selection: keep this phase local only. No hosting/vendor/domain/custody
+selection is needed or inferred for M7. External deployment remains deferred.
+No hosting purchase, remote account provisioning, external deployment or public
+blockchain mutation follows from local rehearsal acceptance.

@@ -123,3 +123,47 @@ projection scans. Token checks establish one canonical inclusion, not finality.
 There is no authenticated backup/rollback protection, KMS/key rotation,
 distributed failover, production hosting/UI, public pilot funding or mainnet
 support in this phase. A new public campaign needs its own scope and approval.
+
+## Local HTTPS transport rehearsal (M7)
+
+After the same pinned setup above, with `openssl` available on PATH and support
+for `req -addext`, run:
+
+```sh
+npm run transport:demo
+```
+
+This creates fresh local TLS material and an isolated Anvil fixture. A separate
+HTTPS ingress process listens on 127.0.0.1 and forwards to a private HTTP provider.
+It receives only TLS file paths and a PATH-only environment, without blockchain
+signers or the buyer/provider encryption keys. The buyer explicitly trusts the
+fresh certificate; TLS verification stays enabled.
+
+Purchase and retrieval run in separate buyer processes. The provider instance
+is closed and reopened against the same durable payment/result state without a
+settlement signer. This is an instance restart inside the coordinator process;
+the report explicitly records `providerProcessRestart:false`. The existing M6
+CLI demo separately covers a provider process restart.
+
+The rehearsal verifies the exact advertised HTTPS request identity, original
+transaction/body hash, unchanged signing/broadcast/handler counters, and actual
+Core solvency/coverage locks. Wrong Host/path, modified bytes/payment header,
+missing archive/payment journal and uncertain RPC reads cannot trigger another
+payment or handler. Additional tests cover duplicate headers, body/header bounds,
+redirect refusal and TLS trust/name failures.
+
+The final `LOCAL_HTTPS_TRANSPORT_VERIFIED` report contains allowlisted public
+metadata. One local coverage is still active when invariants are checked; the
+entire temporary chain and data are then discarded. No existing environment,
+public RPC, wallet or runtime journal is loaded. No deposit or hosting is needed.
+
+The optional lower-level M3 `startProvider({...options, resourceUrl, listenUrl})`
+keeps the HTTPS `resourceUrl` as signed identity while `listenUrl` selects an
+exact `http://127.0.0.1:<port>/` socket origin. In this mode Host must equal the
+advertised HTTPS authority and the path must match exactly. Forwarded metadata
+cannot change identity. Omitting listenUrl preserves existing M3 behavior.
+M6 `PilotConfig`, `startPilotProvider` and CLI remain local-only; the rehearsal
+composes M3 directly. Claims access remains operator-local and is not exposed by
+the ingress. This is local transport evidence under
+[M7](../../planning/EVM_M7_EXTERNAL_PILOT.md), with no public/native-USDC or hosted
+availability claim.

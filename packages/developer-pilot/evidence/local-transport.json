@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "code": "LOCAL_HTTPS_TRANSPORT_VERIFIED",
+  "chainId": 84532,
+  "tokenKind": "LOCAL_ERC3009_FIXTURE",
+  "core": "0x9d639a9392e84cf0cc72645b14aab50621c5b46b",
+  "requestId": "0xfc7961e621b4cecab153c00f008498681a53ddc9805bd93907b04728d9db55a9",
+  "coverageId": "0xfb7eda29ec04a8f5e8648ad43b349cad8722b48108c7f3e383083df4c4303986",
+  "requestHash": "0x2a094a270655c5192b1e69969e25b902f8d688d723b35fa867a42c2a0cbde516",
+  "bodyHash": "0x6efaadbd1feb15a3735a531e5659824535b143127a72633a18a8c838130fb3dc",
+  "transaction": "0x9b5d86cf4b64298980d4f8e0f305b3e40e7857e5aea39c1d0f2fc6a314f957b5",
+  "blockNumber": "10",
+  "blockHash": "0x2fafe567be0a448b2a977aa269e0f26553cde6968a6ff1384007dafa05217e39",
+  "paidStatus": 200,
+  "retrievedStatus": 200,
+  "providerRestart": true,
+  "providerProcessRestart": false,
+  "buyerProcessRestart": true,
+  "tlsVerified": true,
+  "payerSignatures": 1,
+  "retrievalPayerSignatures": 0,
+  "counts": {
+    "relayerSignatures": 1,
+    "broadcasts": 1,
+    "handlers": 1,
+    "receiptSignatures": 1
+  },
+  "retrievalCountsUnchanged": true,
+  "forwardedIdentityUnchanged": true,
+  "negativeRetrievalsDidNotSettle": true,
+  "solvencyEquality": true,
+  "coreAssetsAtomic": "62806",
+  "state": {
+    "totalProviderStake": "12029",
+    "poolAssets": "50777",
+    "totalLockedStake": "3502",
+    "totalPoolReserved": "10003",
+    "activeCoverageCount": "1",
+    "coverageCount": "1"
+  },
+  "limits": {
+    "localOnly": true,
+    "publicNativeUsdcProof": false,
+    "hostedAvailability": false,
+    "finality": false
+  }
+}

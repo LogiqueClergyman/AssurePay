@@ -827,3 +827,66 @@ projection/recovery and fresh native-USDC acceptance remain later prerequisites
 with their own scope. No hosting selection, public mutation, additional budget,
 secret migration or broader product phase is inferred. Review results and open
 input: planning/EVM_M7_SCOPE_RESULTS.md. Approve/revise the packet before code.
+
+## EVM-041 — M7 local-only implementation and transport interfaces
+
+Status: ACCEPTED for local implementation. Date:2026-10-23.
+Source: user selected "Keep the next phase local only" after the M7 proposal.
+
+Freeze the local scope of planning/EVM_M7_EXTERNAL_PILOT.md. No host selection,
+remote provisioning or public-chain execution is authorized. Optional M3
+ProviderOptions.listenUrl is an exact loopback HTTP origin used only to bind
+the socket while canonical resourceUrl stays HTTPS. In that mode enforce one
+exact advertised Host and route before challenge/payment work; ignore forwarding
+metadata as an identity source. Omitted listenUrl preserves accepted behavior.
+Contracts, canonical hashes, M6 local config/CLI and claims transport stay fixed.
+
+Freeze the internal rehearsal helper boundary in developer-pilot/src/local-https.ts:
+createLocalTls(directory) returns {certPath,keyPath,cert,key} for newly generated
+private local certificate material only; createTrustedFetch(cert,origin) returns
+a bounded HTTPS fetch with explicit local CA trust and no redirects/retries;
+startLocalIngress({certPath,keyPath,port,upstream}) returns {url,close()} and runs
+a separate loopback TLS proxy child with no blockchain keys in its environment.
+Origin is https://127.0.0.1:<port>; certificate includes that IP SAN. Proxy copies
+method/path/Host/financial headers and bytes, with no forwarding-derived identity.
+The helper is local test/rehearsal code, not a hosted deployment service.
+
+Rehearsal directly composes M3 provider/engine, M4 durable results and M6 buyer
+against isolated actual M2/faithful ERC3009 fixture. Record exact signing/send/
+handler counters, canonical identity and Core invariant checks. All TLS and role
+keys are fresh ephemeral material; no existing env/journal reads or committed
+TLS key. Public local report may contain only allowlisted metadata. No global
+TLS verification disable, new public-mode CLI or claim of native/public proof.
+
+## EVM-042 — Local HTTPS transport acceptance
+
+Status: ACCEPTED. Date:2026-10-23.
+
+Accept the local-only M7 packet frozen under EVM-041. Optional M3 listenUrl
+separates the exact loopback HTTP socket origin from canonical HTTPS resource
+identity, with strict advertised Host/path checks before financial work. Existing
+M3/M6 local behavior, financial schemas/contracts, claims and public M5 records
+are unchanged. Forwarding metadata cannot select the signed resource identity.
+
+Actual local TLS/M2 execution with the faithful ERC3009 fixture proves purchase,
+provider instance restart, buyer process restart and original-result retrieval.
+Exactly1 payer/relayer/receipt signature, broadcast and handler occur at purchase;
+retrieval adds none. Wrong transport/payment data, missing archive/journal and
+RPC uncertainty do not settle or run another handler. Independent canonical
+calldata/coverage and financial checks pass: Core62806=stake12029+pool50777,
+locked3502/reserved10003 with one active coverage. The chain is temporary.
+
+Primary typechecks/full33M3 and24pilot tests and standalone transport:demo pass.
+Tests include actual TLS CA/name rejection, duplicate financial headers and
+raw ingress body/header413/431 rejection without upstream work. Independent
+Luna(high) reviews find no remaining scoped blocker. Results and public-only
+local evidence:planning/EVM_M7_RESULTS.md and
+packages/developer-pilot/evidence/local-transport.json.
+
+Provider restart here is a same-process close/reopen with a new read-only engine,
+not a provider OS-process restart; providerProcessRestart:false is explicit.
+This accepts local transport preparation, not hosted/native-USDC/public operation,
+finality, backup rollback, admission/spending policy or production custody.
+The user selected local-only work; no host or public funding is needed/inferred.
+Scope any next local phase before dependent code; all M5 public allowances stay
+consumed and existing keys/journals stay preserved.

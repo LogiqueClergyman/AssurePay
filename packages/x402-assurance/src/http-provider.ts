@@ -17,6 +17,7 @@ export interface ProviderOptions {
   handler: (body: Uint8Array) => Uint8Array | Promise<Uint8Array>;
   journalPath: string;
   resourceUrl: string;
+  listenUrl?: string;
   canServe(call: PreparedCall): Promise<boolean>;
   prepareCall(payment: unknown, requestHash: Hex): Promise<PreparedCall>;
   now?: () => number;
@@ -67,7 +68,23 @@ function snapshotTerms(input: Terms): Terms {
 
 /** Starts one fixed-URL, POST-only x402 resource with durable service-start protection. */
 export async function startProvider(options: ProviderOptions): Promise<StartedProvider> {
-  const configuredUrl = canonicalRequestUrl(options.resourceUrl);
+  // Snapshot every transport identity before opening journals or yielding.
+  const resourceUrl = options.resourceUrl;
+  const listenUrl = options.listenUrl;
+  const journalPath = options.journalPath;
+  const configuredUrl = canonicalRequestUrl(resourceUrl);
+  let bindUrl = configuredUrl;
+  let expectedHost: string | undefined;
+  if (listenUrl !== undefined) {
+    let parsedListen: URL;
+    try { parsedListen = new URL(listenUrl); } catch { throw new Error('INVALID_LISTEN_URL'); }
+    if (parsedListen.protocol !== 'http:' || parsedListen.hostname !== '127.0.0.1' || !parsedListen.port ||
+        parsedListen.pathname !== '/' || parsedListen.search || parsedListen.hash || parsedListen.username ||
+        parsedListen.password || parsedListen.href !== listenUrl) throw new Error('INVALID_LISTEN_URL');
+    if (!configuredUrl.startsWith('https://')) throw new Error('HTTPS_REQUIRED');
+    bindUrl = listenUrl;
+    expectedHost = new URL(configuredUrl).host;
+  }
   const terms = snapshotTerms(options.terms);
   const engine = options.engine;
   const resultStore = options.resultStore && Object.freeze({
@@ -82,7 +99,7 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
   const now = options.now ?? (() => Math.floor(Date.now() / 1000));
   if (typeof canServe !== 'function' || typeof prepareCall !== 'function' || typeof handler !== 'function') throw new Error('INVALID_PROVIDER_CONFIG');
   const context = serviceContext(terms, configuredUrl);
-  const store = await ServiceStore.open(options.journalPath, context);
+  const store = await ServiceStore.open(journalPath, context);
   const { createRegisteredServer } = await import('./protocol.js');
   const adapter = await createRegisteredServer(terms, engine);
   const cache = new Map<string, CachedResponse>();
@@ -92,7 +109,8 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
   const listener = async (req: IncomingMessage, res: ServerResponse) => {
     try {
       if (req.method !== 'POST' || req.url !== pathname) return fixed(res, 404, 'RESOURCE_NOT_FOUND');
-      if (headerValues(req, 'host').length !== 1) return fixed(res, 400, 'INVALID_HOST');
+      const hosts = headerValues(req, 'host');
+      if (hosts.length !== 1 || (expectedHost !== undefined && hosts[0] !== expectedHost)) return fixed(res, 400, 'INVALID_HOST');
       if (headerValues(req, 'content-type').length !== 1 || req.headers['content-type'] !== 'application/octet-stream') return fixed(res, 415, 'UNSUPPORTED_CONTENT_TYPE');
       const enc = headerValues(req, 'content-encoding');
       if (enc.length > 1 || (enc.length === 1 && enc[0]!.toLowerCase() !== 'identity')) return fixed(res, 415, 'UNSUPPORTED_ENCODING');
@@ -278,7 +296,7 @@ export async function startProvider(options: ProviderOptions): Promise<StartedPr
     return fixed(res, 402, 'PAYMENT_REJECTED');
   }
   const server = createServer((req, res) => { void listener(req, res); });
-  const parsed = new URL(configuredUrl);
+  const parsed = new URL(bindUrl);
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
     server.listen(Number(parsed.port), parsed.hostname, () => { server.off('error', reject); resolve(); });

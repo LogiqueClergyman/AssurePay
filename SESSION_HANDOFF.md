@@ -1,9 +1,9 @@
 # Session handoff
 
-Updated:2026-10-23. Branch:`main`, tracking origin/main. M6 local developer pilot
-is ACCEPTED under EVM-039. M5 checkpointb018cf6 remains published and preserved.
-Read AGENTS.md, proposed planning/EVM_M7_EXTERNAL_PILOT.md and
-planning/EVM_M7_SCOPE_RESULTS.md, accepted planning/EVM_M6_DEVELOPER_PILOT.md
+Updated:2026-10-23. Branch:`main`, tracking origin/main. M7 local HTTPS
+transport is ACCEPTED under EVM-042; M6 remains ACCEPTED under EVM-039. M5 checkpointb018cf6 remains published and preserved.
+Read AGENTS.md, completed planning/EVM_M7_EXTERNAL_PILOT.md and
+planning/EVM_M7_RESULTS.md, accepted planning/EVM_M6_DEVELOPER_PILOT.md
 and planning/EVM_M6_RESULTS.md, DECISIONS.md and IMPLEMENTATION_PLAN.md.
 Do not access /docs.
 
@@ -26,19 +26,30 @@ Core59706=stake8929+pool50777; locks/reservations/active0. Separate signed500 te
 proves zero extra signatures/broadcasts/handlers and full10003 PoolOnly refund.
 Canonical included reverts and lost-send responses reconcile without replacement.
 
-M7 scoping checkpoint on2026-10-23: primary and three Luna(high) agents reviewed
-current HTTP, custody/storage and financial/public-operation boundaries. Proposed
-packet:planning/EVM_M7_EXTERNAL_PILOT.md; findings:planning/EVM_M7_SCOPE_RESULTS.md;
-EVM-040 is PROPOSED. This turn changes planning only, with no new implementation,
-runtime tests or public activity. M6 stays accepted at2057051; its test evidence
-is historical, not new M7 proof.
+M7 is ACCEPTED under EVM-042, implemented under EVM-041 after the user selected
+"Keep the next phase local only". Optional M3 listenUrl preserves canonical HTTPS
+identity while binding HTTP loopback. New npm run transport:demo in developer-
+pilot directly composes M3/M4/M6 against isolated actual M2/faithful ERC3009.
+Provider instance restart is same-process (providerProcessRestart:false); buyer
+purchase/retrieval are distinct processes and retrieval has no payer signer.
+Ingress is a separate TLS-only process with PATH-only environment. M6 local
+config/CLI and private claims are unchanged.
 
-Exact next action: obtain approval/revisions for the concrete M7 local HTTPS
-transport packet, record its frozen optional listenUrl interface before code,
-then delegate and verify actual local EVM/HTTPS restart retrieval. An optional
-hosting-target question is pending; no answer is assumed. Proposed default is
-one operator-owned host, CLI clients and private claims. The local transport
-rehearsal does not require a host choice or public signing budget.
+Primary M3/pilot typechecks and full33/24tests PASS (57total,0failures/skips),
+plus separate transport:demo. Report:packages/developer-pilot/evidence/local-transport.json;
+results:planning/EVM_M7_RESULTS.md. Exact canonical transaction/request/body proof,
+one purchase signature/broadcast/handler and zero added retrieval work, negative
+journal/archive/RPC/Host/path/payment cases and Core solvency pass. Core62806=
+stake12029+pool50777 with locked3502/reserved10003 and active/count1. Temporary
+chain/TLS files/data are deleted. Independent Luna review and final scope/secret/
+diff checks pass. M4/M5 unchanged suites were not rerun for M7; earlier evidence
+remains historical. No public/hosting mutation or existing runtime key read.
+
+Exact next action: define the next self-contained LOCAL packet, with the smallest
+measurable gate. A candidate is pre-settlement operator admission/spending bounds
+and admin/relayer separation, which need their own frozen requirements before
+code. No dependent phase is active and no M7 blocker remains. Preserve the user's
+local-only direction; hosting/provider/domain selection is deferred, not pending.
 
 Requirements gaps for external execution: intended hosting/domain/RPC ownership,
 operator/custody and retention/recovery arrangement, pre-settlement invitation
