@@ -1,0 +1,37 @@
+{
+  "name": "@assurepay/provider-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.18.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "test": "npm run build && node --import tsx --test test/*.test.ts",
+    "test:package": "npm run build && node --import tsx --test test/package*.test.ts",
+    "demo": "node --import tsx scripts/demo.mjs"
+  },
+  "dependencies": {
+    "@x402/core": "2.28.0",
+    "viem": "2.57.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "esbuild": "0.25.12",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "code": "LOCAL_PROVIDER_SDK_VERIFIED",
+  "package": "@assurepay/provider-sdk@0.1.0",
+  "runtime": "plain-node-outside-repository",
+  "mode": "profile->retrieve-only+fail",
+  "profilePayerSignatures": 1,
+  "negativeRequestSignatures": 1,
+  "relayerBroadcastsIncludingControlledFailure": 2,
+  "originalRelayerNonceUnchangedOnRetrieve": true,
+  "retrievalOnlyNewRequestRefused": true,
+  "alteredBodyRefused": true,
+  "sameOriginalReceiptAfterRestart": true,
+  "missingAndCorruptArchiveRefused": true,
+  "missingPaymentJournalRefused": true,
+  "rpcFailureFailsClosed": true,
+  "signed500Verified": true,
+  "providerProcessRestart": true,
+  "buyerProcessRestart": false,
+  "retrievalPayerSignatures": 0,
+  "firstProfileSnapshot": {
+    "transaction": "0x64a926ffa84d5f657b576f28a1cfe72e1975dee18e9742fb6d199c9ff99d7840",
+    "blockNumber": "10",
+    "blockHash": "0x84fd1722e536d9385d569527d02ca5c953665dc7427f71e661f8af5ee6dada53",
+    "observedBlock": {
+      "number": "10",
+      "hash": "0x84fd1722e536d9385d569527d02ca5c953665dc7427f71e661f8af5ee6dada53"
+    },
+    "coreAssetsAtomic": "62806",
+    "payerAssetsAtomic": "129997",
+    "providerAssetsAtomic": "7197",
+    "payerDebitAtomic": "10003",
+    "providerCreditAtomic": "7197",
+    "coreIncreaseAtomic": "2806",
+    "state": {
+      "totalProviderStake": "12029",
+      "poolAssets": "50777",
+      "totalLockedStake": "3502",
+      "totalPoolReserved": "10003",
+      "activeCoverageCount": "1",
+      "coverageCount": "1"
+    },
+    "solvencyEquality": true
+  },
+  "totalCoverageCountAfterIntentionalFailMode": "2",
+  "limits": {
+    "publicNativeUsdcProof": false,
+    "mainnetFinality": false,
+    "multiHostStorage": false
+  }
+}

@@ -1,86 +1,70 @@
 # Session handoff
 
-Updated:2026-10-23. Branch:`main`, tracking origin/main. M7 local HTTPS
-transport is ACCEPTED under EVM-042; M6 remains ACCEPTED under EVM-039. M5 checkpointb018cf6 remains published and preserved.
-Read AGENTS.md, completed planning/EVM_M8_PRODUCT_BOUNDARIES.md,
-planning/EVM_M8_RESULTS.md, planning/EVM_PRODUCT_ROADMAP.md, DECISIONS.md and IMPLEMENTATION_PLAN.md.
+Updated:2026-10-23. Branch:`main`, tracking origin/main. M9 provider SDK is
+ACCEPTED under EVM-046; M7 remains ACCEPTED under EVM-042 and M6 under EVM-039. M5 checkpointb018cf6 remains published and preserved.
+Read AGENTS.md, active planning/EVM_M9_PROVIDER_SDK.md,
+planning/EVM_PRODUCT_ROADMAP.md, DECISIONS.md and IMPLEMENTATION_PLAN.md.
 Accepted M6/M7 packets/results remain named implementation references.
 Do not access /docs.
 
 ## Current outcome and exact next action
 
-M1–M6 are ACCEPTED. M6 delivers packages/developer-pilot provider/buyer SDKs,
-loopback claims API, restricted claim sender and CLI, plus real CLI-process demo
-and interactive isolated sandbox. Narrow M3 HTTP changes add strict retrieval-only
-restore; contracts/economics are unchanged. See package README for setup, demo
-and sandbox commands. No new public transaction/funding or existing private
-runtime environment/journal access occurred.
+M1–M9 are ACCEPTED. M8 product roadmap is planning/EVM_PRODUCT_ROADMAP.md under
+EVM-043/044. User requests provider/client integrations, agent/skill, protocol
+role dashboards and a separate consumer demo, with Luna(high) delegation,
+primary verification and checkpoint commits/non-force pushes. Local-only
+operation persists; no new public financial authority is available.
 
-Primary final typecheck/21M6tests and separate npm run demo PASS. Full M3/M4/M5
-regression typechecks and30/18/48tests PASS:117tests total, no failures/skips.
-Independent Luna(high) implementation/cross-review and primary review closed
-scoped blockers. Public local artifact:packages/developer-pilot/evidence/local-pilot.json.
-Demo proves200 purchase/retrieval after provider and buyer-process restarts,
-unchanged retrieval relayer nonce, explicit3100 refund to payer and solvency:
-Core59706=stake8929+pool50777; locks/reservations/active0. Separate signed500 test
-proves zero extra signatures/broadcasts/handlers and full10003 PoolOnly refund.
-Canonical included reverts and lost-send responses reconcile without replacement.
+M9 is ACCEPTED under EVM-046, implemented under EVM-045. Completed packet:
+planning/EVM_M9_PROVIDER_SDK.md; results: planning/EVM_M9_RESULTS.md. New package
+packages/provider-sdk is private/packable ESM0.1.0 with narrow root API and
+bundled accepted runtime. Separate examples/data-profile-service is plain Node
+CSV profiling with profile/fail/retrieve-only modes. Existing M1–M8 code,
+contracts, evidence, keys and journals remain unchanged.
 
-M7 is ACCEPTED under EVM-042, implemented under EVM-041 after the user selected
-"Keep the next phase local only". Optional M3 listenUrl preserves canonical HTTPS
-identity while binding HTTP loopback. New npm run transport:demo in developer-
-pilot directly composes M3/M4/M6 against isolated actual M2/faithful ERC3009.
-Provider instance restart is same-process (providerProcessRestart:false); buyer
-purchase/retrieval are distinct processes and retrieval has no payer signer.
-Ingress is a separate TLS-only process with PATH-only environment. M6 local
-config/CLI and private claims are unchanged.
+Primary full SDK typecheck/build and7tests,8CSV tests/build, full pilot typecheck/
+24tests, separate outside-repo example checkJs/root/deep-import verification and
+standalone npm run demo PASS (39tests across the three suites). Local report:
+packages/provider-sdk/evidence/m9-consumer-gate.json. Actual M2/faithful ERC3009
+paid profile survives lost HTTP response and provider OS-process restart with
+same original receipt/body/transaction,0retrieval payer signatures and unchanged
+relayer nonce/broadcasts. Valid new payment denied in key-free mode, altered
+body/binding, locks, missing/corrupt archive, missing journal and RPC failure
+fail closed. Separate controlled signed500 opens coverage2. First snapshot is
+anchored independently: Core62806=stake12029+pool50777, locked3502/reserved10003,
+active/count1, payer debit10003/provider credit7197. buyerProcessRestart:false
+is explicit (new instance in same coordinator); providerProcessRestart:true.
+Independent Luna cross-review and primary scope/secret/diff checks close blockers.
+Temporary chains, projects and fresh key material are deleted.
 
-Primary M3/pilot typechecks and full33/24tests PASS (57total,0failures/skips),
-plus separate transport:demo. Report:packages/developer-pilot/evidence/local-transport.json;
-results:planning/EVM_M7_RESULTS.md. Exact canonical transaction/request/body proof,
-one purchase signature/broadcast/handler and zero added retrieval work, negative
-journal/archive/RPC/Host/path/payment cases and Core solvency pass. Core62806=
-stake12029+pool50777 with locked3502/reserved10003 and active/count1. Temporary
-chain/TLS files/data are deleted. Independent Luna review and final scope/secret/
-diff checks pass. M4/M5 unchanged suites were not rerun for M7; earlier evidence
-remains historical. No public/hosting mutation or existing runtime key read.
+Exact next action: freeze a self-contained M10 client SDK/agent/skill packet
+under the roadmap before implementation. Include outside-repo install gate,
+unsigned preview -> explicit approval -> revalidate/sign/persist -> one send ->
+original-result recovery, payer claims and anchored coverage/outcome/balance
+reads, a framework-neutral agent adapter with explicit per-payment approval and
+session bounds, and portable SKILL.md. Current in-repo buyer.prepare signs;
+do not present it as unsigned preview. Use Luna(high) and primary verification,
+one phase at a time. M11–M14 depend on the preceding accepted gates.
 
-User steering on2026-10-23: build/present provider SDK, client SDK/agent/skill,
-protocol role dashboards and a SEPARATE consumer demo using those integrations.
-Local-only direction remains. M8 definition is ACCEPTED under EVM-044, with
-EVM-043 recording user scope; completed packet:planning/EVM_M8_PRODUCT_BOUNDARIES.md and roadmap:EVM_PRODUCT_ROADMAP.md.
-Source audits by three Luna(high) agents identify monorepo-only private exports,
-signing inside buyer.prepare, missing dashboard reads/actions and runtime
-admin/relayer coupling. These need explicit product gates, not fake UI state.
+M9 retains M6's admin=relayer and owner=payout constraints and rejects public
+URLs/native USDC. M11 must introduce the new separated product role composition
+before presenting separate admin/online relayer controls. M7 advertised HTTPS
+composition remains separate. Provider package publishing is disabled; no
+registry/hosting/public campaign was authorized. Existing M5 budgets stay
+consumed; no unpause, cleanup, sweep, top-up or old-Core action is authorized.
 
-Exact next action: freeze the self-contained M9 provider integration packet
-under the accepted roadmap, then implement/verify only that gate. M8 source and
-three-Luna review is complete; no runtime code/tests changed for that definition
-checkpoint, and future SDK/UI capabilities are requirements, not proven facts. Subsequent
-M10 client/agent, M11 protocol API, M12 console, M13 consumer app and M14 rehearsal
-are PLANNED, not implemented. Local UI is now explicitly in product scope;
-production hosting/browser-native custody/public campaigns remain out of scope.
+External requirements remain: hosting/domain/RPC ownership, operator/custody,
+retention/recovery, pre-payment admission and durable spending limits,
+admin/relayer separation, projection availability and a new concrete native-USDC
+campaign with exact approved caps. Stop affected external portions until scoped.
+Trusted local RPC/storage/key custody, no backup rollback authentication and no
+stale-lock takeover remain assumptions. Never create another payment to recover
+an unknown response; reconcile only the original known hash.
 
-Requirements gaps for external execution: intended hosting/domain/RPC ownership,
-operator/custody and retention/recovery arrangement, pre-settlement invitation
-and durable spending limits, separate offline admin/online relayer, projection
-availability, and a concrete fresh native-USDC campaign with exact approved caps.
-Stop those affected portions until scoped and authorized. M3 canServe executes
-AFTER settlement and cannot supply pre-payment admission. Keep all M5 public
-scopes consumed; no unpause, cleanup, sweep, top-up or new campaign is authorized.
-No production UI, subjective adjudication or public claims exposure is inferred.
-
-M6 tests/demo/sandbox use new ephemeral local accounts only. Completed fixtures
-are deleted; sandbox SIGTERM/SIGINT drains and deletes its temporary chain/data.
-No M6 long-lived wallet was introduced. Runtime locks do not take over after a
-crash; preserve uncertain identities and reconcile only known original hashes.
-The node_modules session symlink is ignored and is not a shipped dependency;
-clean setup uses the pinned package locks and README npm ci commands.
-
-The user authorizes Luna(high) delegation, checkpoint commits and non-force
-pushes to https://github.com/LogiqueClergyman/AssurePay main. Preserve unrelated
-work and archive/algorand-p1 at958f65002d6afd97e8cbb86bae63ecabe5abb024 locally/
-remotely. Remote evm/restart remains preserved. Never amend/force push.
+The user authorizes checkpoint commits and non-force pushes to
+https://github.com/LogiqueClergyman/AssurePay main. Preserve unrelated work and
+archive/algorand-p1 at958f65002d6afd97e8cbb86bae63ecabe5abb024 locally/remotely.
+Remote evm/restart remains preserved. Never amend or force push.
 
 ## Completed second public campaign
 

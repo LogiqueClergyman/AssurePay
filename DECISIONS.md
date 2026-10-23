@@ -940,3 +940,71 @@ before code. M10–M14 stay planned and depend on preceding gates. Local console
 and demo UI are authorized within those packets; production custody/hosting,
 public publishing and new public spending remain out of scope. Results:
 planning/EVM_M8_RESULTS.md. Existing M1–M7 evidence and private runtime survive.
+
+## EVM-045 — M9 local provider SDK package boundary
+
+Status: ACCEPTED for implementation. Date:2026-10-23.
+Source: user requested continuation of the accepted local product roadmap.
+
+Freeze planning/EVM_M9_PROVIDER_SDK.md. Deliver @assurepay/provider-sdk0.1.0
+private/packable Node ESM, public root JS/types and separate CSV profiling service.
+Bundle accepted runtime internally with esbuild0.25.12; external dependencies
+are pinned viem/@x402/core. Typecheck the whole closure, then emit only the two
+explicit public modules through pinned TypeScript5.9.3 transpileDeclaration. A
+trial full-closure declaration emitter encountered TS2742 in accepted inferred
+viem client types; public modules require no sibling declaration or new bundler.
+The outside-consumer TypeScript gate must validate the emitted declarations.
+Public facade/types are SDK-owned and expose only
+validated config read, createProvider lifecycle and safe error code; no caller
+wallet/RPC injection, raw key loading, buyer/adjudicator or generic transaction
+surface. Exact signatures/schema/modes are in the packet before consumers depend.
+
+Preserve M6 config/role/fee/read/projection constraints and existing financial
+logic. No runtime source edits. New SDK retrieval-only mode passes neither a
+relayer account nor transaction wallet, and archive/payment proof remains
+mandatory. Preserve the old admin/relayer coupling explicitly; M11 separation
+is not part of M9. Local-only configuration does not claim M7 HTTPS support.
+
+Separate plain Node example consumes only SDK root and viem; bounded CSV grammar,
+integer deterministic output and paid signed500 failure semantics are frozen.
+Actual local EVM outside-repo tarball consumer and provider process restart are
+the exit gate, not an in-repo import or npm-pack-only check. Root/tests may use
+accepted buyer harness, without accepting M10. No npm publication, hosting,
+public chain budgets, license grant or product UI is implied by this checkpoint.
+
+
+## EVM-046 — Local provider SDK acceptance
+
+Status: ACCEPTED. Date:2026-10-23.
+
+Accept M9 under EVM-045. @assurepay/provider-sdk0.1.0 is private/packable ESM
+with four root functions, SDK-owned types, fixed safe errors and no generic
+wallet/client/raw-key surface. The five-file tarball bundles accepted runtime;
+only pinned viem/@x402/core and Node built-ins remain external. Existing M1–M8
+runtime/contracts and public/private campaign state are unchanged.
+
+Separate plain Node CSV service consumes the root API. Actual outside-repo
+pack/install tests prove public types/blocked deep imports, paid profiling,
+lost-response original-hash recovery after provider OS-process restart, exact
+receipt/body/transaction, signer-free retrieval and failure-closed state/RPC/
+binding/lock behavior. A fresh valid payment cannot settle in retrieval-only
+mode; controlled signed500 is a separate intentional second settlement.
+
+Independent canonical transaction/event/coverage and anchored financial proof
+pass: first profile Core62806=stake12029+pool50777, locked3502/reserved10003,
+active/count1; payer debit10003 and provider credit7197 atomic fixture units.
+Retrieval adds0payer signatures and no relayer nonce/broadcast. The report
+separates the later two-coverage state and explicitly has buyerProcessRestart:
+false; a new buyer instance is used, while the provider OS process restarts.
+
+Primary full7SDK,8CSV and24pilot tests, typechecks/builds, separate outside-repo
+example checkJs/root/deep-import checks and standalone demo pass. Independent
+Luna(high) cross-review closes scoped blockers. Results:
+planning/EVM_M9_RESULTS.md; local-only report:
+packages/provider-sdk/evidence/m9-consumer-gate.json.
+
+This is local fixture packaging evidence, not npm publication, native-USDC/
+public/HTTPS deployment, finality, role decoupling or production custody.
+Existing M5 public allowances stay consumed. Next is a self-contained M10 client
+SDK/approval/agent/skill packet before dependent code; no client or UI acceptance
+is inferred from M9's use of the existing in-repo buyer as a test harness.

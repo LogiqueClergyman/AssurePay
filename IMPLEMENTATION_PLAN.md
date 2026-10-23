@@ -13,7 +13,7 @@ Updated 2026-10-23. Target: Base Sepolia, native test USDC, EOA first.
 | M6 Developer pilot | ACCEPTED under EVM-039 | `planning/EVM_M6_DEVELOPER_PILOT.md` | Clean configuration → purchase → process restart/retrieval → authenticated claim → explicit refund through reusable SDK/CLI and loopback claims API, actual local EVM proof, 21 pilot tests and 96 regression tests; `planning/EVM_M6_RESULTS.md` |
 | M7 Transport preparation | ACCEPTED under EVM-042 | `planning/EVM_M7_EXTERNAL_PILOT.md` | Local HTTPS/actual-EVM purchase → provider restart → exact signer-free retrieval, unchanged local mode and adversarial transport checks; 33 M3 +24 pilot tests and standalone demo pass; `planning/EVM_M7_RESULTS.md` |
 | M8 Product boundaries | ACCEPTED under EVM-044 | `planning/EVM_M8_PRODUCT_BOUNDARIES.md` | Reviewed component/role/runtime contracts and phased local product roadmap |
-| M9 Provider integration | PLANNED, after M8 | Detailed packet pending | Outside-repo packed provider SDK + actual local EVM example service |
+| M9 Provider integration | ACCEPTED under EVM-046 | `planning/EVM_M9_PROVIDER_SDK.md` | Packed SDK/example pass outside-repo actual-EVM purchase, process restart and failure gates; 7 SDK +8 CSV +24 pilot tests and standalone demo; `planning/EVM_M9_RESULTS.md` |
 | M10 Client + agent integration | PLANNED, after M9 | Detailed packet pending | Unsigned preview/explicit approval, packed client, thin tool adapter and signer-free recovery |
 | M11 Protocol API | PLANNED, after M10 | Detailed packet pending | Canonical dashboard read models and operation-specific, role-checked local controls |
 | M12 Protocol console | PLANNED, after M11 | Detailed packet pending | Provider/admin/operator/adjudicator views with real financial state and gated actions |
@@ -33,7 +33,7 @@ not substitute for a gate that explicitly requires actual public settlement.
 Do not add production UI, governance, risk/actuarial models, subjective AI
 adjudication, commerce execution, multiple chains/assets or mainnet deployment.
 
-M1–M8 gates are complete. M8 accepts local product definitions under the
+M1–M9 gates are complete. M8 accepts local product definitions under the
 user's explicit request; the roadmap is planning/EVM_PRODUCT_ROADMAP.md.
 Later rows are ordered implementation intentions, not accepted gates. Freeze a
 self-contained packet before each dependent implementation. Local protocol
