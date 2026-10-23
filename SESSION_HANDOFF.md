@@ -2,9 +2,9 @@
 
 Updated:2026-10-23. Branch:`main`, tracking origin/main. M7 local HTTPS
 transport is ACCEPTED under EVM-042; M6 remains ACCEPTED under EVM-039. M5 checkpointb018cf6 remains published and preserved.
-Read AGENTS.md, completed planning/EVM_M7_EXTERNAL_PILOT.md and
-planning/EVM_M7_RESULTS.md, accepted planning/EVM_M6_DEVELOPER_PILOT.md
-and planning/EVM_M6_RESULTS.md, DECISIONS.md and IMPLEMENTATION_PLAN.md.
+Read AGENTS.md, completed planning/EVM_M8_PRODUCT_BOUNDARIES.md,
+planning/EVM_M8_RESULTS.md, planning/EVM_PRODUCT_ROADMAP.md, DECISIONS.md and IMPLEMENTATION_PLAN.md.
+Accepted M6/M7 packets/results remain named implementation references.
 Do not access /docs.
 
 ## Current outcome and exact next action
@@ -45,11 +45,21 @@ chain/TLS files/data are deleted. Independent Luna review and final scope/secret
 diff checks pass. M4/M5 unchanged suites were not rerun for M7; earlier evidence
 remains historical. No public/hosting mutation or existing runtime key read.
 
-Exact next action: define the next self-contained LOCAL packet, with the smallest
-measurable gate. A candidate is pre-settlement operator admission/spending bounds
-and admin/relayer separation, which need their own frozen requirements before
-code. No dependent phase is active and no M7 blocker remains. Preserve the user's
-local-only direction; hosting/provider/domain selection is deferred, not pending.
+User steering on2026-10-23: build/present provider SDK, client SDK/agent/skill,
+protocol role dashboards and a SEPARATE consumer demo using those integrations.
+Local-only direction remains. M8 definition is ACCEPTED under EVM-044, with
+EVM-043 recording user scope; completed packet:planning/EVM_M8_PRODUCT_BOUNDARIES.md and roadmap:EVM_PRODUCT_ROADMAP.md.
+Source audits by three Luna(high) agents identify monorepo-only private exports,
+signing inside buyer.prepare, missing dashboard reads/actions and runtime
+admin/relayer coupling. These need explicit product gates, not fake UI state.
+
+Exact next action: freeze the self-contained M9 provider integration packet
+under the accepted roadmap, then implement/verify only that gate. M8 source and
+three-Luna review is complete; no runtime code/tests changed for that definition
+checkpoint, and future SDK/UI capabilities are requirements, not proven facts. Subsequent
+M10 client/agent, M11 protocol API, M12 console, M13 consumer app and M14 rehearsal
+are PLANNED, not implemented. Local UI is now explicitly in product scope;
+production hosting/browser-native custody/public campaigns remain out of scope.
 
 Requirements gaps for external execution: intended hosting/domain/RPC ownership,
 operator/custody and retention/recovery arrangement, pre-settlement invitation

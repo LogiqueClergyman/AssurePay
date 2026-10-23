@@ -890,3 +890,53 @@ finality, backup rollback, admission/spending policy or production custody.
 The user selected local-only work; no host or public funding is needed/inferred.
 Scope any next local phase before dependent code; all M5 public allowances stay
 consumed and existing keys/journals stay preserved.
+
+## EVM-043 — Local product surfaces and phased roadmap
+
+Status: ACCEPTED direction and M8 definition scope. Date:2026-10-23.
+Source: user explicitly requests provider SDK, client SDK/agent/skill, protocol
+role dashboards and a separate consumer demo, broken into smaller phases.
+
+Freeze planning/EVM_M8_PRODUCT_BOUNDARIES.md as the current definition phase.
+Record the product/phase contract in planning/EVM_PRODUCT_ROADMAP.md. Reuse the
+accepted protocol; make integrations independently consumable, keep the demo
+on public client APIs, and treat agent/skill as a thin client adapter. First SDK
+runtime is Node; browser UI uses a local backend and does not gain keys from a
+bundle. Provider/admin/operator/adjudicator remain distinct responsibilities.
+No operator contract role or automatic refund authority is inferred.
+
+Current private cross-source composition is not an installable SDK, and current
+buyer.prepare signs; it cannot be shown as an unsigned approval preview. Define
+SDK packaging and consent gates before UI depends on them. Local console/demo UI
+is explicitly in the user's requested scope; production hosting, public
+publishing, new campaign budgets and browser-native custody are not.
+
+After M8 review acceptance, freeze each detailed local implementation packet
+before its dependent phase. Existing user direction authorizes work within this
+roadmap, with one phase at a time, Luna(high) delegation, primary verification
+and checkpoint commits/pushes. No broad new financial or public authority follows.
+
+## EVM-044 — Product-boundary definition acceptance
+
+Status: ACCEPTED definition gate. Date:2026-10-23.
+
+Accept M8 under EVM-043. planning/EVM_PRODUCT_ROADMAP.md separates provider SDK,
+client SDK plus one framework-neutral agent adapter/portable skill, protocol
+read/control API and role console, and a separate consumer demo. Node-first
+runtime and local-only operation are explicit. SDKs must pass outside-repo
+pack/install gates with no deep source imports; preview/approval/signing and
+same-request recovery are separate behaviors. Dashboard financial data must
+have canonical provenance, and contract-specific roles remain distinct.
+
+Primary source review plus three independent Luna(high) reviews close definition
+gaps in skill artifacts, role signing/session boundaries, new admin/relayer
+composition, and consumer-to-adjudicator handoff. M10 explicitly includes payer
+claim and anchored status/balance reads required by the consumer flow. These are
+accepted future requirements, not claims of implemented SDK/UI capabilities.
+M8 is docs-only; no runtime/financial gate is asserted by this acceptance.
+
+Exact next phase is M9 provider integration, with its detailed packet frozen
+before code. M10–M14 stay planned and depend on preceding gates. Local console
+and demo UI are authorized within those packets; production custody/hosting,
+public publishing and new public spending remain out of scope. Results:
+planning/EVM_M8_RESULTS.md. Existing M1–M7 evidence and private runtime survive.
