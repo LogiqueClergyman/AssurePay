@@ -1008,3 +1008,85 @@ public/HTTPS deployment, finality, role decoupling or production custody.
 Existing M5 public allowances stay consumed. Next is a self-contained M10 client
 SDK/approval/agent/skill packet before dependent code; no client or UI acceptance
 is inferred from M9's use of the existing in-repo buyer as a test harness.
+
+
+## EVM-047 — M10 client approval, budget and agent boundary
+
+Status: ACCEPTED for implementation. Date:2026-10-23.
+Source: explicit user go-ahead after M9 checkpoint51ad845.
+
+Freeze planning/EVM_M10_CLIENT_SDK.md before dependent code. Single private,
+root-only @assurepay/client-sdk0.1.0 bundles accepted runtime, adds a thin
+framework-neutral agent adapter and ships a repository-owned portable skill.
+Local-only exact config/pinned dependencies/build strategy remain M9-compatible.
+No public RPC/chain budgets, npm publishing or global skill installation.
+
+M3 gains unsigned preview and separate fresh-challenge authorization; legacy
+createPurchase keeps its one-challenge/signing behavior. M6 buyer exposes new
+preview/authorize while preserving prepare/send/retrieve. SDK public API never
+calls signing from preview: literal app approval, unchanged quote/identity and
+freshness precede payment signing. Existing encrypted snapshot and exactly-once
+attempted markers remain the only paid send/recovery path.
+
+Persistent per-directory session caps reserve amount/count before forwarding a
+payment signature. Unresolved reservations/attempts block new authorization;
+crash windows may strand availability and never permit re-sign/replacement.
+Limits/context cannot change on reopen. This is a host-configured local session,
+not a global account spending or production admission policy.
+
+Payer-only evidence/approved fileClaim and signer-free original-hash claim
+reconciliation stay behind fixed methods; canonical single-head own coverage/
+refund/balance reads support later consumer UI. No decision/arbitrary-call API.
+Agent tools invoke a host-only approval callback per new payment; model/tool
+arguments cannot approve, change caps or choose actor/endpoint. Service output
+is data. Skill/tool tests must demonstrate approval denial, actual payment and
+original-ID recovery through the packed API without private outputs.
+
+Required gates include outside-repo real client OS-process recovery, actual
+local EVM financial/claim/refund proof, persisted caps/failures, full M3/M6/M9
+regressions, skill validation/forward-test and primary/independent review.
+M11 role separation and later UI remain dependent phases.
+
+Review refinement: rechecking a previously confirmed result first persists its
+attempted guard before the retrieval/proof boundary. A failed guard write stops
+before the read; an uncertain proof retains closed admission across restart.
+Only a newly verified original result restores confirmed state.
+
+
+## EVM-048 — Local client SDK and agent acceptance
+
+Status: ACCEPTED. Date:2026-10-24.
+
+Accept M10 under EVM-047. Private/packable @assurepay/client-sdk0.1.0 exposes
+unsigned previews, explicit approval/fresh revalidation, durable per-session
+caps before signing, encrypted one-send identity and signer-free original-ID
+retrieval. Fixed payer evidence/claim and canonical own state/balance methods
+expose no adjudication or arbitrary transaction capability. Four agent tools
+require a host approval callback; model arguments cannot approve/change caps.
+Explicit outputs and safe errors exclude private payloads. The portable skill
+is packaged and independently validated/rehearsed; no global install.
+
+Both actual tarballs run outside the repository through plain Node processes.
+Lost-response recovery preserves the original body/receipt/transaction across
+client and key-free provider process restart with no new payer signature or
+settlement. Independent calldata/event/coverage and token accounting proof pass.
+A separate signed500 claim executes from the payer with fixed gas/fees, then an
+external test-only adjudicator refunds10003atomic fixture units. Core58415=
+stake16087+pool42328; other2coverages stay active, locked7004/reserved20006,
+payer119994. Same-evidence claim recovery/reconciliation signs nothing.
+
+Primary typecheck/build and full23client/37M3/25pilot/7provider tests (92total),
+external root/types/deep-import/example checkJs, skill validator, independent
+Luna(high) review and standalone demo pass. Results:
+planning/EVM_M10_RESULTS.md; local-only report:
+packages/client-sdk/evidence/m10-consumer-gate.json.
+
+Existing contracts/economics/receipt formats, M4/M5 logic, M9 sources and public
+campaign/runtime state remain unchanged. This is local fixture evidence, not
+public native-USDC deployment, finality, production custody, global account caps
+or authenticated backup rollback. M5 public allowances remain consumed.
+
+Next: freeze the self-contained M11 protocol API packet before implementation,
+including canonical summary/list/provider/policy reads, fixed role actions,
+admin/relayer separation and local browser actor/confirmation/CSRF boundaries.
+M12 console and M13 consumer UI remain dependent; no UI acceptance is inferred.

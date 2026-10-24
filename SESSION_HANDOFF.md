@@ -1,15 +1,15 @@
 # Session handoff
 
-Updated:2026-10-23. Branch:`main`, tracking origin/main. M9 provider SDK is
-ACCEPTED under EVM-046; M7 remains ACCEPTED under EVM-042 and M6 under EVM-039. M5 checkpointb018cf6 remains published and preserved.
-Read AGENTS.md, active planning/EVM_M9_PROVIDER_SDK.md,
+Updated:2026-10-24. Branch:`main`, tracking origin/main. M10 client SDK is
+ACCEPTED under EVM-048; M9 under EVM-046; M7 remains ACCEPTED under EVM-042 and M6 under EVM-039. M5 checkpointb018cf6 remains published and preserved.
+Read AGENTS.md, active planning/EVM_M10_CLIENT_SDK.md,
 planning/EVM_PRODUCT_ROADMAP.md, DECISIONS.md and IMPLEMENTATION_PLAN.md.
 Accepted M6/M7 packets/results remain named implementation references.
 Do not access /docs.
 
 ## Current outcome and exact next action
 
-M1–M9 are ACCEPTED. M8 product roadmap is planning/EVM_PRODUCT_ROADMAP.md under
+M1–M10 are ACCEPTED. M8 product roadmap is planning/EVM_PRODUCT_ROADMAP.md under
 EVM-043/044. User requests provider/client integrations, agent/skill, protocol
 role dashboards and a separate consumer demo, with Luna(high) delegation,
 primary verification and checkpoint commits/non-force pushes. Local-only
@@ -37,14 +37,39 @@ is explicit (new instance in same coordinator); providerProcessRestart:true.
 Independent Luna cross-review and primary scope/secret/diff checks close blockers.
 Temporary chains, projects and fresh key material are deleted.
 
-Exact next action: freeze a self-contained M10 client SDK/agent/skill packet
-under the roadmap before implementation. Include outside-repo install gate,
-unsigned preview -> explicit approval -> revalidate/sign/persist -> one send ->
-original-result recovery, payer claims and anchored coverage/outcome/balance
-reads, a framework-neutral agent adapter with explicit per-payment approval and
-session bounds, and portable SKILL.md. Current in-repo buyer.prepare signs;
-do not present it as unsigned preview. Use Luna(high) and primary verification,
-one phase at a time. M11–M14 depend on the preceding accepted gates.
+M10 is ACCEPTED under EVM-048, implemented under EVM-047. Completed packet:
+planning/EVM_M10_CLIENT_SDK.md; results: planning/EVM_M10_RESULTS.md. New private
+packages/client-sdk0.1.0 includes explicit approval, persistent amount/count caps,
+original identity recovery, payer claims/anchored reads,4agent tools and a portable
+skill. Separate examples/assured-client uses the SDK root only. M3/M6 compatibility
+changes are limited to unsigned preview/authorization and their focused tests;
+legacy createPurchase keeps one challenge. Contracts/M4/M5/M9 sources unchanged.
+
+Primary final typecheck/build and full23client/37M3/25pilot/7provider tests PASS
+(92total, no failures/skips). Outside-repository actual tarballs/plain Node client
+and provider processes pass root/types/deep-import and example checkJs. A lost
+paid response retrieves the same original body/receipt/transaction after client
+OS-process restart without payer signer and provider restart without signing keys.
+No additional payer signature/settlement/handler; relayer nonce stays unchanged.
+Actual payer evidence/claim, signer-free idempotent claim recovery/reconciliation,
+explicit test-only adjudicator refund and other-coverage locks are independently
+verified. Core58415=stake16087+pool42328, locked7004/reserved20006, active2/count3,
+payer119994atomic fixture units. Caps, denial, expiry, corrupted state, context,
+RPC/reorg and hostile agent arguments fail closed. Guard-write failure prevents
+retrieval before HTTP; uncertainty persists until genuine original confirmation.
+
+Standalone npm run demo PASS; public-only report:
+packages/client-sdk/evidence/m10-consumer-gate.json. Official skill validator and
+independent Luna(high) forward rehearsal/review pass; scoped blockers closed.
+Temporary chains/projects/private actors are deleted. No public financial action.
+
+Exact next action: M11 detailed packet is not yet written. Read the accepted M8
+roadmap and completed M10 references, scope canonical protocol summary/list/provider/
+policy read models and fixed role-checked actions, separated admin/relayer runtime,
+and local browser actor binding/confirmation/same-origin/CSRF rules. Freeze that
+self-contained packet/decision before dependent implementation, then delegate
+Luna(high) work and verify actual-EVM read/write/reconciliation/failure gates.
+M12–M14 have not started. Existing public state stays untouched.
 
 M9 retains M6's admin=relayer and owner=payout constraints and rejects public
 URLs/native USDC. M11 must introduce the new separated product role composition

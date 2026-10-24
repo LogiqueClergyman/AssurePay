@@ -1,0 +1,110 @@
+{
+  "ok": true,
+  "code": "LOCAL_CLIENT_SDK_VERIFIED",
+  "runtime": "plain-node-outside-repository",
+  "chainId": 84532,
+  "clientPackageVersion": "0.1.0",
+  "providerPackageVersion": "0.1.0",
+  "limits": {
+    "localOnly": true,
+    "tokenKind": "LOCAL_ERC3009_FIXTURE",
+    "publicNativeUsdcProof": false,
+    "finality": false,
+    "hostedAvailability": false
+  },
+  "previewAndAgentDenialSignatures": 0,
+  "concurrentAuthorizationSignatures": 1,
+  "firstPaymentResponseLost": true,
+  "clientProcessRestart": true,
+  "signerFreeRetrieval": true,
+  "sameOriginalTransactionAndReceipt": true,
+  "signed500Verified": true,
+  "payerEvidenceAndClaimIncluded": true,
+  "sameEvidenceIdempotentWithoutSigner": true,
+  "claimReconcileWithoutSigner": true,
+  "retrievalOnlyProviderWithoutKeys": true,
+  "refundOnlyViaTestAdjudicator": true,
+  "otherCoverageLocksPreserved": true,
+  "capDeniedBeforeSignature": true,
+  "changedBudgetContextRejected": true,
+  "coverageCount": "3",
+  "counters": {
+    "relayerSettleBroadcasts": 3,
+    "claimBroadcasts": 1
+  },
+  "firstProof": {
+    "transaction": "0x731eb30fa3bd3985ab19d3969ac37bccda2bcbb676f36a0b37dfd98e7b5554b3",
+    "blockNumber": "10",
+    "blockHash": "0x8b4c77e39b7227971e7b5e7277ecae176b17813e440b0aeea4e6b7fdb00dd083",
+    "observedBlock": {
+      "number": "10",
+      "hash": "0x8b4c77e39b7227971e7b5e7277ecae176b17813e440b0aeea4e6b7fdb00dd083"
+    },
+    "coreAssetsAtomic": "62806",
+    "payerAssetsAtomic": "129997",
+    "providerAssetsAtomic": "7197",
+    "payerDebitAtomic": "10003",
+    "providerCreditAtomic": "7197",
+    "coreIncreaseAtomic": "2806",
+    "state": {
+      "totalProviderStake": "12029",
+      "poolAssets": "50777",
+      "totalLockedStake": "3502",
+      "totalPoolReserved": "10003",
+      "activeCoverageCount": "1",
+      "coverageCount": "1"
+    },
+    "solvencyEquality": true
+  },
+  "claimProof": {
+    "coverageId": "0x198fc208156596fbf08d3facbff5e7467de0bc02cc95273d4c8f2288bc0a3e6a",
+    "evidenceHash": "0x04b7810b15005ab16d6ed40c16405c78a71a03e3d8b3d09b29227c471f556d9e",
+    "transaction": "0x1ab9cd3e87363e98dd0057d6ab0507a59a895cd0cb6d85249fffcbe2b646adea",
+    "inclusion": {
+      "number": "13",
+      "hash": "0x1053d4600ec390a4e5800a8c0bb9f60d10599584be3b7534ffd58621fb46414f"
+    },
+    "coverageStatus": 2,
+    "payer": "0xe8f5b08a441c6e82f11d0864d4fe9a3a12a8e393",
+    "core": "0x943f7c5fb99cba3e2610e0cb798249baf7ded576",
+    "gas": "100000",
+    "maxFeePerGas": "100000000",
+    "maxPriorityFeePerGas": "1000000"
+  },
+  "preRefundAccounting": {
+    "observedBlock": {
+      "number": "12",
+      "hash": "0xa07a65d4d526d428df85b08d64863ece5aacecdb94e49fdf30d330c3c9529e75"
+    },
+    "coreAssetsAtomic": "68418",
+    "payerAssetsAtomic": "109991",
+    "providerAssetsAtomic": "21591",
+    "state": {
+      "totalProviderStake": "16087",
+      "poolAssets": "52331",
+      "totalLockedStake": "10506",
+      "totalPoolReserved": "30009",
+      "activeCoverageCount": "3",
+      "coverageCount": "3"
+    },
+    "solvencyEquality": true
+  },
+  "postRefundAccounting": {
+    "observedBlock": {
+      "number": "14",
+      "hash": "0x3274dd4c140089f1116b9cbca2a48431388e615b71ced43ce01480509e0134c0"
+    },
+    "coreAssetsAtomic": "58415",
+    "payerAssetsAtomic": "119994",
+    "providerAssetsAtomic": "21591",
+    "state": {
+      "totalProviderStake": "16087",
+      "poolAssets": "42328",
+      "totalLockedStake": "7004",
+      "totalPoolReserved": "20006",
+      "activeCoverageCount": "2",
+      "coverageCount": "3"
+    },
+    "solvencyEquality": true
+  }
+}

@@ -1,6 +1,7 @@
 import { decodePaymentRequiredHeader, decodePaymentResponseHeader, encodePaymentSignatureHeader } from '@x402/core/http';
 import type { PaymentPayload } from '@x402/core/types';
 import { createPayment, prepareCall, requirementsFor, canonicalRequestUrl, hashRequest, verifyReceipt } from './protocol.js';
+import type { Address, Hex } from 'viem';
 import type { Terms, Trust, PayerSigner, PreparedCall, PaymentResult, SignedReceipt } from './types.js';
 
 const MAX_BODY = 65_536;
@@ -17,6 +18,17 @@ export interface PurchaseOptions {
   fetch?: typeof globalThis.fetch;
   createRequestId?: () => `0x${string}`;
 }
+export interface PurchasePreview {
+  readonly url: string;
+  readonly body: Uint8Array;
+  readonly payer: Address;
+  readonly trust: Trust;
+  readonly maxGross: string;
+  readonly requestId: Hex;
+  readonly requestHash: Hex;
+  readonly terms: Terms;
+}
+export type PurchasePreviewOptions = Omit<PurchaseOptions, 'payer' | 'now' | 'verifyPayment'> & { payer: Address };
 export interface PurchaseResponse { status: number; body: Uint8Array; paid: boolean; receipt?: SignedReceipt; paymentResponse?: unknown }
 export interface PurchaseSession { requestId: `0x${string}`; requestHash: `0x${string}`; payment: PaymentPayload; call: PreparedCall; send(): Promise<PurchaseResponse>; retry(): Promise<PurchaseResponse> }
 export interface PurchaseSnapshot { version: 1; url: string; bodyHex: string; trust: Trust; maxGross: string; payer: `0x${string}`; terms: Terms; requestId: `0x${string}`; payment: PaymentPayload }
@@ -90,22 +102,25 @@ function parsePendingResponse(bytes: Uint8Array, call: PreparedCall): PurchaseRe
   return { status: 202, body: bytes, paid: false };
 }
 
-/** Creates one SDK payment from an unpaid challenge; retries reuse the exact authorization and bytes. */
-export async function createPurchase(options: PurchaseOptions): Promise<PurchaseSession> {
+function snapshotTerms(read: Terms): Terms {
+  return Object.freeze({ ...read, core: read.core.toLowerCase() as Terms['core'], token: read.token.toLowerCase() as Terms['token'],
+    providerOwner: read.providerOwner.toLowerCase() as Terms['providerOwner'], providerPayout: read.providerPayout.toLowerCase() as Terms['providerPayout'] });
+}
+
+async function readPreview(options: PurchasePreviewOptions, requestId?: Hex): Promise<PurchasePreview> {
   const url = canonicalRequestUrl(options.url);
   const body = Uint8Array.from(options.body);
   const trust = Object.freeze({ ...options.trust });
   const maxGross = options.maxGross;
-  const readTerms = options.readTerms;
-  const clock = options.now;
-  const verifyPayment = options.verifyPayment;
   const fetcher = options.fetch ?? globalThis.fetch;
-  const requestIdFactory = options.createRequestId;
-  const payer = Object.freeze({ address: options.payer.address, signTypedData: options.payer.signTypedData.bind(options.payer) });
+  const readTerms = options.readTerms;
+  const createRequestId = options.createRequestId;
+  const payer = options.payer.toLowerCase() as Address;
   if (body.byteLength > MAX_BODY) throw new Error('REQUEST_TOO_LARGE');
   if (!/^(0|[1-9][0-9]*)$/.test(maxGross)) throw new Error('INVALID_SPEND_CAP');
-  const id = requestIdFactory?.() ?? `0x${Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('')}`;
+  const id = requestId ?? createRequestId?.() ?? `0x${Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('')}` as Hex;
   if (!/^0x[0-9a-f]{64}$/.test(id) || /^0x0{64}$/.test(id)) throw new Error('INVALID_REQUEST_ID');
+  if (!/^0x[0-9a-f]{40}$/.test(payer)) throw new Error('INVALID_PAYER');
   const requestHash = hashRequest('POST', url, 'application/octet-stream', body, id);
   const baseHeaders = { 'content-type': 'application/octet-stream', 'assurepay-request-id': id };
   let challenge: Response;
@@ -129,32 +144,90 @@ export async function createPurchase(options: PurchaseOptions): Promise<Purchase
   const accepted = required.accepts[0];
   if (!accepted || typeof accepted !== 'object' || Array.isArray(accepted) ||
       typeof accepted.amount !== 'string' || !/^(0|[1-9][0-9]*)$/.test(accepted.amount) || BigInt(accepted.amount) > BigInt(maxGross)) throw new Error('UNTRUSTED_PAYMENT_REQUIREMENTS');
-  const read = await readTerms(trust, accepted.amount);
-  const terms: Terms = Object.freeze({ ...read, core: read.core.toLowerCase() as Terms['core'], token: read.token.toLowerCase() as Terms['token'], providerOwner: read.providerOwner.toLowerCase() as Terms['providerOwner'], providerPayout: read.providerPayout.toLowerCase() as Terms['providerPayout'] });
+  const terms = snapshotTerms(await readTerms(trust, accepted.amount));
   if (terms.chainId !== trust.chainId || terms.core.toLowerCase() !== trust.core.toLowerCase() ||
       terms.token.toLowerCase() !== trust.token.toLowerCase() || terms.providerId.toLowerCase() !== trust.providerId.toLowerCase() ||
       terms.policyId.toLowerCase() !== trust.policyId.toLowerCase() || terms.gross !== accepted.amount || BigInt(terms.gross) > BigInt(maxGross)) throw new Error('TRUSTED_TERMS_MISMATCH');
   if (!equalJson(required.accepts, [requirementsFor(terms, requestHash)])) throw new Error('UNTRUSTED_PAYMENT_REQUIREMENTS');
   if (challengeBody.byteLength !== 0) throw new Error('INVALID_PAYMENT_CHALLENGE');
-  const clockValue = await clock();
+  return Object.freeze({ url, body, payer, trust, maxGross, requestId: id, requestHash, terms });
+}
+
+function copyPreview(preview: PurchasePreview): PurchasePreview {
+  return Object.freeze({ ...preview, body: Uint8Array.from(preview.body), trust: Object.freeze({ ...preview.trust }), terms: Object.freeze({ ...preview.terms }) });
+}
+
+/** Validates an unpaid x402 challenge and trusted quote without requesting a signature. */
+export function createPurchasePreview(options: PurchasePreviewOptions): Promise<PurchasePreview> {
+  return readPreview(options);
+}
+
+/** Revalidates a preview against a fresh unpaid challenge before creating its payment. */
+export async function authorizePurchase(previewInput: PurchasePreview, options: {
+  payer: PayerSigner; readTerms: PurchaseOptions['readTerms']; now: PurchaseOptions['now'];
+  verifyPayment: PurchaseOptions['verifyPayment']; fetch?: typeof globalThis.fetch;
+}): Promise<PurchaseSession> {
+  const preview = copyPreview(previewInput);
+  const payer = options.payer;
+  const readTerms = options.readTerms;
+  const now = options.now;
+  const verifyPayment = options.verifyPayment;
+  const fetcher = options.fetch ?? globalThis.fetch;
+  const signer = Object.freeze({ address: payer.address.toLowerCase() as Address, signTypedData: payer.signTypedData.bind(payer) });
+  if (signer.address.toLowerCase() !== preview.payer.toLowerCase()) throw new Error('PREVIEW_STALE');
+  let fresh: PurchasePreview;
+  try {
+    fresh = await readPreview({ url: preview.url, body: preview.body, payer: preview.payer, trust: preview.trust, maxGross: preview.maxGross,
+      readTerms, fetch: fetcher }, preview.requestId);
+  } catch { throw new Error('PREVIEW_STALE'); }
+  if (fresh.requestHash !== preview.requestHash || fresh.url !== preview.url || fresh.payer !== preview.payer ||
+      !equalJson(fresh.trust, preview.trust) || fresh.maxGross !== preview.maxGross || !equalJson(fresh.terms, preview.terms)) throw new Error('PREVIEW_STALE');
+  const clockValue = await now();
   const nowSeconds = typeof clockValue === 'bigint' ? clockValue : BigInt(clockValue);
-  const payment = await createPayment({ terms, requestHash, payer, nowSeconds, maxGross });
-  const call = await prepareCall(payment, terms, requestHash, nowSeconds);
+  const payment = await createPayment({ terms: fresh.terms, requestHash: fresh.requestHash, payer: signer, nowSeconds, maxGross: fresh.maxGross });
+  const call = await prepareCall(payment, fresh.terms, fresh.requestHash, nowSeconds);
+  return createSession(fresh, payment, call, verifyPayment, fetcher);
+}
+
+function createSession(preview: PurchasePreview, payment: PaymentPayload, call: PreparedCall,
+  verifyPayment: PurchaseOptions['verifyPayment'], fetcher: typeof globalThis.fetch): PurchaseSession {
+  const baseHeaders = { 'content-type': 'application/octet-stream', 'assurepay-request-id': preview.requestId };
   let flight: Promise<PurchaseResponse> | undefined;
   const send = (): Promise<PurchaseResponse> => {
     if (flight) return flight;
     flight = (async () => {
       let response: Response;
-      try {
-        response = await fetcher(url, { method: 'POST', headers: { ...baseHeaders, 'payment-signature': encodePaymentSignatureHeader(payment) }, body: Buffer.from(body), redirect: 'error' });
-      } catch { throw new Error('PAID_RESPONSE_UNAVAILABLE'); }
+      try { response = await fetcher(preview.url, { method: 'POST', headers: { ...baseHeaders, 'payment-signature': encodePaymentSignatureHeader(payment) }, body: Buffer.from(preview.body), redirect: 'error' }); }
+      catch { throw new Error('PAID_RESPONSE_UNAVAILABLE'); }
       const bytes = await boundedBody(response);
       if (response.status === 202) return parsePendingResponse(bytes, call);
-      return parsePaidResult(response, bytes, { terms, requestHash, call, payment, verifyPayment });
+      return parsePaidResult(response, bytes, { terms: preview.terms, requestHash: preview.requestHash, call, payment, verifyPayment });
     })().finally(() => { flight = undefined; });
     return flight;
   };
-  return { requestId: id, requestHash, payment, call, send, retry: send };
+  return { requestId: preview.requestId, requestHash: preview.requestHash, payment, call, send, retry: send };
+}
+
+/** Creates one SDK payment from an unpaid challenge; retries reuse the exact authorization and bytes. */
+export async function createPurchase(options: PurchaseOptions): Promise<PurchaseSession> {
+  const sourcePayer = options.payer;
+  const payer = Object.freeze({ address: sourcePayer.address.toLowerCase() as Address, signTypedData: sourcePayer.signTypedData.bind(sourcePayer) });
+  const readTerms = options.readTerms;
+  const now = options.now;
+  const verifyPayment = options.verifyPayment;
+  const fetcher = options.fetch ?? globalThis.fetch;
+  const url = options.url;
+  const body = Uint8Array.from(options.body);
+  const trust = Object.freeze({ ...options.trust });
+  const maxGross = options.maxGross;
+  const createRequestId = options.createRequestId;
+  const preview = await readPreview({ url, body, payer: payer.address, trust,
+    maxGross, readTerms, fetch: fetcher, createRequestId });
+  const clockValue = await now();
+  const nowSeconds = typeof clockValue === 'bigint' ? clockValue : BigInt(clockValue);
+  const payment = await createPayment({ terms: preview.terms, requestHash: preview.requestHash, payer, nowSeconds, maxGross: preview.maxGross });
+  const call = await prepareCall(payment, preview.terms, preview.requestHash, nowSeconds);
+  return createSession(preview, payment, call, verifyPayment, fetcher);
 }
 
 /** Reopens an encrypted buyer snapshot for retrieval. This path never signs or settles. */

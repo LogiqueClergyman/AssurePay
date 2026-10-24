@@ -4,7 +4,7 @@ import { dirname, join, parse, resolve } from 'node:path';
 import { keccak256, toBytes, type Address, type Hex } from 'viem';
 import { EncryptedVault } from '../../claims-backend/src/vault.js';
 import { readTerms, verifySettlement } from '../../x402-assurance/src/chain.js';
-import { createPurchase, restorePurchase, type PurchaseSession, type PurchaseSnapshot } from '../../x402-assurance/src/http-client.js';
+import { authorizePurchase, createPurchase, createPurchasePreview, restorePurchase, type PurchasePreview, type PurchaseSession, type PurchaseSnapshot } from '../../x402-assurance/src/http-client.js';
 import type { Trust } from '../../x402-assurance/src/types.js';
 
 export interface BuyerBinding { url: string; trust: Trust; maxGross: string; payer: Address }
@@ -13,7 +13,10 @@ export interface BuyerOptions {
   payerSigner?: { address: Address; signTypedData(data: any): Promise<Hex> }; fetch?: typeof globalThis.fetch;
 }
 export interface BuyerPrepared { requestId: Hex; requestHash: Hex; coverageId: Hex }
+export type BuyerPreview = PurchasePreview;
 export interface Buyer {
+  preview(body: Uint8Array): Promise<BuyerPreview>;
+  authorize(requestId: Hex): Promise<BuyerPrepared>;
   prepare(body: Uint8Array): Promise<BuyerPrepared>;
   send(requestId: Hex): ReturnType<PurchaseSession['send']>;
   retrieve(requestId: Hex): ReturnType<PurchaseSession['send']>;
@@ -27,6 +30,10 @@ function exactSnapshot(value: unknown): PurchaseSnapshot {
   if (row.version !== 1 || typeof row.url !== 'string' || typeof row.bodyHex !== 'string' || typeof row.maxGross !== 'string' ||
       typeof row.payer !== 'string' || typeof row.requestId !== 'string' || !row.payment || !row.terms || !row.trust) throw new Error('BUYER_SNAPSHOT_INVALID');
   return row;
+}
+
+function copyPreview(preview: PurchasePreview): PurchasePreview {
+  return Object.freeze({ ...preview, body: Uint8Array.from(preview.body), trust: Object.freeze({ ...preview.trust }), terms: Object.freeze({ ...preview.terms }) });
 }
 
 /** Durable local buyer. The encrypted vault is binding-specific; only retrieval survives process restart. */
@@ -76,6 +83,8 @@ export async function createBuyer(options: BuyerOptions): Promise<Buyer> {
   const namespace = keccak256(toBytes(JSON.stringify({ url: binding.url, trust: binding.trust, maxGross: binding.maxGross, payer: binding.payer })));
   const vault = new EncryptedVault({ directory: join(directory, 'vault'), namespace: namespace.slice(2), keyId: 'buyer-v1', key });
   const fresh = new Map<string, PurchaseSession>();
+  const previews = new Map<string, PurchasePreview>();
+  let previewsPending = 0;
   let closed = false;
   let closing = false;
   let closePromise: Promise<void> | undefined;
@@ -103,6 +112,35 @@ export async function createBuyer(options: BuyerOptions): Promise<Buyer> {
     return verifySettlement(client, input.call && (await read(input.call.intent.gross)), input.call, (input.paymentResponse as any).transaction, relayer);
   }
   return {
+    preview(bodyInput) { return operation(async () => {
+      if (!(bodyInput instanceof Uint8Array)) throw new Error('BUYER_BODY_INVALID');
+      if (previews.size + previewsPending >= 32) throw new Error('BUYER_PREVIEW_LIMIT');
+      const body = Uint8Array.from(bodyInput);
+      previewsPending++;
+      let preview: PurchasePreview;
+      try {
+        preview = await createPurchasePreview({ url: binding.url, body, payer: binding.payer, trust: binding.trust,
+          maxGross: binding.maxGross, readTerms: (_trust, gross) => readSnapshotTerms(gross), fetch: fetcher });
+      } finally { previewsPending--; }
+      if (previews.has(preview.requestId)) throw new Error('BUYER_PREVIEW_DUPLICATE');
+      previews.set(preview.requestId, copyPreview(preview));
+      return copyPreview(preview);
+    }); },
+    authorize(requestId) { return operation(async () => {
+      const preview = previews.get(requestId);
+      if (!preview) throw new Error('BUYER_PREVIEW_UNAVAILABLE');
+      previews.delete(requestId);
+      if (!payerSigner || payerSigner.address.toLowerCase() !== binding.payer.toLowerCase()) throw new Error('BUYER_SIGNER_REQUIRED');
+      let termsForRequest: Awaited<ReturnType<typeof readSnapshotTerms>> | undefined;
+      const session = await authorizePurchase(preview, { payer: payerSigner,
+        readTerms: async (_trust, gross) => { termsForRequest = await readSnapshotTerms(gross); return termsForRequest; }, now: time, verifyPayment: verify, fetch: fetcher });
+      if (!termsForRequest) throw new Error('BUYER_TERMS_UNAVAILABLE');
+      const snapshot: PurchaseSnapshot = { version: 1, url: binding.url, bodyHex: Buffer.from(preview.body).toString('hex'), trust: binding.trust,
+        maxGross: binding.maxGross, payer: binding.payer, terms: termsForRequest, requestId: session.requestId, payment: session.payment };
+      await vault.put('result', session.requestId, snapshot);
+      fresh.set(session.requestId, session);
+      return { requestId: session.requestId, requestHash: session.requestHash, coverageId: session.call.intentHash };
+    }); },
     prepare(bodyInput) { return operation(async () => {
       if (!(bodyInput instanceof Uint8Array)) throw new Error('BUYER_BODY_INVALID');
       if (!payerSigner || payerSigner.address.toLowerCase() !== binding.payer.toLowerCase()) throw new Error('BUYER_SIGNER_REQUIRED');
@@ -148,6 +186,7 @@ export async function createBuyer(options: BuyerOptions): Promise<Buyer> {
       closePromise = (async () => {
         await Promise.allSettled([...active]);
         fresh.clear();
+        previews.clear();
         try {
           const expectedLock = lockStat;
           if (!expectedLock) throw new Error();

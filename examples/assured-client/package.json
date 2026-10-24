@@ -1,0 +1,11 @@
+{
+  "name": "assurepay-client-example",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.18.0" },
+  "scripts": { "demo": "node src/index.mjs" },
+  "dependencies": {
+    "@assurepay/client-sdk": "file:../../packages/client-sdk",
+    "viem": "2.57.7"
+  }
+}
