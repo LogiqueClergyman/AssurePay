@@ -1090,3 +1090,84 @@ Next: freeze the self-contained M11 protocol API packet before implementation,
 including canonical summary/list/provider/policy reads, fixed role actions,
 admin/relayer separation and local browser actor/confirmation/CSRF boundaries.
 M12 console and M13 consumer UI remain dependent; no UI acceptance is inferred.
+
+
+## EVM-049 — Protocol application boundaries and role composition
+
+Status: ACCEPTED for implementation. Date:2026-10-24.
+Source: continuing user authorization after M10 checkpoint b772e67.
+
+Freeze planning/EVM_M11_PROTOCOL_API.md after three independent Luna(high)
+source reviews. New local-only packages/protocol-app owns canonical registry/
+coverage/accounting read models, host-issued browser actor capabilities, fixed
+preview/confirm controls and a separate durable selector-restricted sender.
+No public chain action, UI, registry publication or production login is implied.
+
+Preserve M6/M9 exact public v1 schemas and defaults. Add only an explicit internal
+expectedAdmin seam to checkPilot/startPilotProvider; a new protocol composition
+passes its separate admin, while the online provider holds only relayer signing
+authority. Primary service owner=payout remains explicit; future public SDK
+composition support needs its own scoped extension. Existing client SDK works
+through its accepted public methods without an admin signing dependency.
+
+Reuse M4 complete canonical coverage projection and claims/auth/evidence/decision
+semantics. Index bounded provider/policy events and verify mappings at the same
+head. Registries lack counts; trusted RPC completeness for unreferenced registry
+events is an explicit limit. Public read rows omit request/evidence/decision
+hashes and private content. Net-paid totals are cumulative receipts, not profit.
+
+Host-created one-use bootstrap capabilities bind sessions to server actors;
+browser role names grant nothing. Same-origin/Host/CSRF, bounded JSON, one-use
+confirmed previews and cookie isolation precede any financial signing. Adjudicator
+private evidence is scoped through the existing backend. New controls are fixed
+admin registration/pause/funding, primary provider collateral/withdrawal and
+explicit adjudication; exact ERC20 allowance is a separate approved operation.
+Operator can only reconcile managed known hashes and read sanitized health.
+
+Actor journals reserve before signing and persist locally derived hash/attempt
+before a single broadcast. Unknown/prepared-unsent stays blocked, without
+replacement/rebroadcast or fee escalation. Fixed fee/gas/amount/count limits,
+all actor privileges, real EVM state/invariants and HTTP failure boundaries must
+pass before M11 acceptance. M12–M14 remain dependent phases.
+
+Review refinement: bind HTTP preview capabilities to their creating session,
+validate registry logs against each requested chunk, and recheck the fresh
+simulation anchor before signing/sending. Reconciliation uses exact transaction
+events and immutable/terminal state; block-end mutable counters are not a
+transaction-index snapshot. New app storage-key fingerprint binds configuration
+identity only; M4 encrypts private payloads, while protocol journals contain
+public metadata/commitments and have no authenticated rollback guarantee.
+
+## EVM-050 — Local protocol application acceptance
+
+Status: ACCEPTED. Date:2026-10-25.
+
+Accept M11 under EVM-049. New private packages/protocol-app implements bounded
+canonical summary/registry/coverage reads, host-issued actor sessions, fixed
+unsigned previews/explicit confirmations, scoped evidence and durable original-
+hash reconciliation. The narrow internal M6 expectedAdmin seam proves separate
+admin/online-relayer composition while preserving legacy defaults and SDK schemas.
+No contracts/economics/receipt formats or existing public campaign state change.
+
+Primary final typechecks and21protocol/26pilot/7provider/23client tests PASS
+(77total, no failures/cancellations/skips), including actual EVM financial effects
+and included-revert/HTTP/state failures. Independent Luna(high) reviews close
+scoped blockers. Standalone full demo passes with16broadcasts,3payment signatures
+and3handlers. Original-hash refund recovery without signing accounts and key-free
+original-result retrieval add no sends/payment signatures/handlers. Final Core
+72415=stake20087+pool52328; other coverage locks3502/reserved10003 remain protected;
+active/count1/3 and payer119994atomic fixture units. Results/evidence:
+planning/EVM_M11_RESULTS.md and packages/protocol-app/evidence/m11-protocol-gate.json.
+
+This is local fixture evidence, not public native-USDC proof, finality, production
+auth/custody, authenticated rollback or globally durable budgets. Pre-broadcast
+reservations/prepared-unsent records can strand an actor and deliberately block
+new operations; no reset/abandon path is claimed. Protocol journal key identity
+is a fingerprint only, with M4 retaining private payload encryption. Unreferenced
+registry completeness remains a trusted-RPC assumption. Public provider SDK
+separated-admin composition requires a future explicitly scoped extension.
+
+Next freeze M12's local protocol-console packet: role-specific real-state views,
+host-to-browser capability provisioning, explicit approvals and browser failure
+journeys. M13 consumer app and M14 presentation remain separate dependent gates.
+All M5 budgets stay consumed; no public financial action or hosting is authorized.

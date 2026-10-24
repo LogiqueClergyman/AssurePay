@@ -1,0 +1,75 @@
+{
+  "ok": true,
+  "code": "LOCAL_PROTOCOL_API_VERIFIED",
+  "chainId": 84532,
+  "limits": {
+    "localOnly": true,
+    "tokenKind": "LOCAL_ERC3009_FIXTURE",
+    "publicNativeUsdcProof": false,
+    "hostedAvailability": false,
+    "finality": false
+  },
+  "separateAdminAndRelayer": true,
+  "wrongRoleDenied": true,
+  "allFixedControlsExecuted": true,
+  "adjudicatorPrivateEvidenceScoped": true,
+  "explicitRejectionAndRefund": true,
+  "originalHashReconciledWithoutSigners": true,
+  "recoveryCountsUnchanged": true,
+  "keyFreeProviderRetrieval": true,
+  "stablePaginationAcrossUnrelatedBlock": true,
+  "counts": {
+    "broadcasts": 16,
+    "payerPayments": 3,
+    "handlers": 3,
+    "adminTx": 6,
+    "providerTx": 3,
+    "adjudicatorTx": 2,
+    "relayerTx": 3
+  },
+  "initial": {
+    "anchor": {
+      "number": "18",
+      "hash": "0x6640eef007feb5c6c333f0e743a6d1645645d508a43919602e54e40d46ac15a9",
+      "timestamp": "1792880952"
+    },
+    "summary": {
+      "paused": false,
+      "tokenBalanceAtomic": "60000",
+      "poolAssets": "50000",
+      "poolReserved": "0",
+      "providerStake": "10000",
+      "lockedStake": "0",
+      "coverageCount": "0",
+      "activeCoverageCount": "0",
+      "solvency": {
+        "balanceCoversAssetsAndStake": true,
+        "stakeCoversLocks": true,
+        "poolCoversReservations": true
+      }
+    }
+  },
+  "final": {
+    "anchor": {
+      "number": "34",
+      "hash": "0xa50edfe8ee5d03611e2eeacebf466e5505062daf49b90b7be1835f2041a37a3a",
+      "timestamp": "1792881050"
+    },
+    "summary": {
+      "paused": false,
+      "tokenBalanceAtomic": "72415",
+      "poolAssets": "52328",
+      "poolReserved": "10003",
+      "providerStake": "20087",
+      "lockedStake": "3502",
+      "coverageCount": "3",
+      "activeCoverageCount": "1",
+      "solvency": {
+        "balanceCoversAssetsAndStake": true,
+        "stakeCoversLocks": true,
+        "poolCoversReservations": true
+      }
+    }
+  },
+  "payerBalanceAtomic": "119994"
+}
