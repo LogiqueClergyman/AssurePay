@@ -1,0 +1,96 @@
+{
+  "phase": "M12",
+  "status": "IN_PROGRESS",
+  "accepted": false,
+  "localOnly": true,
+  "tokenKind": "LOCAL_ERC3009_FIXTURE",
+  "chainId": 84532,
+  "verification": {
+    "protocolTests": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "typecheck": true,
+    "consoleSyntax": true,
+    "independentScopedReview": "NO_MATERIAL_BLOCKER",
+    "nativeBrowser": "Chrome Guest via CUA",
+    "desktopReviewed": true,
+    "narrowWidthPx": 375,
+    "narrowReviewed": true,
+    "repositoryScreenshotFiles": []
+  },
+  "browserProven": [
+    "host-enrollment-and-cookie-resume",
+    "logout-expiry-no-rearm",
+    "role-specific-views",
+    "forged-provider-admin-preview-403",
+    "anchored-pagination",
+    "unavailable-clears-stale-values",
+    "preview-cancel-no-send-focus-restored",
+    "expired-preview-no-send",
+    "admin-allowance-and-pool-funding",
+    "admin-pause-unpause",
+    "provider-free-stake-withdrawals",
+    "unknown-lock-across-reload",
+    "same-original-hash-reconciliation-no-send",
+    "adjudicator-scoped-evidence-and-unsigned-review"
+  ],
+  "context": {
+    "core": "0x7dcab24bfcc90faead435662fcb76eeb3911decd",
+    "token": "0xe6951e672e169359027e97e4d08f50d1eb7ec234"
+  },
+  "lastActualState": {
+    "blockNumber": "28",
+    "blockHash": "0x894a8ed7475c1929db415e6af0266b177596d4d95b61967dcc6b1ad43e657fd1",
+    "coreAssetsAtomic": "66412",
+    "providerStake": "13858",
+    "poolAssets": "52554",
+    "lockedStake": "7004",
+    "poolReserved": "20006",
+    "activeCoverageCount": "2",
+    "coverageCount": "2",
+    "payerBalanceAtomic": "119994",
+    "solvencyEquality": true,
+    "allSolvencyChecks": true
+  },
+  "counters": {
+    "broadcasts": 9,
+    "payerAuthorizations": 2,
+    "providerReceipts": 2,
+    "relayerTransactions": 2,
+    "adminTransactions": 4,
+    "providerTransactions": 2,
+    "adjudicatorTransactions": 0,
+    "serviceRequests": 2,
+    "claimsFiled": 1
+  },
+  "recovery": {
+    "originalTransaction": "0x5dc0bcb2d5d1737cc0e0e2a9e9b96d17c46f7bdb454983478ee8e6da3b87e67b",
+    "status": "success",
+    "additionalBroadcasts": 0,
+    "additionalPaymentAuthorizations": 0,
+    "additionalHandlers": 0
+  },
+  "pending": [
+    "user-performed-final-refund-confirmation",
+    "actual-refund-payer-delta-and-other-locks",
+    "post-decision-private-clearing",
+    "final-sanitized-overview",
+    "normal-fixture-cleanup"
+  ],
+  "blocker": {
+    "code": "BROWSER_FINAL_ACTION_HANDOFF_REQUIRED",
+    "action": "adjudicator Confirm action",
+    "automaticReviewRejected": true,
+    "localFixtureEvidenceSubmitted": true,
+    "noAdjudicatorTransactionSent": true
+  },
+  "limits": {
+    "publicNativeUsdcProof": false,
+    "hostedAvailability": false,
+    "finality": false,
+    "productionAuthentication": false
+  }
+}

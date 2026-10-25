@@ -16,7 +16,7 @@ Updated 2026-10-25. Target: Base Sepolia, native test USDC, EOA first.
 | M9 Provider integration | ACCEPTED under EVM-046 | `planning/EVM_M9_PROVIDER_SDK.md` | Packed SDK/example pass outside-repo actual-EVM purchase, process restart and failure gates; 7 SDK +8 CSV +24 pilot tests and standalone demo; `planning/EVM_M9_RESULTS.md` |
 | M10 Client + agent integration | ACCEPTED under EVM-048 | `planning/EVM_M10_CLIENT_SDK.md` | Packed client/agent/skill, explicit approval and durable caps, payer claims/refund/anchored reads, key-free process recovery; 23 SDK +37 M3 +25 pilot +7 provider tests and standalone demo; `planning/EVM_M10_RESULTS.md` |
 | M11 Protocol API | ACCEPTED under EVM-050 | `planning/EVM_M11_PROTOCOL_API.md` | Canonical reads, host-bound sessions/fixed controls, separate admin/relayer and original-hash recovery; 21 API +26 pilot +7 provider +23 client tests and standalone demo; `planning/EVM_M11_RESULTS.md` |
-| M12 Protocol console | PLANNED, after M11 | Detailed packet pending | Provider/admin/operator/adjudicator views with real financial state and gated actions |
+| M12 Protocol console | IN_PROGRESS under EVM-051 | `planning/EVM_M12_PROTOCOL_CONSOLE.md` | Provider/admin/operator/adjudicator browser views, one host-armed local seat, actual financial confirmation/recovery and unavailable states |
 | M13 Consumer demo app | PLANNED, after M12 | Detailed packet pending | Separate application using public client SDK and provider service, full success/failure/refund/retrieval journey |
 | M14 Presentation rehearsal | PLANNED, after M13 | Detailed packet pending | Repeatable local demo, SDK examples, architecture, proof and submission materials |
 

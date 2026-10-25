@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { randomBytes } from 'node:crypto';
 import { address, id, roleAddress } from './common.js';
 import { protocolErrorCode } from './errors.js';
-import type { ActionPreview, ActionResult, Anchor, CoverageRow, PolicyRow, ProtocolRuntime, ProtocolServer, ProviderRow, ReadSnapshot, Role, Summary } from './types.js';
+import type { ActionPreview, ActionResult, Anchor, CoverageRow, PolicyRow, ProtocolRuntime, ProtocolServer, ProtocolConsoleHostOptions, ProviderRow, ReadSnapshot, Role, StartProtocolServerOptions, Summary } from './types.js';
 
 const JSON_LIMIT = 32_768;
 const EVIDENCE_LIMIT = 65_536;
@@ -11,6 +11,8 @@ const PAGE_TTL_MS = 120_000;
 const SESSION_TTL_MS = 30 * 60_000;
 const BOOTSTRAP_TTL_MS = 60_000;
 const ROLES: readonly Role[] = ['admin', 'provider', 'adjudicator', 'operator'];
+const CONSOLE_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const CONSOLE_ASSET_LIMIT = 262_144;
 
 type Session = { id: string; role: Role; actor: string; csrf: string; expires: number };
 type PreviewOwner = { sessionId: string; role: Role };
@@ -140,6 +142,21 @@ function roleInput(value: unknown): Role {
   if (typeof value !== 'string' || !ROLES.includes(value as Role)) throw Error('PROTOCOL_ROLE_INVALID');
   return value as Role;
 }
+function captureConsoleOptions(input: unknown): ProtocolConsoleHostOptions {
+  const row = exactKeys(input, ['role', 'assets']);
+  const role = roleInput(row.role);
+  const assets = exactKeys(row.assets, ['html', 'javascript', 'stylesheet']);
+  const captured: Record<string, string> = {};
+  for (const key of ['html', 'javascript', 'stylesheet'] as const) {
+    const value = assets[key];
+    if (typeof value !== 'string' || value.length === 0 || Buffer.byteLength(value, 'utf8') > CONSOLE_ASSET_LIMIT)
+      throw Error('PROTOCOL_ARGUMENT_INVALID');
+    captured[key] = value;
+  }
+  return Object.freeze({ role, assets: Object.freeze({
+    html: captured.html!, javascript: captured.javascript!, stylesheet: captured.stylesheet!,
+  }) });
+}
 function jsonSafeSummary(s: Summary): Summary {
   return {
     paused: s.paused, tokenBalanceAtomic: s.tokenBalanceAtomic, poolAssets: s.poolAssets, poolReserved: s.poolReserved,
@@ -224,7 +241,11 @@ function queryShape(url: URL, kind: PageKind): { limit: number; cursor?: string;
 }
 function pathId(value: string): string { return id(value); }
 
-export async function startProtocolServer({ runtime }: { runtime: ProtocolRuntime }): Promise<ProtocolServer> {
+export async function startProtocolServer(options: StartProtocolServerOptions): Promise<ProtocolServer> {
+  const input = exactKeys(options, ['runtime'], ['console']);
+  const runtime = input.runtime as ProtocolRuntime;
+  if (!runtime || typeof runtime !== 'object') throw Error('PROTOCOL_ARGUMENT_INVALID');
+  const consoleOptions = Object.hasOwn(input, 'console') ? captureConsoleOptions(input.console) : undefined;
   const url = new URL(runtime.config.apiUrl);
   if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || !url.port) throw Error('PROTOCOL_CONFIG_INVALID');
   const expectedHost = url.host;
@@ -235,6 +256,7 @@ export async function startProtocolServer({ runtime }: { runtime: ProtocolRuntim
   const sessionPages = new Map<string, Set<string>>();
   let closing = false;
   let closePromise: Promise<void> | undefined;
+  let consoleSeatArmed = consoleOptions !== undefined;
 
   const server: Server = createServer((req, res) => { void handle(req, res); });
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -257,19 +279,47 @@ export async function startProtocolServer({ runtime }: { runtime: ProtocolRuntim
       const isListPath = /^\/v1\/(providers|policies|coverages)$/.test(path.pathname);
       if (!isListPath && path.search !== '') throw Error('PROTOCOL_ARGUMENT_INVALID');
 
+      if (consoleOptions) {
+        if (req.method === 'GET' && (path.pathname === '/' || path.pathname === '/assets/app.js' || path.pathname === '/assets/styles.css')) {
+          const asset = path.pathname === '/' ? consoleOptions.assets.html :
+            path.pathname === '/assets/app.js' ? consoleOptions.assets.javascript : consoleOptions.assets.stylesheet;
+          const contentType = path.pathname === '/' ? 'text/html; charset=utf-8' :
+            path.pathname === '/assets/app.js' ? 'text/javascript; charset=utf-8' : 'text/css; charset=utf-8';
+          const data = Buffer.from(asset, 'utf8');
+          res.writeHead(200, { 'content-type': contentType, 'content-length': String(data.length), 'cache-control': 'no-store',
+            'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', 'x-frame-options': 'DENY',
+            'content-security-policy': CONSOLE_CSP });
+          res.end(data); return;
+        }
+        if (req.method === 'GET' && path.pathname === '/console/context') {
+          send(res, 200, { role: consoleOptions.role, localOnly: true, chainId: 84532, core: runtime.config.pilot.core,
+            token: runtime.config.pilot.token, providerId: runtime.config.pilot.providerId, policyId: runtime.config.pilot.policyId });
+          return;
+        }
+        if (path.pathname === '/console/session') {
+          if (req.method !== 'POST') throw Error('PROTOCOL_METHOD_INVALID');
+          exactKeys(await bodyJson(req), []);
+          if (!consoleSeatArmed) throw Error('PROTOCOL_BOOTSTRAP_INVALID');
+          // Consume the host's single enrollment before session construction; no await can race a second request.
+          consoleSeatArmed = false;
+          const created = createSession(consoleOptions.role);
+          send(res, 201, sessionView(created.session), { 'set-cookie': `assurepay_session=${created.cookie}; Path=/v1; HttpOnly; SameSite=Strict` });
+          return;
+        }
+        if (req.method !== 'GET' && req.method !== 'POST') {
+          if (path.pathname === '/' || path.pathname.startsWith('/assets/') || path.pathname.startsWith('/console/'))
+            throw Error('PROTOCOL_METHOD_INVALID');
+        }
+      }
+
       if (req.method === 'POST' && path.pathname === '/v1/session') {
         const body = exactKeys(await bodyJson(req), ['bootstrapToken']);
         if (typeof body.bootstrapToken !== 'string') throw Error('PROTOCOL_BOOTSTRAP_INVALID');
         const capability = bootstraps.get(body.bootstrapToken);
         bootstraps.delete(body.bootstrapToken);
         if (!capability || capability.expires < Date.now()) throw Error('PROTOCOL_BOOTSTRAP_INVALID');
-        prune();
-        if (sessions.size >= 16) throw Error('PROTOCOL_LIMIT');
-        const sid = token(), cookie = token();
-        const session: Session = { id: sid, role: capability.role, actor: roleAddress(runtime.config, capability.role), csrf: token(), expires: Date.now() + SESSION_TTL_MS };
-        sessions.set(cookie, session);
-        sessionPages.set(sid, new Set());
-        send(res, 201, sessionView(session), { 'set-cookie': `assurepay_session=${cookie}; Path=/v1; HttpOnly; SameSite=Strict` });
+        const created = createSession(capability.role);
+        send(res, 201, sessionView(created.session), { 'set-cookie': `assurepay_session=${created.cookie}; Path=/v1; HttpOnly; SameSite=Strict` });
         return;
       }
 
@@ -333,6 +383,15 @@ export async function startProtocolServer({ runtime }: { runtime: ProtocolRuntim
   }
   function sessionView(s: Session) {
     return { role: s.role, address: s.actor, capabilities: [...runtime.capabilities[s.role]], csrfToken: s.csrf, expiresAt: new Date(s.expires).toISOString() };
+  }
+  function createSession(role: Role): { session: Session; cookie: string } {
+    prune();
+    if (sessions.size >= 16) throw Error('PROTOCOL_LIMIT');
+    const sid = token(), cookie = token();
+    const session: Session = { id: sid, role, actor: roleAddress(runtime.config, role), csrf: token(), expires: Date.now() + SESSION_TTL_MS };
+    sessions.set(cookie, session);
+    sessionPages.set(sid, new Set());
+    return { session, cookie };
   }
   function prune(): void {
     const now = Date.now();

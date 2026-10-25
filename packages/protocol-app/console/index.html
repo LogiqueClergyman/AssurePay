@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>AssurePay · Protocol console</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+    <script src="/assets/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to console</a>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AssurePay protocol console home"><span class="brand-mark" aria-hidden="true">A</span><span>AssurePay <span class="brand-light">/ protocol</span></span></a>
+      <div class="top-meta"><span class="local-tag"><span class="dot" aria-hidden="true"></span>LOCAL FIXTURE</span><span id="chain-label" class="chain-label">Chain —</span></div>
+    </header>
+    <div class="app-frame">
+      <aside class="rail" aria-label="Console navigation">
+        <div class="rail-label">WORKSPACE</div>
+        <nav id="navigation" aria-label="Role workspace"></nav>
+        <div class="rail-bottom"><span class="rail-label">SESSION</span><div id="session-summary" class="session-summary">Not connected</div><button id="logout-button" class="quiet-button" type="button" hidden>End session</button></div>
+      </aside>
+      <main id="main" class="main-content" tabindex="-1">
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+        <section id="enrollment" class="welcome-card" hidden>
+          <p class="eyebrow">TRUSTED LOCAL SEAT</p><h1>Connect to the console</h1>
+          <p id="enrollment-copy">The host has selected a role for this local session.</p>
+          <button id="connect-button" class="button button-primary" type="button">Connect local session</button>
+          <p id="rearm-copy" class="muted" hidden>That one-use seat has been consumed. Ask the trusted host to restart the console to arm another session.</p>
+        </section>
+        <section id="workspace" hidden>
+          <div class="page-heading"><div><p class="eyebrow" id="role-eyebrow">PROTOCOL</p><h1 id="page-title">Overview</h1><p id="page-description" class="lede"></p></div><button id="refresh-button" class="button button-secondary" type="button">Refresh reads</button></div>
+          <div id="provenance" class="provenance"></div>
+          <div id="content"></div>
+        </section>
+      </main>
+    </div>
+    <dialog id="review-dialog" aria-labelledby="review-title" aria-describedby="review-intro">
+      <form method="dialog" class="dialog-shell">
+        <div class="dialog-head"><div><p class="eyebrow">ACTION REVIEW</p><h2 id="review-title">Review action</h2></div><button id="dialog-close" class="icon-button" aria-label="Close review" value="cancel">×</button></div>
+        <p id="review-intro" class="muted">Confirm only if these details match your intended operation.</p>
+        <div id="review-fields" class="review-fields"></div>
+        <p id="review-warning" class="inline-warning" hidden></p>
+        <div class="dialog-actions"><button id="cancel-action" class="button button-secondary" value="cancel">Cancel</button><button id="confirm-action" class="button button-primary" type="button">Confirm action</button></div>
+      </form>
+    </dialog>
+    <div id="live-region" class="visually-hidden" aria-live="assertive" aria-atomic="true"></div>
+  </body>
+</html>

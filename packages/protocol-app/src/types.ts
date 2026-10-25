@@ -3,6 +3,19 @@ import type { PilotConfig } from '../../developer-pilot/src/config.js';
 
 export type Role = 'admin' | 'provider' | 'adjudicator' | 'operator';
 export type SigningRole = Exclude<Role, 'operator'>;
+export interface ProtocolConsoleAssets {
+  readonly html: string;
+  readonly javascript: string;
+  readonly stylesheet: string;
+}
+export interface ProtocolConsoleHostOptions {
+  readonly role: Role;
+  readonly assets: ProtocolConsoleAssets;
+}
+export interface StartProtocolServerOptions {
+  readonly runtime: ProtocolRuntime;
+  readonly console?: ProtocolConsoleHostOptions;
+}
 export interface ProtocolConfig { readonly version: 1; readonly pilot: PilotConfig; readonly admin: Address; readonly apiUrl: string }
 export interface Anchor { readonly number: string; readonly hash: Hex; readonly timestamp: string }
 export interface Limits { readonly maxActionAmount: string; readonly maxActions: number }

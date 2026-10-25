@@ -1,8 +1,9 @@
 # Session handoff
 
-Updated:2026-10-25. Branch:`main`, tracking origin/main. M1–M11 are ACCEPTED.
-Read AGENTS.md, completed planning/EVM_M11_PROTOCOL_API.md and
-planning/EVM_M11_RESULTS.md, planning/EVM_PRODUCT_ROADMAP.md, DECISIONS.md and
+Updated:2026-10-25. Branch:`main`, tracking origin/main. M1–M11 are ACCEPTED;
+M12 is IN_PROGRESS under EVM-051. Read AGENTS.md, active
+planning/EVM_M12_PROTOCOL_CONSOLE.md, completed planning/EVM_M11_PROTOCOL_API.md
+and planning/EVM_M11_RESULTS.md, planning/EVM_PRODUCT_ROADMAP.md, DECISIONS.md and
 IMPLEMENTATION_PLAN.md. Do not access /docs.
 
 ## Current outcome and exact next action
@@ -33,15 +34,64 @@ metadata, sensitive-field exclusions and whitespace checks pass. Earlier
 cancelled/fixture-failing runs were superseded by the final complete21test pass.
 Temporary local chains/private actors/runtime state are cleaned up.
 
-Exact next action: freeze the self-contained M12 protocol-console packet, then
-implement its browser views and host-to-browser session provisioning over M11.
-M12 must show provider collateral/net-paid/coverage, admin registrations/pause/
-funding, operator canonical availability/reconciliation and adjudicator private
-review/explicit decisions. Every visible amount/action must come from the API;
-explicit confirmation must show the frozen preview and its real authority.
-Include browser success, denied, unavailable, stale/expired and recovery journeys.
-Do not use a browser role picker as authorization, expose keys/bootstrap tokens
-in logs or replace unknown operations. No M12 implementation has started.
+M11 checkpoint51cf1ac is committed/pushed; main/archive remote refs verified and
+working tree was clean. M12 packet is now frozen after three Luna(high) scouts.
+It chooses a same-origin buildless console and a trusted-machine one-use seat
+armed by the host role at launch. POST /console/session {} grants only that
+host-selected role once; no browser role selection/rearming or bootstrap token
+URL/HTML/log. This is a local demo seat, not production/OS-user authentication.
+
+All three M12 implementations are complete. Typecheck, console syntax and all29
+protocol tests PASS (21M11 +5consoleHTTP +3actual-EVM fixture). Latest independent
+Luna(high) source review finds no material blocker. Primary native CUA verification
+in Chrome Guest proves desktop/375px layouts, canonical reads/pagination, RPC
+unavailability clearing stale values, logout/expiry/no rearm, admin expired-preview
+no send, exact allowance/funding, pause/unpause, provider cancellation/focus and
+withdrawals, real forged wrong-role403 and original-hash unknown recovery without
+new sends/signatures/payments. See planning/EVM_M12_RESULTS.md and public-only
+packages/protocol-app/evidence/m12-console-gate.json. M12 is NOT ACCEPTED.
+
+BLOCKER: automatic approval review rejected the final adjudicator Confirm action
+click under the browser financial-action handoff rule, even after source proof
+of the isolated local mock-token Anvil. Do not bypass it with a CLI/API/alternate
+sender. User must perform that final browser click. No adjudicator transaction
+has been sent. Final refund accounting/private-clear/cleanup checks remain.
+
+Live fixture exec12636, npm run console:demo, current host adjudicator, URL
+http://127.0.0.1:58440. Native CUA binding consoleBrowser targets owned Chrome
+Guest. Refresh AX indexes before actions; never print private evidence/reasons,
+cookies/CSRF or read private files. Current review is explicit Pool only(2),10003,
+Core0x7dcab24bfcc90faead435662fcb76eeb3911decd, adjudicator
+0x1cb74b9b5aae58c178f9116fd459ceb286bd8b5d, coverage
+0x742e934b9deaf9c32ed8f2a5c493dfa3064ba4f057b243f5c60e10b13f284bcc.
+All actors/token/native balances are freshly generated local test fixtures;
+no existing wallet, public RPC or real funds are involved. The user needs to
+click Confirm action in that existing Guest review and report completion.
+If expired, prepare a fresh explicit review; never resend an unknown operation.
+
+Latest host status proves block28/hash
+0x894a8ed7475c1929db415e6af0266b177596d4d95b61967dcc6b1ad43e657fd1:
+Core66412=stake13858+pool52554; locks7004/reserved20006; active/count2/2;
+payer119994; all solvency booleans true. Counters9broadcasts,2payer authorizations,
+2provider receipts,2relayer,4admin,2provider,0adjudicator,2handlers,1claim. Original
+lost second withdrawal0x5dc0bcb2d5d1737cc0e0e2a9e9b96d17c46f7bdb454983478ee8e6da3b87e67b
+already reconciled SUCCESS under operator with counters unchanged. Do not repeat.
+
+After the user's click: inspect actual result/hash, host status, payer +10003,
+expected Core56409=stake13858+pool42551, locks3502/reserved10003, active/count1/2,
+10broadcasts/adjudicator1. These expected values are NOT yet proven. Verify private
+reason/evidence cleared on decision/navigation/logout; sanitized final overview;
+quit fresh fixture normally and close only owned Guest window. If uncertainty,
+reconcile known original hash only. Keep M12 gate open until all required proof
+exists. Source scopes/roles/one-use seat stay in frozen M12 packet under EVM-051.
+
+Initial read-only sandbox closed cleanly with only3seed broadcasts; current one
+stays live intentionally for user handoff. No repository screenshot PNG is
+claimed; native desktop/mobile captures were visually reviewed. No production
+login, browser custody, public native-USDC/finality or hosting proof is inferred.
+Owners remain m10_purchase(UI), m10_agent(HTTP), m10_claims(fixture); implementations
+are frozen. M13 source scout m10_claims hit an agent usage limit before returning;
+no dependent code or packet was started. No need to redo completed M12 suites.
 
 M13's separate consumer app uses the public client SDK/agent adapter and example
 provider, with success/failure/claim/refund/original retrieval. M14 covers unified
@@ -114,7 +164,8 @@ No old-Core withdrawal/closure/unpause or vault sweep is authorized. Managed vau
 ## Git
 
 User authorizes checkpoint commits and non-force pushes to
-https://github.com/LogiqueClergyman/AssurePay main. M11 checkpoint commit/push is
-the final session action after these passing checks. Preserve unrelated work and
+https://github.com/LogiqueClergyman/AssurePay main. M11 checkpoint51cf1ac is pushed;
+M12 implementation is a verification checkpoint with final browser gate pending;
+see Git log/status for its commit. No M12 acceptance decision has been recorded. Preserve unrelated work and
 archive/algorand-p1 at958f65002d6afd97e8cbb86bae63ecabe5abb024 locally/remotely;
 remote evm/restart remains preserved. Never amend shared history or force push.

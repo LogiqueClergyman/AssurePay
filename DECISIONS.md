@@ -1171,3 +1171,35 @@ Next freeze M12's local protocol-console packet: role-specific real-state views,
 host-to-browser capability provisioning, explicit approvals and browser failure
 journeys. M13 consumer app and M14 presentation remain separate dependent gates.
 All M5 budgets stay consumed; no public financial action or hosting is authorized.
+
+## EVM-051 — Local console and host-armed demo seat
+
+Status: ACCEPTED for implementation. Date:2026-10-25.
+
+After M11 checkpoint51cf1ac and three Luna(high) read-only source scouts, freeze
+planning/EVM_M12_PROTOCOL_CONSOLE.md. Keep a buildless console inside the private
+protocol app, on its existing API origin. Add only optional fixed static assets,
+public context and one host-armed enrollment; existing M11 API-only behavior and
+financial schemas remain unchanged. Every displayed amount/action comes from
+M11; backend session role/capabilities remain authoritative.
+
+The trusted host chooses one role at launch and arms one exact empty-body
+same-origin enrollment. Consuming that arm creates the existing M11 cookie/CSRF
+session without exposing bootstrap capabilities in URLs, HTML, logs or storage.
+No browser request selects/rearms a role. This is a trusted-machine local demo
+seat, not OS-user/production authentication: permitted local same-origin clients
+can claim the host's one armed seat; same-user local processes remain trusted.
+Logout/expiry requires host rearming, with no automatic enrollment. Header/CSP/
+Origin controls exclude untrusted web origins and framing, not hostile local
+machine administrators. A trusted host CLI role restart invalidates old sessions.
+
+Keep session/CSRF/preview/cursor/private evidence only in volatile browser memory.
+Render untrusted data with safe DOM text; label atomic units and per-panel block
+provenance. Fixed action reviews require fresh explicit confirmation. Unknown
+responses permit original-hash reconciliation only. No role-picker authority,
+generic wallet, subjective adjudication, process endpoint or financial reset.
+
+Use fresh local EVM/provider/client fixtures and supported real browser tooling
+for success/failure/approval/refund/recovery gates. No new frontend/browser
+dependency or public deployment is required. M13/M14 remain dependent phases;
+all existing public accounts/campaign state/budgets remain untouched.

@@ -1,8 +1,8 @@
 # AssurePay protocol API
 
 Local Node application backend for the provider, admin, operator and adjudicator
-console planned in M12. It uses the accepted Core, claims backend and client
-flow. This phase has no browser UI or public deployment.
+console implemented in M12. It uses the accepted Core, claims backend and client
+flow. The browser acceptance gate remains pending; there is no public deployment.
 
 ## Run the verified scenario
 
@@ -32,7 +32,7 @@ hosted availability, finality or production custody.
 ## Host integration
 
 `src/index.ts` exports `validateProtocolConfig`, `createProtocolRuntime`,
-`startProtocolServer`, `startProtocolProvider`, safe errors and public types.
+`startProtocolServer`, `startProtocolConsole`, `startProtocolProvider`, safe errors and public types.
 This private application runs through pinned `tsx`; it is not a packaged SDK.
 
 The host supplies a validated `ProtocolConfig`, private storage, explicit action
@@ -63,8 +63,9 @@ arbitrary transaction, recipient, calldata, process-control or expiry-close rout
 The host calls `issueBootstrap(role)` programmatically and privately provisions
 the resulting one-use, 60-second capability. Never print or persist it in public
 reports. `POST /v1/session` exchanges it for an HttpOnly, SameSite=Strict cookie
-and a session-bound CSRF token. Sessions last 30 minutes. A browser provisioning
-launcher is M12 work; this is not a production login system.
+and a session-bound CSRF token. Sessions last 30 minutes. The optional console
+launcher provisions a host-selected demo seat as described below; this is not a
+production login system.
 
 All routes require exact Host and reject forwarded identity/cross-site metadata.
 POST requires exact Origin and bounded, duplicate-free JSON; authenticated POST
@@ -110,3 +111,37 @@ Limits include 100 providers, 100 policies, 1,000 coverages, 25,000 scanned bloc
 100-block registry chunks, 100 items/page and 32 volatile previews/actor. Action
 amount/count caps and fixed gas/fee ceilings bind the saved context. These are
 single-host controls, not production account-wide spending guarantees.
+
+## M12 console work in progress
+
+The active implementation packet is `planning/EVM_M12_PROTOCOL_CONSOLE.md`.
+M11 above is accepted. M12 typecheck, syntax and all29 tests pass, along with
+admin/provider browser writes and original-hash recovery. The final browser
+refund confirmation/accounting check is pending because automatic approval
+review requires a user handoff for that click, including on the local fixture.
+See `planning/EVM_M12_RESULTS.md`; M12 is not accepted yet.
+
+```sh
+npm run console:check
+npm run console:demo -- --role operator
+```
+
+The local launcher prepares a fresh EVM/provider/client scenario with a real
+active coverage and a pending claim. The trusted host selects `operator`,
+`provider`, `admin` or `adjudicator` at launch; browser navigation grants no role.
+Open its printed loopback URL and click Connect local session to claim the one
+seat armed by that host. Credentials stay out of URLs and console output. This
+is a trusted-machine demo seat, not OS-user or production authentication.
+
+Enrollment is one-use per server start. Reload resumes the existing HttpOnly
+cookie through the API; logout/expiry requires the host to rearm. For development
+rehearsal, exact host stdin commands are `status`, `role <role>`, `rpc-off`,
+`rpc-on`, `expire-preview`, `lose-next-send`, `reveal` and `quit`. A role change
+restarts the console server on the same fresh state and invalidates old sessions.
+Fault controls exist only in this disposable launcher, never as HTTP endpoints.
+
+All amounts are atomic integers with their observed API block. Preview and
+Confirm are separate actions; cancelling a review sends nothing. Unknown
+confirmations offer reconciliation of original operations. They never offer a
+replacement or retry payment. Private adjudicator evidence/reasons stay in
+volatile page memory and are cleared on navigation/session changes.
