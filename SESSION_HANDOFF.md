@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated:2026-10-25. Branch:`main`, tracking origin/main. M1–M11 are ACCEPTED;
+Updated:2026-10-26. Branch:`main`, tracking origin/main. M1–M11 are ACCEPTED;
 M12 is IN_PROGRESS under EVM-051. Read AGENTS.md, active
 planning/EVM_M12_PROTOCOL_CONSOLE.md, completed planning/EVM_M11_PROTOCOL_API.md
 and planning/EVM_M11_RESULTS.md, planning/EVM_PRODUCT_ROADMAP.md, DECISIONS.md and
@@ -50,6 +50,15 @@ no send, exact allowance/funding, pause/unpause, provider cancellation/focus and
 withdrawals, real forged wrong-role403 and original-hash unknown recovery without
 new sends/signatures/payments. See planning/EVM_M12_RESULTS.md and public-only
 packages/protocol-app/evidence/m12-console-gate.json. M12 is NOT ACCEPTED.
+
+2026-10-26 recovery: user reported generic failure. Read-only host status unchanged
+block28/broadcasts9/adjudicator0; owned Guest retained old unsigned review. Primary
+canceled that review, then read-only reconcile directly proved expired session.
+Host restarted only adjudicator server on same runtime, browser connected fresh
+seat, explicit reconcile returned no adjudicator operations (no resend/replacement).
+New unsigned PoolOnly10003review is READY in owned Guest; user must click Confirm.
+Generic-message cause not captured.
+Do not infer an included failure from the message. See appended M12 results.
 
 BLOCKER: automatic approval review rejected the final adjudicator Confirm action
 click under the browser financial-action handoff rule, even after source proof

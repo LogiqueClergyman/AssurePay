@@ -92,5 +92,18 @@
     "hostedAvailability": false,
     "finality": false,
     "productionAuthentication": false
+  },
+  "userHandoffRecovery": {
+    "date": "2026-10-26",
+    "userReportedGenericFailure": true,
+    "exactErrorCauseCaptured": false,
+    "expiredSessionObserved": true,
+    "oldUnsignedReviewCancelled": true,
+    "sameRuntimeRearmed": true,
+    "adjudicatorReconciliationRecords": 0,
+    "additionalBroadcasts": 0,
+    "additionalAdjudicatorTransactions": 0,
+    "freshUnsignedReviewReady": true,
+    "finalConfirmPerformedByAgent": false
   }
 }

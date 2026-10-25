@@ -96,3 +96,19 @@ Only after those checks pass may M12 be accepted and M13 implementation start.
 M13 still needs a self-contained packet addressing the public provider SDK's
 admin=relayer composition constraint. M14 rehearsal remains later. Existing M5
 budgets are consumed; no public funding, hosting, publication or finality claim.
+
+## 2026-10-26 user-reported failure recovery
+
+User reported the generic operation-failed/reconcile message after handoff.
+Primary host status remained at block28 with9broadcasts/adjudicator0 and unchanged
+payer/Core balances. The owned Guest window still had an old unsigned review;
+it was canceled without confirmation. A read-only reconcile request proved the
+old session had expired and cleared browser authority/private content.
+
+Trusted host restarted only the adjudicator console on the SAME runtime/chain,
+then primary connected a fresh seat and explicitly reconciled. API/UI returned
+no managed adjudicator operations; no operation was resent or replaced. A fresh
+unsigned Pool only(2)/10003review is ready from the still-pending claim. The exact cause
+of the user's generic message was not captured; session expiry is directly
+observed, not an inferred included transaction failure. All previous transactions
+and balances remain preserved. Final confirmation still requires user handoff.
