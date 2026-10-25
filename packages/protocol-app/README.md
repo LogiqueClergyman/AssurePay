@@ -2,7 +2,7 @@
 
 Local Node application backend for the provider, admin, operator and adjudicator
 console implemented in M12. It uses the accepted Core, claims backend and client
-flow. The browser acceptance gate remains pending; there is no public deployment.
+flow. The local browser acceptance gate is complete; there is no public deployment.
 
 ## Run the verified scenario
 
@@ -112,14 +112,14 @@ Limits include 100 providers, 100 policies, 1,000 coverages, 25,000 scanned bloc
 amount/count caps and fixed gas/fee ceilings bind the saved context. These are
 single-host controls, not production account-wide spending guarantees.
 
-## M12 console work in progress
+## Verified local console
 
 The active implementation packet is `planning/EVM_M12_PROTOCOL_CONSOLE.md`.
-M11 above is accepted. M12 typecheck, syntax and all29 tests pass, along with
-admin/provider browser writes and original-hash recovery. The final browser
-refund confirmation/accounting check is pending because automatic approval
-review requires a user handoff for that click, including on the local fixture.
-See `planning/EVM_M12_RESULTS.md`; M12 is not accepted yet.
+M11 and M12 are accepted. Typecheck, syntax and all29protocol tests pass. Native
+browser verification covers all four roles, explicit writes, payer refund and
+protected collateral, failure/unavailable states and original-hash recovery. The
+final refund was confirmed by the user through browser handoff and independently
+verified. See `planning/EVM_M12_RESULTS.md` and `evidence/m12-console-gate.json`.
 
 ```sh
 npm run console:check

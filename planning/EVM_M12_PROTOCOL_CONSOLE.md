@@ -1,14 +1,15 @@
 # M12 — local protocol console
 
-Date:2026-10-25. IN_PROGRESS under EVM-051 after M11 acceptance EVM-050 at
+Date:2026-10-25; accepted2026-10-26 under EVM-052. Implemented under EVM-051
+after M11 acceptance EVM-050 at
 51cf1ac. User authorizes local product continuation, Luna(high) delegation,
 primary verification, checkpoint commits and non-force main pushes. No public
 transaction, hosting, publication, existing wallet use or production login.
 
-Implementation and29tests pass. Browser verification is partial: final explicit
-refund/accounting proof awaits user handoff after automatic approval review
-rejected the Confirm action click, including after localhost/mock-token evidence.
-See EVM_M12_RESULTS.md. Do not accept this gate or start dependent implementation.
+Implementation,29tests and required native browser journeys pass. The user
+performed final refund confirmation; primary independently verified actual payer
+delta, protected locks, original-hash reconciliation, private clearing and normal
+fixture cleanup. Results: EVM_M12_RESULTS.md. This frozen packet records scope.
 
 ## Goal and scope
 

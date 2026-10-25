@@ -1,7 +1,7 @@
 {
   "phase": "M12",
-  "status": "IN_PROGRESS",
-  "accepted": false,
+  "status": "ACCEPTED",
+  "accepted": true,
   "localOnly": true,
   "tokenKind": "LOCAL_ERC3009_FIXTURE",
   "chainId": 84532,
@@ -19,7 +19,8 @@
     "desktopReviewed": true,
     "narrowWidthPx": 375,
     "narrowReviewed": true,
-    "repositoryScreenshotFiles": []
+    "repositoryScreenshotFiles": [],
+    "sanitizedFinalOverviewCapture": "Native CUA image retained in task tool result; repository PNG export unavailable through documented CUA APIs."
   },
   "browserProven": [
     "host-enrollment-and-cookie-resume",
@@ -35,34 +36,40 @@
     "provider-free-stake-withdrawals",
     "unknown-lock-across-reload",
     "same-original-hash-reconciliation-no-send",
-    "adjudicator-scoped-evidence-and-unsigned-review"
+    "adjudicator-scoped-evidence-and-unsigned-review",
+    "user-confirmed-pool-only-refund",
+    "actual-payer-delta-10003",
+    "other-coverage-lock-isolation",
+    "post-decision-private-clearing",
+    "post-decision-navigation-and-logout",
+    "confirmed-refund-read-only-reconciliation"
   ],
   "context": {
     "core": "0x7dcab24bfcc90faead435662fcb76eeb3911decd",
     "token": "0xe6951e672e169359027e97e4d08f50d1eb7ec234"
   },
   "lastActualState": {
-    "blockNumber": "28",
-    "blockHash": "0x894a8ed7475c1929db415e6af0266b177596d4d95b61967dcc6b1ad43e657fd1",
-    "coreAssetsAtomic": "66412",
+    "blockNumber": "29",
+    "blockHash": "0x00149e095c8f7ae0db0fbfba3a6cebd1a36b80fa5be1f7d952025a3eae72ff57",
+    "coreAssetsAtomic": "56409",
     "providerStake": "13858",
-    "poolAssets": "52554",
-    "lockedStake": "7004",
-    "poolReserved": "20006",
-    "activeCoverageCount": "2",
+    "poolAssets": "42551",
+    "lockedStake": "3502",
+    "poolReserved": "10003",
+    "activeCoverageCount": "1",
     "coverageCount": "2",
-    "payerBalanceAtomic": "119994",
+    "payerBalanceAtomic": "129997",
     "solvencyEquality": true,
     "allSolvencyChecks": true
   },
   "counters": {
-    "broadcasts": 9,
+    "broadcasts": 10,
     "payerAuthorizations": 2,
     "providerReceipts": 2,
     "relayerTransactions": 2,
     "adminTransactions": 4,
     "providerTransactions": 2,
-    "adjudicatorTransactions": 0,
+    "adjudicatorTransactions": 1,
     "serviceRequests": 2,
     "claimsFiled": 1
   },
@@ -73,20 +80,7 @@
     "additionalPaymentAuthorizations": 0,
     "additionalHandlers": 0
   },
-  "pending": [
-    "user-performed-final-refund-confirmation",
-    "actual-refund-payer-delta-and-other-locks",
-    "post-decision-private-clearing",
-    "final-sanitized-overview",
-    "normal-fixture-cleanup"
-  ],
-  "blocker": {
-    "code": "BROWSER_FINAL_ACTION_HANDOFF_REQUIRED",
-    "action": "adjudicator Confirm action",
-    "automaticReviewRejected": true,
-    "localFixtureEvidenceSubmitted": true,
-    "noAdjudicatorTransactionSent": true
-  },
+  "pending": [],
   "limits": {
     "publicNativeUsdcProof": false,
     "hostedAvailability": false,
@@ -103,7 +97,31 @@
     "adjudicatorReconciliationRecords": 0,
     "additionalBroadcasts": 0,
     "additionalAdjudicatorTransactions": 0,
-    "freshUnsignedReviewReady": true,
-    "finalConfirmPerformedByAgent": false
+    "finalConfirmPerformedByAgent": false,
+    "userConfirmedAfterFreshReview": true
+  },
+  "acceptanceDecision": "EVM-052",
+  "acceptedDate": "2026-10-26",
+  "handoffHistory": {
+    "code": "BROWSER_FINAL_ACTION_HANDOFF_REQUIRED",
+    "action": "adjudicator Confirm action",
+    "automaticReviewRejected": true,
+    "localFixtureEvidenceSubmitted": true,
+    "resolvedByUser": true
+  },
+  "refund": {
+    "operationId": "0xa9713363461b8ab2b79d95080a7ce3033ed0a159b2a2491ee7c1490d0476c4da",
+    "originalTransaction": "0xfbcb21c9640ac13947141fa5603048644d5e1026f83187c0791c33cf430474fe",
+    "status": "success",
+    "outcome": 2,
+    "refundAtomic": "10003",
+    "payerBalanceBeforeAtomic": "119994",
+    "payerBalanceAfterAtomic": "129997",
+    "confirmedBy": "USER_BROWSER_HANDOFF",
+    "additionalBroadcastsDuringReconciliation": 0
+  },
+  "cleanup": {
+    "normalFixtureExitCode": 0,
+    "ownedGuestConsoleTabClosed": true
   }
 }

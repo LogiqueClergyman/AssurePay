@@ -1203,3 +1203,32 @@ Use fresh local EVM/provider/client fixtures and supported real browser tooling
 for success/failure/approval/refund/recovery gates. No new frontend/browser
 dependency or public deployment is required. M13/M14 remain dependent phases;
 all existing public accounts/campaign state/budgets remain untouched.
+
+## EVM-052 — Local protocol console acceptance
+
+Status: ACCEPTED. Date:2026-10-26.
+
+Accept M12 under EVM-051. Buildless same-origin console shows canonical role-bound
+provider/admin/operator/adjudicator views, one host-armed local seat, unsigned
+reviews and explicit confirmation. Existing API-only behavior, financial schemas,
+SDK/Core/economics and public campaign state remain unchanged. No new dependency.
+
+Primary typecheck/syntax and29protocol tests pass. Native Chrome Guest journeys
+prove reads/pagination, unavailable clearing, session/role denial, expired/cancel
+no-send, actual admin/provider controls and unknown original-hash recovery without
+additional payment/signature/broadcast. User performed final PoolOnly10003refund
+confirmation after automatic browser handoff; primary verified original tx
+0xfbcb21c9640ac13947141fa5603048644d5e1026f83187c0791c33cf430474fe,
+block29/hash0x00149e095c8f7ae0db0fbfba3a6cebd1a36b80fa5be1f7d952025a3eae72ff57.
+Core56409=stake13858+pool42551; remaining locks3502/reserved10003, active/count1/2,
+payer129997(+10003), exactly10broadcasts/adjudicator1. Read-only reconciliation,
+private clearing, logout/no rearm and normal fixture cleanup pass. Independent
+Luna(high) review finds no scoped blocker. Sanitized overview image is retained
+in native CUA tool output; repository PNG export was unavailable. Results/report:
+planning/EVM_M12_RESULTS.md and packages/protocol-app/evidence/m12-console-gate.json.
+
+Local fixture proof does not establish public native-USDC/finality, production
+login/custody, hosting or global spending budgets. Old campaign allowances remain
+consumed. Next freeze M13's public-SDK consumer-app packet, resolving public
+provider separated-admin composition before dependent integration. M14 remains
+later; no consumer-app acceptance is inferred from the console.

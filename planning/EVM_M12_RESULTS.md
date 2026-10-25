@@ -1,8 +1,10 @@
-# M12 protocol console — verification checkpoint
+# M12 protocol console — accepted local gate
 
-Date:2026-10-25. IN_PROGRESS under EVM-051. M12 is **not accepted**. Implementation
-is complete; one required browser financial journey is pending user handoff.
-Public-only machine report: packages/protocol-app/evidence/m12-console-gate.json.
+Accepted2026-10-26 under EVM-052; implemented under EVM-051. All required local
+checks pass. Final refund confirmation was performed by the user; primary then
+verified the original transaction, payer delta, other coverage locks, private
+clearing, read-only reconciliation and cleanup. Public-only machine report:
+packages/protocol-app/evidence/m12-console-gate.json.
 
 ## Implementation and checks
 
@@ -42,7 +44,7 @@ the same anchor, unavailable RPC clearing all displayed panels, host-role views,
 logout/no automatic rearm and natural session expiry clearing authority. That
 fixture closed cleanly with only3seed broadcasts and zero console writes.
 
-A second fresh fixture remains live for the required final refund check:
+A second fresh fixture completed the final refund check and is now closed:
 Core0x7dcab24bfcc90faead435662fcb76eeb3911decd; locally deployed ERC3009 mock
 token0xe6951e672e169359027e97e4d08f50d1eb7ec234. Chain ID84532 identifies the
 local fixture configuration, not a public Base Sepolia connection. Source starts
@@ -65,9 +67,10 @@ Confirmed journeys on that second fixture:
 - Adjudicator reads scoped evidence and prepares an explicit Pool only(2),10003
   refund review. It shows the real actor/Core, frozen anchor, reason hash, fixed
   gas/fee limits and deferred decision commitment. An earlier unsigned preview
-  was canceled; no adjudicator transaction has been sent.
+  was canceled without a send. A later fresh review was confirmed by the user,
+  with the actual result recorded below.
 
-Latest actual block28, hash
+Pre-refund actual block28, hash
 0x894a8ed7475c1929db415e6af0266b177596d4d95b61967dcc6b1ad43e657fd1:
 Core66412=stake13858+pool52554; locked7004/reserved20006; active/count2/2;
 payer119994atomic test units. All three solvency booleans true. Exactly9broadcasts:
@@ -75,40 +78,54 @@ payer119994atomic test units. All three solvency booleans true. Exactly9broadcas
 Two payer payment authorizations,2provider receipts,2service handlers,1claim,
 zero adjudicator transactions. Same counters before/after recovery.
 
-## Pending gate and exact continuation
+## User handoff, confirmed refund and final state
 
-Automatic approval review rejected clicking Confirm action on the final refund,
-classifying it under the browser financial-action handoff rule. The rejection
-persisted after source evidence established the isolated localhost mock-token
-fixture. No workaround or alternate sender was used. The user must perform that
-final browser click; generic approval does not replace the required handoff.
+Automatic approval review required user handoff for the final Confirm action,
+even after source proof of the isolated mock-token Anvil. No alternate sender or
+workaround was used. On2026-10-26 the user first reported the generic operation-
+failed message. Host status showed block28/broadcasts9/adjudicator0; primary
+canceled the owned Guest's old unsigned review. Read-only reconciliation directly
+proved its30-minute session had expired. The exact cause of the user's generic
+message was not captured; it was not treated as an included transaction failure.
 
-The existing Chrome Guest review at http://127.0.0.1:58440 remains open. Current
-host is adjudicator. After the user confirms, inspect its actual result, read the
-host status and verify payer delta10003, Core56409=stake13858+pool42551, remaining
-lock3502/reserved10003, active/count1/2 and10broadcasts/adjudicator1. These are
-**expected values, not proven results**. If the preview/session expired, require
-a fresh explicit review; never infer failure from timeout or resend an unknown
-transaction. Verify private evidence/reason clearing after decision/navigation/
-logout, capture a sanitized final overview, then quit the fixture for cleanup.
+Host restarted only the adjudicator console on the same runtime/chain. Fresh
+session reconciliation returned no adjudicator operations; no resend/replacement.
+Primary prepared a fresh explicit Pool only(2)/10003review and the user clicked
+Confirm action. Browser returned finalizeClaim SUCCESS with original transaction
+0xfbcb21c9640ac13947141fa5603048644d5e1026f83187c0791c33cf430474fe,
+operation0xa9713363461b8ab2b79d95080a7ce3033ed0a159b2a2491ee7c1490d0476c4da,
+included at block29/hash
+0x00149e095c8f7ae0db0fbfba3a6cebd1a36b80fa5be1f7d952025a3eae72ff57.
 
-Only after those checks pass may M12 be accepted and M13 implementation start.
-M13 still needs a self-contained packet addressing the public provider SDK's
-admin=relayer composition constraint. M14 rehearsal remains later. Existing M5
-budgets are consumed; no public funding, hosting, publication or finality claim.
+Primary host status independently proved Core56409=stake13858+pool42551,
+locks3502/reserved10003, active/count1/2 and payer129997, up exactly10003from
+119994. Other coverage remains Active; claimed coverage shows Refunded. All three
+solvency booleans remain true. Exactly10broadcasts, adjudicatorTransactions1;
+all other counters unchanged from the pre-refund snapshot. No second payment,
+provider receipt or service handler occurred.
 
-## 2026-10-26 user-reported failure recovery
+Browser decision form/reason/evidence were absent after success. Navigation kept
+private content cleared. Explicit original-operation reconciliation returned the
+same refund SUCCESS, and a later host status proved unchanged block/balances/
+counters. Logout cleared authority/private fields and left enrollment disabled.
+Sanitized final overview image was captured/reviewed and retained in the native
+CUA tool result. Documented CUA APIs do not expose repository PNG export; no PNG
+file is claimed. Earlier desktop/375px captures were also visually reviewed.
 
-User reported the generic operation-failed/reconcile message after handoff.
-Primary host status remained at block28 with9broadcasts/adjudicator0 and unchanged
-payer/Core balances. The owned Guest window still had an old unsigned review;
-it was canceled without confirmation. A read-only reconcile request proved the
-old session had expired and cleared browser authority/private content.
+Normal host quit exited0, cleaning the temporary chain, fresh actors and private
+runtime state. Only the owned Guest console tab was closed. Independent Luna(high)
+review found no remaining scoped protocol/security blocker; primary closed its
+remaining evidence/cleanup checklist. Final typecheck, console syntax, report
+privacy/accounting and whitespace checks pass. Source is unchanged from29/29tests.
 
-Trusted host restarted only the adjudicator console on the SAME runtime/chain,
-then primary connected a fresh seat and explicitly reconciled. API/UI returned
-no managed adjudicator operations; no operation was resent or replaced. A fresh
-unsigned Pool only(2)/10003review is ready from the still-pending claim. The exact cause
-of the user's generic message was not captured; session expiry is directly
-observed, not an inferred included transaction failure. All previous transactions
-and balances remain preserved. Final confirmation still requires user handoff.
+## Limits and next phase
+
+This accepts local console evidence only: no public native-USDC/finality,
+production authentication/custody, hosting or publication. Existing M5budgets
+remain consumed and historical paused Cores/wallets stay untouched. Trusted local
+machine/RPC/storage remain assumptions; pre-broadcast stranding stays fail closed.
+
+M13 requires a self-contained consumer-app packet before dependent code, including
+the public provider SDK's current admin=relayer composition constraint. Preserve
+public client/agent approval and one-send recovery rather than adding another
+payment path. M14 unified launch/rehearsal/presentation remains a later gate.
